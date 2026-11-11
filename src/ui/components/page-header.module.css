@@ -27,7 +27,7 @@
   box-shadow: var(--shadow-sm);
 }
 
-.section + .section {
+:where(.section + .section) {
   margin-top: var(--space-5);
 }
 
