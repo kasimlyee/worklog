@@ -44,18 +44,26 @@ See [`docs/02-architecture.md`](docs/02-architecture.md) for the reasoning behin
 | [`docs/02-architecture.md`](docs/02-architecture.md) | Stack, layers, database schema, auth, exports, security |
 | [`docs/03-engineering-standards.md`](docs/03-engineering-standards.md) | Golden rules, TDD, TypeScript rules, testing, definition of done |
 | [`docs/04-delivery-phases.md`](docs/04-delivery-phases.md) | The four build phases with exit criteria |
+| [`docs/05-test-report.md`](docs/05-test-report.md) | Results of every suite and accepted exceptions |
+| [`docs/06-deployment.md`](docs/06-deployment.md) | Neon, GitHub and Netlify setup, step by step |
 
 ## Local setup
 
-Requires Node.js 22.12+ and Docker (for the local and test Postgres).
+Requires Node.js 24.2+ (see `.nvmrc`) and Docker. The Docker Postgres listens on **127.0.0.1:5433**, so it never clashes with a Postgres already installed on 5432.
 
 ```bash
-cp .env.example .env.local      # fill in the values
+cp .env.example .env.local      # fill in the values (see below)
 docker compose up -d            # local Postgres for dev and tests
 npm install
 npm run db:migrate
-npm run dev
+npm run dev                     # http://localhost:3000
 ```
+
+To sign in locally, create a GitHub OAuth App with callback `http://localhost:3000/auth/github/callback` and put its id and secret, plus your numeric GitHub user id, in `.env.local`. On `http://localhost` cookies are named `worklog_session` (not `__Host-session`) and are not `Secure`, so Safari works locally too; any https `APP_URL` always gets `__Host-` Secure cookies.
+
+Every screen can be seen with fixture data, without signing in, at `http://localhost:3000/preview` (development only; it returns 404 in production).
+
+Deploying: see [`docs/06-deployment.md`](docs/06-deployment.md).
 
 ## Scripts
 
@@ -63,17 +71,21 @@ npm run dev
 |---|---|
 | `dev` | Run the app locally |
 | `build` | Production build |
-| `typecheck` | `tsc --noEmit` across the whole project |
+| `typecheck` | CSS module types up to date, `next typegen`, `tsc --noEmit` |
 | `lint` | ESLint with type-aware rules, zero warnings allowed |
-| `test` | All Vitest tests (unit and integration) |
+| `test` | Unit, integration and component tests |
 | `test:unit` | Pure logic only, no database |
 | `test:integration` | Repository and service tests against real Postgres |
 | `test:ui` | Component tests in jsdom |
-| `test:coverage` | Vitest with coverage thresholds enforced |
-| `test:rules` | Fails if any `BR-xx` / `R-xx` rule in the spec has no test naming it |
-| `test:e2e` | Playwright end-to-end, Chromium |
+| `test:coverage` | `test` with coverage thresholds enforced |
+| `test:rules` | Fails if any `BR-xx` / `R-xx` rule has no test naming it (`--with-nf` adds `NF-xx`) |
+| `test:e2e` | Playwright end-to-end, Chromium (builds and starts the app on port 3100) |
 | `test:e2e:all` | Playwright on Chromium, Firefox, WebKit and a phone viewport |
+| `test:tz` | Unit + integration suites under four server time zones |
+| `test:perf` | Performance suite: 10,000 entries, NF-01…NF-03, index use (nightly) |
+| `test:bundle` | After `build`: fails if any secret could reach the browser (NF-06) |
+| `css:types` | Regenerate the `*.module.d.css.ts` files after editing a CSS module |
 | `check` | `typecheck` + `lint` + `test` — must pass before every commit |
 | `db:migrate` | Apply pending migrations |
 
-`npm run test` needs the integration test harness (`tests/setup/global-db.ts`, `tests/setup/worker-db.ts`), which is the first task of Phase 1. Until then, run `npm run test:unit` and `npm run test:ui`.
+Test results and accepted exceptions: [`docs/05-test-report.md`](docs/05-test-report.md).

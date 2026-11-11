@@ -533,3 +533,22 @@ All configuration is environment variables, parsed once with zod in `server/env.
 
 - Structured one-line JSON to stdout (Netlify collects it): level, event, duration, error code.
 - Never log secrets, tokens, cookies, or full request bodies.
+
+## 15. Implementation decisions
+
+Recorded during the build. Each one either fills a gap in the specs or adjusts a detail that did not survive contact with the real platform.
+
+| # | Decision | Why |
+|---|---|---|
+| D-1 | **Cookies on http://localhost are `worklog_session` / `worklog_oauth_state`, without `Secure`.** On https they are always `__Host-session` / `__Host-oauth_state` with `Secure`. `APP_URL` may only be plain http for `localhost` / `127.0.0.1` (validated in `env.ts`). | Safari refuses `Secure` cookies on http://localhost, which broke local use and WebKit E2E. Production cannot be configured insecurely. |
+| D-2 | **CSP `upgrade-insecure-requests` only when `APP_URL` is https.** | On http://localhost Safari upgrades the app's own CSS/JS to https and the page loads unstyled. |
+| D-3 | **Migration `0002`: `plan_items_completed_idx ON plan_items (project_id, completed_on) WHERE completed_on IS NOT NULL`.** Report queries test `status <> 'done'` / `status <> 'resolved'` (equivalent to the `IS NULL` forms by the CHECK constraints) so the partial indexes apply. | The Phase 4 `EXPLAIN` suite found report queries that no index could serve. |
+| D-4 | **BR-14 grace period:** a due date already passed but not yet overdue (due Friday, seen at the weekend) counts as *due soon*, labelled "Due yesterday" / "Was due 2 days ago". | Read literally, BR-14 leaves those items neither overdue nor due soon, and "on track" would be wrong. |
+| D-5 | **Note headings start at h3** (`# x` renders as `<h3>`). | A note's `#` heading otherwise became a second `<h1>` on the page (WCAG 1.3.1). |
+| D-6 | **U+0000 is removed from text input.** | Postgres cannot store it; a paste containing it caused a 500. |
+| D-7 | **Branded ids:** only `IsoDate` is branded. Entity ids are plain UUID strings, validated at every service boundary (`isUuid`) and always queried together with the project id. | Brands on every id added casts in every repository without catching anything the project-scoped queries and composite foreign keys do not already catch. |
+| D-8 | **Extra folders:** `server/http/` (framework-free Request→Response handlers: report export), `server/mappers/` (service output → view-models), `server/app-context.ts` (today, GitHub client, database handle for adapters), `app/_lib/loaders.ts` (project check and pickers, cached per request). Lint layer rules cover `server/http`. Server Actions may import `ui/view-models` types (their `FormState` contract) but not UI components. | Keeps `app/` and actions thin, as §3 intends. |
+| D-9 | **Pull requests screen** at `/projects/{id}/pull-requests` (add by link, refresh, delete when unused). | BR-24 (refresh) and BR-36 (delete PR) need a place in the UI that §6 did not name. |
+| D-10 | **CSS module types are generated** (`scripts/css-module-types.ts`, `allowArbitraryExtensions`) and checked in `typecheck`. | `noPropertyAccessFromIndexSignature` rejects `styles.x` on Next's loose typings; exact types also catch misspelt class names. No new dependency. |
+| D-11 | **The weekly report loads Monday–Sunday**; weekend entries appear only if they exist and are labelled "weekend work". Releases and resolved issues use the same range. | Product spec §7.3. |
+| D-12 | **"Still open and overdue" in a report is judged at the period end** (or today, if earlier), so a past report does not change when later work is done. | Reports are generated on demand, often after the period. |
