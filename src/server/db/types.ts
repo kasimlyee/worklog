@@ -1,4 +1,5 @@
 import type { ColumnType, Generated } from 'kysely';
+import type { IsoDate } from '#src/server/domain/calendar.ts';
 
 /*
  * Hand-written to match migrations (docs/02 §5.2). The schema contract test
@@ -6,7 +7,7 @@ import type { ColumnType, Generated } from 'kysely';
  */
 
 /** Postgres `date`, returned by our type parser as the raw `YYYY-MM-DD` string. */
-type DateColumn = string;
+type DateColumn = ColumnType<IsoDate, IsoDate | string, IsoDate | string>;
 type Timestamp = ColumnType<Date, Date | string | undefined, Date | string>;
 type CreatedAt = ColumnType<Date, Date | string | undefined, never>;
 
@@ -31,7 +32,7 @@ export type ProjectsTable = {
   description: Generated<string>;
   archivedAt: Timestamp | null;
   createdAt: CreatedAt;
-  updatedAt: Generated<Timestamp>;
+  updatedAt: Timestamp;
 };
 
 export type AreasTable = {
@@ -74,7 +75,7 @@ export type IssuesTable = {
   deadline: DateColumn;
   resolvedOn: DateColumn | null;
   createdAt: CreatedAt;
-  updatedAt: Generated<Timestamp>;
+  updatedAt: Timestamp;
 };
 
 export type IssueAssigneesTable = {
@@ -102,7 +103,7 @@ export type PlanItemsTable = {
   completedOn: DateColumn | null;
   position: Generated<number>;
   createdAt: CreatedAt;
-  updatedAt: Generated<Timestamp>;
+  updatedAt: Timestamp;
 };
 
 export type PlanItemAssigneesTable = {
@@ -130,7 +131,7 @@ export type EntriesTable = {
   planItemId: string | null;
   issueId: string | null;
   createdAt: CreatedAt;
-  updatedAt: Generated<Timestamp>;
+  updatedAt: Timestamp;
 };
 
 export type EntryPeopleTable = {
@@ -147,7 +148,7 @@ export type ReleasesTable = {
   releasedOn: DateColumn | null;
   notes: Generated<string>;
   createdAt: CreatedAt;
-  updatedAt: Generated<Timestamp>;
+  updatedAt: Timestamp;
 };
 
 export type ReleasePullRequestsTable = {
@@ -164,7 +165,7 @@ export type NotesTable = {
   title: string;
   body: Generated<string>;
   createdAt: CreatedAt;
-  updatedAt: Generated<Timestamp>;
+  updatedAt: Timestamp;
 };
 
 export type NoteLinksTable = {
@@ -180,7 +181,7 @@ export type ReportNotesTable = {
   kind: ReportKind;
   periodStart: DateColumn;
   body: string;
-  updatedAt: Generated<Timestamp>;
+  updatedAt: Timestamp;
 };
 
 export type Database = {
