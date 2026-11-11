@@ -44,7 +44,13 @@ jobs:
       - name: Non-functional rule coverage
         run: node scripts/check-rule-coverage.ts --with-nf
       - name: Install Playwright browsers
-        run: npx playwright install --with-deps
+        run: |
+          for attempt in 1 2 3; do
+            npx playwright install --with-deps && exit 0
+            echo "Install attempt ${attempt} failed; retrying in 20 s"
+            sleep 20
+          done
+          npx playwright install
       - name: Cross-browser and phone end-to-end
         run: npm run test:e2e:all
       - uses: actions/upload-artifact@v4

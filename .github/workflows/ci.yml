@@ -49,8 +49,16 @@ jobs:
       - run: npm run build
       # NF-06: nothing secret in what the browser downloads.
       - run: npm run test:bundle
+      # Ubuntu's package mirrors are occasionally unreachable from GitHub runners. Retry, then
+      # fall back to the browser alone: the runner image already has its system libraries.
       - name: Install Playwright browser
-        run: npx playwright install --with-deps chromium
+        run: |
+          for attempt in 1 2 3; do
+            npx playwright install --with-deps chromium && exit 0
+            echo "Install attempt ${attempt} failed; retrying in 20 s"
+            sleep 20
+          done
+          npx playwright install chromium
       - run: npm run test:e2e
       - uses: actions/upload-artifact@v4
         if: failure()
