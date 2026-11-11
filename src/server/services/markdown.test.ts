@@ -4,7 +4,7 @@ import { renderMarkdown } from './markdown.ts';
 describe('renderMarkdown', () => {
   it('renders ordinary Markdown', () => {
     expect(renderMarkdown('# Title\n\n- **one**\n- `two`')).toBe(
-      '<h1>Title</h1>\n<ul>\n<li><strong>one</strong></li>\n<li><code>two</code></li>\n</ul>\n',
+      '<h3>Title</h3>\n<ul>\n<li><strong>one</strong></li>\n<li><code>two</code></li>\n</ul>\n',
     );
   });
 
@@ -41,6 +41,10 @@ describe('renderMarkdown', () => {
 
   it('does not render images', () => {
     expect(renderMarkdown('![tracker](https://evil.example/pixel.png)')).not.toContain('<img');
+  });
+
+  it('nests note headings under the page: h1 becomes h3, never beyond h6', () => {
+    expect(renderMarkdown('# a\n\n##### e')).toBe('<h3>a</h3>\n<h6>e</h6>\n');
   });
 
   it('escapes quotes in link text and titles', () => {

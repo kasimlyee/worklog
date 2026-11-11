@@ -13,7 +13,7 @@ describe('notes', () => {
 
     const note = await getNote(testDb(), project.id, created.ok ? created.value.id : '');
     expect(note?.body).toBe('# Steps\n<script>alert(1)</script>');
-    expect(note?.bodyHtml).toBe('<h1>Steps</h1>\n<p>&lt;script&gt;alert(1)&lt;/script&gt;</p>\n');
+    expect(note?.bodyHtml).toBe('<h3>Steps</h3>\n<p>&lt;script&gt;alert(1)&lt;/script&gt;</p>\n');
   });
 
   it('BR-34: external links must be http(s); blank link rows are ignored', async () => {

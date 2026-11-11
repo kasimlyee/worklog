@@ -1,0 +1,23 @@
+import type { StatusVM } from './common.ts';
+import type { EntryVM } from './entries.ts';
+import type { IssueVM } from './issues.ts';
+import type { PlanItemVM } from './plans.ts';
+
+export type TrackedVM = {
+  readonly id: string;
+  readonly kind: 'plan_item' | 'issue';
+  readonly title: string;
+  readonly dueLabel: string;
+  readonly deadline: StatusVM;
+  readonly people: readonly string[];
+};
+
+export type DashboardVM = {
+  readonly todayLabel: string;
+  readonly urgent: readonly TrackedVM[];
+  readonly dueSoon: readonly TrackedVM[];
+  /** Null on a weekend: there are no day plans. */
+  readonly todaysPlan: readonly PlanItemVM[] | null;
+  readonly openIssues: readonly IssueVM[];
+  readonly recentEntries: readonly EntryVM[];
+};

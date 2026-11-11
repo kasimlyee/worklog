@@ -19,6 +19,19 @@ md.renderer.rules['link_open'] = (tokens, index, options, _env, self) => {
   return self.renderToken(tokens, index, options);
 };
 
+// Notes sit under the page's h1 and a section h2, so their headings start at h3 (WCAG 1.3.1).
+const headingShift = 2;
+for (const rule of ['heading_open', 'heading_close'] as const) {
+  md.renderer.rules[rule] = (tokens, index, options, _env, self) => {
+    const token = tokens[index];
+    if (token !== undefined) {
+      const level = Math.min(6, Number(token.tag.slice(1)) + headingShift);
+      token.tag = `h${String(level)}`;
+    }
+    return self.renderToken(tokens, index, options);
+  };
+}
+
 /** Safe HTML for a note. The only HTML the UI ever renders unescaped (docs/02 §11). */
 export function renderMarkdown(source: string): string {
   return md.render(source);

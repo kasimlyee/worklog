@@ -1,0 +1,396 @@
+import type { Pickers, PullRequestVM, StatusVM } from '#src/ui/view-models/common.ts';
+import type { DashboardVM } from '#src/ui/view-models/dashboard.ts';
+import type { EntryFormValues, EntryVM, LogVM } from '#src/ui/view-models/entries.ts';
+import type { IssueDetailVM, IssueVM } from '#src/ui/view-models/issues.ts';
+import type { NoteFormValues, NoteVM } from '#src/ui/view-models/notes.ts';
+import type { PlanItemDetailVM, PlanItemVM, PlansVM } from '#src/ui/view-models/plans.ts';
+import type { ReleaseDetailVM, ReleaseVM } from '#src/ui/view-models/releases.ts';
+import type { ReportModelVM, ReportsVM } from '#src/ui/view-models/reports.ts';
+import type { PersonVM, PullRequestRowVM, SettingsVM } from '#src/ui/view-models/settings.ts';
+import type { ProjectHeaderVM, ProjectSummaryVM } from '#src/ui/view-models/shell.ts';
+
+/* Realistic view-models for every screen state: empty, normal, long text, many items, every status. */
+
+export const projectId = '11111111-1111-4111-8111-111111111111';
+export const today = '2026-11-10';
+
+const status = (tone: StatusVM['tone'], label: string): StatusVM => ({ tone, label });
+
+export const statuses = {
+  merged: status('success', 'Merged'),
+  open: status('neutral', 'Open'),
+  closed: status('danger', 'Closed'),
+  planned: status('neutral', 'Planned'),
+  inProgress: status('warning', 'In progress'),
+  done: status('success', 'Done'),
+  blocked: status('danger', 'Blocked'),
+  overdue: status('danger', '3 days overdue'),
+  dueSoon: status('warning', 'Due tomorrow'),
+  onTrack: status('neutral', 'Due in 6 days'),
+  onTime: status('success', 'Resolved on time'),
+  late: status('danger', 'Resolved 2 days late'),
+  released: status('success', 'Released'),
+} as const;
+
+export const longText =
+  'Reworked the invoice export so that very long customer names, multi-line addresses and unusual characters like Łódź, Zoë and 中文 wrap correctly instead of overflowing the table and pushing the totals column off the printed page';
+
+export const pickers: Pickers = {
+  areas: [
+    { value: 'a1', label: 'Frontend' },
+    { value: 'a2', label: 'Backend' },
+    { value: 'a3', label: 'Mobile' },
+  ],
+  people: [
+    { value: 'p1', label: 'Ali' },
+    { value: 'p2', label: 'Grace' },
+    { value: 'p3', label: 'Wanjiru' },
+  ],
+  planItems: [{ value: 'i1', label: 'Ship login (due Thu 12 Nov)' }],
+  issues: [{ value: 's1', label: 'Crash on save' }],
+  pullRequests: [{ value: 'pr12', label: 'app #12 Add login' }],
+  releases: [{ value: 'r1', label: '1.4.0' }],
+};
+
+export const emptyPickers: Pickers = { areas: [], people: [], planItems: [], issues: [], pullRequests: [], releases: [] };
+
+export const pullRequest: PullRequestVM = {
+  id: 'pr12',
+  number: 12,
+  repo: 'app',
+  title: 'Add login',
+  url: 'https://github.com/acme/app/pull/12',
+  state: statuses.merged,
+};
+
+const loginEntry: EntryVM = {
+  id: 'e1',
+  date: '2026-11-10',
+  dateLabel: 'Tue 10 Nov',
+  isWeekend: false,
+  description: 'Wired the login form to the session API',
+  area: 'Frontend',
+  people: ['Ali', 'Grace'],
+  pullRequest,
+  planItem: 'Ship login',
+  issue: null,
+};
+const weekendEntry: EntryVM = {
+  id: 'e2',
+  date: '2026-11-08',
+  dateLabel: 'Sun 8 Nov',
+  isWeekend: true,
+  description: 'Hotfix for the payment webhook',
+  area: null,
+  people: ['Wanjiru'],
+  pullRequest: null,
+  planItem: null,
+  issue: 'Crash on save',
+};
+const longEntry: EntryVM = {
+  id: 'e3',
+  date: '2026-11-06',
+  dateLabel: 'Fri 6 Nov',
+  isWeekend: false,
+  description: longText,
+  area: 'Backend',
+  people: ['Grace'],
+  pullRequest: { ...pullRequest, id: 'pr13', number: 13, title: 'Experiment: new cache', state: statuses.closed },
+  planItem: null,
+  issue: null,
+};
+
+export const entries: readonly EntryVM[] = [loginEntry, weekendEntry, longEntry];
+
+const shipLogin: PlanItemVM = {
+  id: 'i1',
+  title: 'Ship login',
+  status: 'in_progress',
+  statusTag: statuses.inProgress,
+  dueDate: '2026-11-12',
+  dueLabel: 'Due Thu 12 Nov',
+  deadline: statuses.onTrack,
+  area: 'Frontend',
+  assignees: ['Ali', 'Grace'],
+  issue: null,
+  moves: [],
+};
+const billing: PlanItemVM = {
+  id: 'i2',
+  title: 'Migrate billing tables',
+  status: 'blocked',
+  statusTag: statuses.blocked,
+  dueDate: '2026-11-06',
+  dueLabel: 'Due Fri 6 Nov',
+  deadline: statuses.overdue,
+  area: 'Backend',
+  assignees: ['Wanjiru'],
+  issue: 'Crash on save',
+  moves: [{ fromLabel: 'Wed 4 Nov', toLabel: 'Fri 6 Nov', whenLabel: '4 Nov 2026' }],
+};
+const releaseNotes: PlanItemVM = {
+  id: 'i3',
+  title: 'Write release notes',
+  status: 'done',
+  statusTag: statuses.done,
+  dueDate: '2026-11-10',
+  dueLabel: 'Due Tue 10 Nov',
+  deadline: null,
+  area: null,
+  assignees: [],
+  issue: null,
+  moves: [],
+};
+const onboarding: PlanItemVM = {
+  id: 'i4',
+  title: 'Review the onboarding copy',
+  status: 'planned',
+  statusTag: statuses.planned,
+  dueDate: '2026-11-11',
+  dueLabel: 'Due Wed 11 Nov',
+  deadline: statuses.dueSoon,
+  area: 'Mobile',
+  assignees: ['Ali'],
+  issue: null,
+  moves: [],
+};
+
+export const planItems: readonly PlanItemVM[] = [shipLogin, billing, releaseNotes, onboarding];
+
+const crash: IssueVM = {
+  id: 's1',
+  title: 'Crash on save',
+  externalUrl: 'https://jira.example.com/browse/APP-12',
+  area: 'Mobile',
+  assignees: ['Grace'],
+  status: 'open',
+  statusTag: statuses.open,
+  assignedLabel: '2 Nov 2026',
+  deadlineLabel: '6 Nov 2026',
+  deadline: statuses.overdue,
+  resolvedOnLabel: null,
+  resolvedBy: null,
+};
+const slowQuery: IssueVM = {
+  id: 's2',
+  title: 'Slow dashboard query',
+  externalUrl: null,
+  area: null,
+  assignees: ['Ali', 'Wanjiru'],
+  status: 'in_progress',
+  statusTag: statuses.inProgress,
+  assignedLabel: '9 Nov 2026',
+  deadlineLabel: '11 Nov 2026',
+  deadline: statuses.dueSoon,
+  resolvedOnLabel: null,
+  resolvedBy: null,
+};
+const typo: IssueVM = {
+  id: 's3',
+  title: 'Typo on invoice',
+  externalUrl: null,
+  area: 'Frontend',
+  assignees: ['Grace'],
+  status: 'resolved',
+  statusTag: status('success', 'Resolved'),
+  assignedLabel: '1 Nov 2026',
+  deadlineLabel: '3 Nov 2026',
+  deadline: statuses.late,
+  resolvedOnLabel: '5 Nov 2026',
+  resolvedBy: pullRequest,
+};
+
+export const issues: readonly IssueVM[] = [crash, slowQuery, typo];
+
+export const projects: readonly ProjectSummaryVM[] = [
+  { id: projectId, name: 'Atlas', description: 'Field service app', overdueCount: 3 },
+  { id: '22222222-2222-4222-8222-222222222222', name: 'Borealis', description: '', overdueCount: 0 },
+];
+
+export const projectHeader: ProjectHeaderVM = { id: projectId, name: 'Atlas', isArchived: false, overdueCount: 3 };
+
+export const dashboard: DashboardVM = {
+  todayLabel: 'Tuesday 10 Nov 2026',
+  urgent: [
+    { id: 's1', kind: 'issue', title: 'Crash on save', dueLabel: 'Deadline 6 Nov', deadline: statuses.overdue, people: ['Grace'] },
+    { id: 'i2', kind: 'plan_item', title: 'Migrate billing tables', dueLabel: 'Due Fri 6 Nov', deadline: statuses.overdue, people: ['Wanjiru'] },
+  ],
+  dueSoon: [{ id: 'i4', kind: 'plan_item', title: 'Review the onboarding copy', dueLabel: 'Due Wed 11 Nov', deadline: statuses.dueSoon, people: ['Ali'] }],
+  todaysPlan: [releaseNotes, shipLogin],
+  openIssues: [crash, slowQuery],
+  recentEntries: entries,
+};
+
+export const emptyDashboard: DashboardVM = { todayLabel: 'Saturday 14 Nov 2026', urgent: [], dueSoon: [], todaysPlan: null, openIssues: [], recentEntries: [] };
+
+export const plans: PlansVM = {
+  horizon: 'week',
+  label: 'Week of 9–13 Nov 2026',
+  periodStart: '2026-11-09',
+  periodEnd: '2026-11-13',
+  previousQuery: 'horizon=week&date=2026-11-02',
+  nextQuery: 'horizon=week&date=2026-11-16',
+  currentQuery: 'horizon=week&date=2026-11-10',
+  canAdd: true,
+  defaultDueDate: '2026-11-13',
+  items: planItems,
+};
+
+export const weekendDayPlan: PlansVM = {
+  ...plans,
+  horizon: 'day',
+  label: 'Saturday 14 Nov 2026',
+  periodStart: '2026-11-14',
+  periodEnd: '2026-11-14',
+  canAdd: false,
+  items: [],
+};
+
+export const planItemDetail: PlanItemDetailVM = {
+  ...billing,
+  horizon: 'week',
+  planLabel: 'Week of 2–6 Nov 2026',
+  form: { title: 'Migrate billing tables', areaId: 'a2', issueId: 's1', personIds: ['p3'] },
+};
+
+export const log: LogVM = {
+  days: [
+    { date: '2026-11-10', label: 'Tuesday 10 Nov 2026', isWeekend: false, entries: [loginEntry] },
+    { date: '2026-11-08', label: 'Sunday 8 Nov 2026', isWeekend: true, entries: [weekendEntry] },
+    { date: '2026-11-06', label: 'Friday 6 Nov 2026', isWeekend: false, entries: [longEntry] },
+  ],
+  filters: { areaId: '', personId: '', pullRequestId: '' },
+  isFiltered: false,
+  nextPageQuery: 'cursor=abc',
+};
+
+export const emptyLog: LogVM = { days: [], filters: { areaId: 'a1', personId: '', pullRequestId: '' }, isFiltered: true, nextPageQuery: null };
+
+export const entryValues: EntryFormValues = {
+  workDate: '2026-11-10',
+  description: 'Wired the login form to the session API',
+  areaId: 'a1',
+  personIds: ['p1', 'p2'],
+  prUrl: 'https://github.com/acme/app/pull/12',
+  planItemId: 'i1',
+  issueId: '',
+};
+
+export const issueDetail: IssueDetailVM = {
+  ...crash,
+  form: { title: 'Crash on save', externalUrl: 'https://jira.example.com/browse/APP-12', areaId: 'a3', personIds: ['p2'], assignedOn: '2026-11-02', deadline: '2026-11-06' },
+};
+
+export const resolvedIssueDetail: IssueDetailVM = { ...issueDetail, ...(issues[2] ?? issues[0]) };
+
+const nextRelease: ReleaseVM = { id: 'r2', version: '1.5.0', status: statuses.planned, targetLabel: '20 Nov 2026', releasedLabel: null, notesHtml: '', pullRequests: [] };
+const shipped: ReleaseVM = {
+  id: 'r1',
+  version: '1.4.0',
+  status: statuses.released,
+  targetLabel: '10 Nov 2026',
+  releasedLabel: '12 Nov 2026',
+  notesHtml: '<p><strong>Highlights</strong>: sign-in with GitHub.</p>\n',
+  pullRequests: [pullRequest],
+};
+
+export const releases: readonly ReleaseVM[] = [nextRelease, shipped];
+
+export const releaseDetail: ReleaseDetailVM = {
+  ...shipped,
+  form: { version: '1.4.0', status: 'released', targetDate: '2026-11-10', releasedOn: '2026-11-12', notes: '**Highlights**: sign-in with GitHub.', pullRequestIds: ['pr12'] },
+  attachedNotes: [{ id: 'n1', title: 'Rollout checklist' }],
+};
+
+export const notes: readonly NoteVM[] = [
+  {
+    id: 'n1',
+    title: 'Rollout checklist',
+    bodyHtml: '<h3>Steps</h3>\n<p>&lt;script&gt;alert(1)&lt;/script&gt;</p>\n<ul>\n<li>Back up the database</li>\n</ul>\n',
+    updatedLabel: '9 Nov 2026',
+    release: { id: 'r1', version: '1.4.0' },
+    pullRequest,
+    links: [{ label: 'Runbook', url: 'https://docs.example.com/runbook' }],
+  },
+];
+
+export const noteValues: NoteFormValues = {
+  title: 'Rollout checklist',
+  body: '# Steps\n\n- Back up the database',
+  releaseId: 'r1',
+  pullRequestId: '',
+  links: [{ label: 'Runbook', url: 'https://docs.example.com/runbook' }],
+};
+
+export const reportModel: ReportModelVM = {
+  projectName: 'Atlas',
+  typeLabel: 'Weekly report',
+  periodLabel: 'Week of 9–13 Nov 2026',
+  author: 'Kasim',
+  generatedLabel: '20 Nov 2026',
+  note: 'Short week: public holiday on Friday.',
+  sections: [
+    {
+      title: 'Summary',
+      summary: [
+        { label: 'Entries', value: 4 },
+        { label: 'PRs touched', value: 2 },
+      ],
+      groups: [],
+    },
+    {
+      title: 'Work done',
+      summary: [],
+      groups: [
+        {
+          title: 'Frontend',
+          lines: [{ text: '#12 Add login', tags: [statuses.merged], detail: '2 entries', people: ['Ali', 'Grace'], children: [] }],
+        },
+        {
+          title: 'General',
+          lines: [{ text: 'Hotfix on Saturday', tags: [], detail: 'Sat 14 Nov · weekend work', people: ['Wanjiru'], children: [] }],
+        },
+      ],
+    },
+  ],
+};
+
+export const reports: ReportsVM = {
+  kind: 'weekly',
+  start: '2026-11-09',
+  previousQuery: 'kind=weekly&date=2026-11-02',
+  nextQuery: 'kind=weekly&date=2026-11-16',
+  pdfHref: `/projects/${projectId}/reports/export?kind=weekly&start=2026-11-09&format=pdf`,
+  markdownHref: `/projects/${projectId}/reports/export?kind=weekly&start=2026-11-09&format=md`,
+  note: 'Short week: public holiday on Friday.',
+  model: reportModel,
+};
+
+export const emptyReports: ReportsVM = { ...reports, note: '', model: { ...reportModel, note: null, sections: [] } };
+
+export const settings: SettingsVM = {
+  project: { id: projectId, name: 'Atlas', description: 'Field service app', isArchived: false },
+  areas: [
+    { id: 'a1', name: 'Frontend', isArchived: false },
+    { id: 'a2', name: 'Backend', isArchived: false },
+    { id: 'a3', name: 'Mobile', isArchived: false },
+    { id: 'a4', name: 'Legacy', isArchived: true },
+  ],
+};
+
+export const people: readonly PersonVM[] = [
+  { id: 'p1', name: 'Ali', isArchived: false },
+  { id: 'p2', name: 'Grace', isArchived: false },
+  { id: 'p9', name: 'Former Dev', isArchived: true },
+];
+
+export const pullRequestRows: readonly PullRequestRowVM[] = [
+  { ...pullRequest, owner: 'acme' },
+  { ...pullRequest, id: 'pr14', number: 14, title: 'Error states', state: statuses.open, owner: 'acme' },
+];
+
+export const manyEntries: readonly EntryVM[] = Array.from({ length: 60 }, (_, index) => ({
+  ...loginEntry,
+  id: `many-${String(index)}`,
+  description: `Entry ${String(index + 1)}`,
+}));

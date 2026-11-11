@@ -1,0 +1,33 @@
+.nav {
+  overflow-x: auto;
+  margin-bottom: var(--space-5);
+  border-bottom: 1px solid var(--border);
+}
+
+.nav ul {
+  display: flex;
+  gap: var(--space-1);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.nav a {
+  display: block;
+  padding: var(--space-2) var(--space-3);
+  color: var(--text-muted);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: var(--text-sm);
+  border-bottom: 3px solid transparent;
+  white-space: nowrap;
+}
+
+.nav a:hover {
+  color: var(--text);
+}
+
+.nav a[aria-current='page'] {
+  color: var(--text);
+  border-bottom-color: var(--accent);
+}
