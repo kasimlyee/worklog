@@ -16,7 +16,7 @@ concurrency:
 jobs:
   check:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 40
     services:
       postgres:
         image: postgres:17-alpine
@@ -30,11 +30,13 @@ jobs:
           --health-interval 2s --health-timeout 3s --health-retries 20
     env:
       TEST_DATABASE_URL: postgres://worklog:worklog@localhost:5432/worklog
+      E2E_DATABASE_URL: postgres://worklog:worklog@localhost:5432/worklog_e2e
+      NEXT_TELEMETRY_DISABLED: '1'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version-file: .nvmrc
           cache: npm
       - run: npm ci
       - run: npm run typecheck
@@ -45,14 +47,11 @@ jobs:
       - run: npm run test:coverage
       - run: npm run test:rules
       - run: npm run build
-        env:
-          # The build never connects to anything; env() is read lazily at request time.
-          NEXT_TELEMETRY_DISABLED: '1'
+      # NF-06: nothing secret in what the browser downloads.
+      - run: npm run test:bundle
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
-        env:
-          E2E_DATABASE_URL: postgres://worklog:worklog@localhost:5432/worklog_e2e
       - uses: actions/upload-artifact@v4
         if: failure()
         with:

@@ -1,0 +1,55 @@
+# docs/04 §4: the slower suites — performance, audit, cross-browser, time zones.
+name: Nightly
+
+on:
+  schedule:
+    - cron: '0 1 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  nightly:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: worklog
+          POSTGRES_PASSWORD: worklog
+          POSTGRES_DB: worklog
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U worklog -d worklog"
+          --health-interval 2s --health-timeout 3s --health-retries 20
+    env:
+      TEST_DATABASE_URL: postgres://worklog:worklog@localhost:5432/worklog
+      E2E_DATABASE_URL: postgres://worklog:worklog@localhost:5432/worklog_e2e
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: Production dependency audit (no high or critical findings)
+        run: npm audit --omit=dev --audit-level=high
+      - name: Time-zone suite
+        run: npm run test:tz
+      - name: Performance suite (NF-01…NF-03, index use)
+        run: npm run test:perf
+      - name: Non-functional rule coverage
+        run: node scripts/check-rule-coverage.ts --with-nf
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
+      - name: Cross-browser and phone end-to-end
+        run: npm run test:e2e:all
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report-nightly
+          path: playwright-report/
+          retention-days: 14
