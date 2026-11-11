@@ -16,11 +16,11 @@
     "start": "next start",
     "typecheck": "node scripts/css-module-types.ts --check && next typegen && tsc --noEmit",
     "lint": "eslint . --max-warnings=0",
-    "test": "vitest run",
+    "test": "vitest run --project unit --project integration --project ui",
     "test:unit": "vitest run --project unit",
     "test:integration": "vitest run --project integration",
     "test:ui": "vitest run --project ui",
-    "test:coverage": "vitest run --coverage",
+    "test:coverage": "vitest run --project unit --project integration --project ui --coverage",
     "test:watch": "vitest",
     "test:rules": "node scripts/check-rule-coverage.ts",
     "test:e2e": "NODE_OPTIONS=--conditions=react-server playwright test --project=chromium",
@@ -29,7 +29,8 @@
     "db:migrate": "node --conditions=react-server --env-file-if-exists=.env.local scripts/migrate.ts",
     "css:types": "node scripts/css-module-types.ts",
     "test:tz": "bash scripts/test-time-zones.sh",
-    "test:bundle": "node scripts/scan-client-bundle.ts"
+    "test:bundle": "node scripts/scan-client-bundle.ts",
+    "test:perf": "vitest run --project perf"
   },
   "dependencies": {
     "kysely": "0.29.8",

@@ -62,10 +62,12 @@ export async function selectReportPlanItems(db: Db, projectId: string, query: It
           ]);
         case 'open_overdue':
           // Unfinished as of `asOf` (done later, or not at all) and past the overdue cutoff.
+          // `status <> 'done'` equals `completed_on IS NULL` (CHECK constraint) and matches the
+          // partial index; the other branch uses plan_items_completed_idx.
           return eb.and([
             project,
             eb('pi.dueDate', '<', query.dueBefore),
-            eb.or([eb('pi.completedOn', 'is', null), eb('pi.completedOn', '>', query.asOf)]),
+            eb.or([eb('pi.status', '<>', 'done'), eb('pi.completedOn', '>', query.asOf)]),
           ]);
         case 'completed':
           return eb.and([
@@ -131,10 +133,10 @@ export async function selectReportIssues(
     .where((eb) =>
       eb.or([
         eb.and([eb('i.resolvedOn', '>=', range.from), eb('i.resolvedOn', '<=', range.to)]),
-        eb.and([
-          eb('i.deadline', '<', overdue.deadlineBefore),
-          eb.or([eb('i.resolvedOn', 'is', null), eb('i.resolvedOn', '>', overdue.asOf)]),
-        ]),
+        // `status <> 'resolved'` equals `resolved_on IS NULL` (CHECK constraint) and matches
+        // the partial index issues_open_deadline_idx.
+        eb.and([eb('i.status', '<>', 'resolved'), eb('i.deadline', '<', overdue.deadlineBefore)]),
+        eb.and([eb('i.resolvedOn', '>', overdue.asOf), eb('i.deadline', '<', overdue.deadlineBefore)]),
       ]),
     )
     .orderBy('i.deadline')

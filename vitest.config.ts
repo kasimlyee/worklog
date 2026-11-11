@@ -38,6 +38,18 @@ export default defineConfig({
         },
       },
       {
+        // docs/04 §4.5, nightly: large seeded data, timing targets and query plans.
+        extends: true,
+        test: {
+          name: 'perf',
+          environment: 'node',
+          include: ['src/**/*.perf.test.ts'],
+          globalSetup: ['tests/setup/global-db.ts'],
+          setupFiles: ['tests/setup/perf-db.ts'],
+          testTimeout: 60_000,
+        },
+      },
+      {
         extends: true,
         test: {
           name: 'ui',
@@ -54,6 +66,7 @@ export default defineConfig({
         '**/*.test.ts',
         '**/*.int.test.ts',
         '**/*.ui.test.tsx',
+        '**/*.perf.test.ts',
         'src/app/**',
         'src/proxy.ts',
         'src/ui/fixtures/**',
