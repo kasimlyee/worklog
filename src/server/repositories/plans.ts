@@ -151,6 +151,11 @@ export type PlanItemValues = {
   readonly issueId: string | null;
 };
 
+/** The item of this plan that works on this issue, if any (BR-38: no duplicates). */
+export async function selectPlanItemForIssue(db: Db, planId: string, issueId: string): Promise<{ readonly id: string } | undefined> {
+  return await db.selectFrom('planItems').select('id').where('planId', '=', planId).where('issueId', '=', issueId).executeTakeFirst();
+}
+
 export async function insertPlanItem(
   db: Db,
   projectId: string,

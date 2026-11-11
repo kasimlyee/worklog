@@ -89,7 +89,7 @@ describe('project switcher', () => {
 
 describe('dashboard', () => {
   it('BR-13: urgent lists overdue items in red, with their labels', () => {
-    render(<DashboardScreen projectId={f.projectId} vm={f.dashboard} setStatus={plainAction} />);
+    render(<DashboardScreen projectId={f.projectId} vm={f.dashboard} setStatus={plainAction} planToday={plainAction} />);
 
     const urgent = screen.getByRole('region', { name: 'Urgent' });
     expect(within(urgent).getAllByRole('link').map((link) => link.textContent)).toEqual(['Crash on save', 'Migrate billing tables']);
@@ -98,13 +98,13 @@ describe('dashboard', () => {
   });
 
   it('BR-14: due soon is yellow', () => {
-    render(<DashboardScreen projectId={f.projectId} vm={f.dashboard} setStatus={plainAction} />);
+    render(<DashboardScreen projectId={f.projectId} vm={f.dashboard} setStatus={plainAction} planToday={plainAction} />);
 
     expect(tagsIn(screen.getByRole('region', { name: 'Due soon' }))).toEqual(['warning:Due tomorrow']);
   });
 
   it('shows every section’s empty state, and the weekend message instead of today’s plan', () => {
-    render(<DashboardScreen projectId={f.projectId} vm={f.emptyDashboard} setStatus={plainAction} />);
+    render(<DashboardScreen projectId={f.projectId} vm={f.emptyDashboard} setStatus={plainAction} planToday={plainAction} />);
 
     for (const message of ['Nothing overdue.', 'Nothing due today or on the next working day.', 'It is the weekend: there is no day plan today.', 'No issues.', 'No work logged yet.']) {
       expect(screen.getByText(message)).toBeDefined();

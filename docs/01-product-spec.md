@@ -127,6 +127,8 @@ These are deliberate. A feature request that falls here needs this document chan
   - Colours: `urgent` red, `high` yellow, `medium` and `low` neutral — always with the text label.
   - Reports show the priority of `high` and `urgent` issues next to the issue.
 
+- **BR-38** An unresolved issue can be put on *today's* day plan — by dragging it onto Today's plan on the dashboard, or with a "Plan today" button (keyboard and touch). This creates a plan item due today, linked to the issue (BR-12), with the issue's title, area and assignees. An `open` issue becomes `in_progress`. An issue already on today's plan is not added twice. There is no day plan at the weekend (BR-08), so nothing is added then.
+
 ### 4.7 Releases and notes
 
 - **BR-32** A release has a version (unique within the project), a status (`planned` or `released`), a target date, a released date (required when `released`), notes in Markdown and zero or more linked PRs.
@@ -155,7 +157,7 @@ Colours are semantic and identical in the UI and in PDF exports. Colour is never
 |---|---|
 | **Sign in** | One "Sign in with GitHub" button. |
 | **Project switcher** | All active projects. Each shows a red count of overdue items + issues if any. |
-| **Project dashboard** | Urgent (overdue plan items and issues, oldest first) · Due soon · Today's plan · Open issues by deadline · Recent entries. |
+| **Project dashboard** | Urgent (overdue plan items and issues, oldest first) · Due soon · Today's plan (issues can be dragged onto it, BR-38) · Open issues by deadline · Recent entries. |
 | **Plans** | Day / week / month view; create items; change status; move (carry-over) with history visible. |
 | **Log** | Entries by date, newest first; quick-add form; filter by area, person, PR. |
 | **Quick log** | Reachable from every project page. Fields: date (default today), description, area, people, PR URL, plan item, issue. Submits with keyboard only. |

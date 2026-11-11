@@ -55,6 +55,13 @@
 
 .tableWrap {
   overflow-x: auto;
+  /* Contains the absolutely positioned screen-reader labels inside cells; without it
+     they escape the scroll box and widen the page on phones. */
+  position: relative;
+}
+
+.tableWrap td:first-child {
+  min-width: 11rem;
 }
 
 .dayHeading {

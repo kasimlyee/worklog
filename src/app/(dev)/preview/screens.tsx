@@ -28,11 +28,11 @@ export const screens: Readonly<Record<string, Preview>> = {
       <>
         <ProjectHeader project={f.projectHeader} />
         <QuickLog action={form} pickers={f.pickers} today={f.today} />
-        <DashboardScreen projectId={id} vm={f.dashboard} setStatus={plain} />
+        <DashboardScreen projectId={id} vm={f.dashboard} setStatus={plain} planToday={plain} />
       </>
     ),
   },
-  'dashboard-empty': { element: <DashboardScreen projectId={id} vm={f.emptyDashboard} setStatus={plain} /> },
+  'dashboard-empty': { element: <DashboardScreen projectId={id} vm={f.emptyDashboard} setStatus={plain} planToday={plain} /> },
   plans: { element: <PlansScreen projectId={id} vm={f.plans} pickers={f.pickers} createItem={form} setStatus={plain} /> },
   'plans-weekend': { element: <PlansScreen projectId={id} vm={f.weekendDayPlan} pickers={f.pickers} createItem={form} setStatus={plain} /> },
   'plan-item': {

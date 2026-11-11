@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
 import { appDatabase, appToday } from '#src/server/app-context.ts';
+import { planIssueTodayAction } from '#src/server/actions/plans.ts';
+import { isWorkingDay } from '#src/server/domain/calendar.ts';
 import { requireSession } from '#src/server/auth/next-session.ts';
 import { arrangeIssues, toIssueVM } from '#src/server/mappers/view-models.ts';
 import { issuePriorities, listIssues } from '#src/server/services/issues.ts';
@@ -27,6 +29,7 @@ export default async function IssuesPage({ params, searchParams }: PageProps<'/p
       open={issues.filter((issue) => issue.status !== 'resolved')}
       resolved={issues.filter((issue) => issue.status === 'resolved')}
       controls={{ priority: priority ?? '', sortBy }}
+      {...(isWorkingDay(appToday()) ? { planToday: planIssueTodayAction.bind(null, project.id) } : {})}
     />
   );
 }

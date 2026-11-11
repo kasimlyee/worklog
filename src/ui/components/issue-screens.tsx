@@ -57,11 +57,14 @@ export function IssuesScreen({
   open,
   resolved,
   controls = { priority: '', sortBy: 'deadline' },
+  planToday,
 }: {
   readonly projectId: string;
   readonly open: readonly IssueVM[];
   readonly resolved: readonly IssueVM[];
   readonly controls?: IssueListControls;
+  /** BR-38: absent at the weekend. */
+  readonly planToday?: PlainAction;
 }): React.JSX.Element {
   return (
     <div>
@@ -76,7 +79,7 @@ export function IssuesScreen({
       />
       <IssueControls projectId={projectId} controls={controls} />
       <Section title="Open">
-        <IssueTable issues={open} projectId={projectId} caption="Open issues by deadline" />
+        <IssueTable issues={open} projectId={projectId} caption="Open issues by deadline" {...(planToday === undefined ? {} : { planToday })} />
       </Section>
       <Section title="Resolved">
         <IssueTable issues={resolved} projectId={projectId} caption="Resolved issues" />

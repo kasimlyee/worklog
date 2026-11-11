@@ -20,4 +20,4 @@ export function workingDayThisWeek(): IsoDate {
   return isWorkingDay(today) ? today : addDays(weekStart(today), 4);
 }
 
-export { addDays, nextWorkingDay, weekStart };
+export { addDays, isWorkingDay, nextWorkingDay, weekStart };

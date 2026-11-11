@@ -9,6 +9,7 @@ import { PageHeader, Section } from './page-header.tsx';
 import { PersonList } from './person-list.tsx';
 import { PlanItemList } from './plan-item-list.tsx';
 import { DeadlineLabel, StatusTag } from './status-tag.tsx';
+import { TodayDropZone } from './plan-today.tsx';
 import styles from './lists.module.css';
 
 function TrackedList({ items, projectId, empty }: { readonly items: readonly TrackedVM[]; readonly projectId: string; readonly empty: string }): React.JSX.Element {
@@ -42,10 +43,13 @@ export function DashboardScreen({
   projectId,
   vm,
   setStatus,
+  planToday,
 }: {
   readonly projectId: string;
   readonly vm: DashboardVM;
   readonly setStatus: PlainAction;
+  /** BR-38: put an issue on today's plan. */
+  readonly planToday: PlainAction;
 }): React.JSX.Element {
   return (
     <div>
@@ -61,12 +65,21 @@ export function DashboardScreen({
           {vm.todaysPlan === null ? (
             <EmptyState>It is the weekend: there is no day plan today.</EmptyState>
           ) : (
-            <PlanItemList items={vm.todaysPlan} projectId={projectId} setStatus={setStatus} empty="Nothing planned for today." />
+            <TodayDropZone action={planToday}>
+              <PlanItemList items={vm.todaysPlan} projectId={projectId} setStatus={setStatus} empty="Nothing planned for today." />
+            </TodayDropZone>
           )}
         </Section>
       </div>
       <Section title="Open issues" actions={<Link href={projectHref(projectId, 'issues')}>All issues</Link>}>
-        <IssueTable issues={vm.openIssues} projectId={projectId} caption="Open issues by deadline" />
+        {/* At the weekend there is no day plan, so no dragging and no "Plan today". */}
+        <IssueTable
+          issues={vm.openIssues}
+          projectId={projectId}
+          caption="Open issues by deadline"
+          draggable={vm.todaysPlan !== null}
+          {...(vm.todaysPlan === null ? {} : { planToday })}
+        />
       </Section>
       <Section title="Recent entries" actions={<Link href={projectHref(projectId, 'log')}>Full log</Link>}>
         <EntryList entries={vm.recentEntries} projectId={projectId} />
