@@ -302,17 +302,17 @@ export const releaseDetail: ReleaseDetailVM = {
   attachedNotes: [{ id: 'n1', title: 'Rollout checklist' }],
 };
 
-export const notes: readonly NoteVM[] = [
-  {
-    id: 'n1',
-    title: 'Rollout checklist',
-    bodyHtml: '<h3>Steps</h3>\n<p>&lt;script&gt;alert(1)&lt;/script&gt;</p>\n<ul>\n<li>Back up the database</li>\n</ul>\n',
-    updatedLabel: '9 Nov 2026',
-    release: { id: 'r1', version: '1.4.0' },
-    pullRequest,
-    links: [{ label: 'Runbook', url: 'https://docs.example.com/runbook' }],
-  },
-];
+export const note: NoteVM = {
+  id: 'n1',
+  title: 'Rollout checklist',
+  bodyHtml: '<h3>Steps</h3>\n<p>&lt;script&gt;alert(1)&lt;/script&gt;</p>\n<ul>\n<li>Back up the database</li>\n</ul>\n',
+  updatedLabel: '9 Nov 2026',
+  release: { id: 'r1', version: '1.4.0' },
+  pullRequest,
+  links: [{ label: 'Runbook', url: 'https://docs.example.com/runbook' }],
+};
+
+export const notes: readonly NoteVM[] = [note];
 
 export const noteValues: NoteFormValues = {
   title: 'Rollout checklist',

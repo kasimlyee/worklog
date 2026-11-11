@@ -1,5 +1,4 @@
 import 'server-only';
-import { sql } from 'kysely';
 import { jsonArrayFrom } from 'kysely/helpers/postgres';
 import type { Db } from '#src/server/db/client.ts';
 import type { PrState, ReportKind } from '#src/server/db/types.ts';
@@ -11,7 +10,7 @@ export type NoteRow = {
   readonly id: string;
   readonly title: string;
   readonly body: string;
-  readonly updatedAt: string;
+  readonly updatedAt: Date;
   readonly releaseId: string | null;
   readonly releaseVersion: string | null;
   readonly pullRequestId: string | null;
@@ -34,7 +33,7 @@ export async function selectNotes(db: Db, projectId: string, filter: NoteFilter 
       'n.id',
       'n.title',
       'n.body',
-      sql<string>`n.updated_at::text`.as('updatedAt'),
+      'n.updatedAt',
       'n.releaseId',
       'r.version as releaseVersion',
       'n.pullRequestId',

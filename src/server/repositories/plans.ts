@@ -1,5 +1,4 @@
 import 'server-only';
-import { sql } from 'kysely';
 import { jsonArrayFrom } from 'kysely/helpers/postgres';
 import type { Db } from '#src/server/db/client.ts';
 import type { PlanHorizon, PlanItemStatus } from '#src/server/db/types.ts';
@@ -35,6 +34,8 @@ export type PlanItemFilter = {
   readonly openDueOnOrBefore?: IsoDate;
   /** Items of the plan with this horizon and period start. */
   readonly plan?: { readonly horizon: PlanHorizon; readonly periodStart: IsoDate };
+  readonly openOnly?: boolean;
+  readonly limit?: number;
 };
 
 /*
@@ -78,7 +79,8 @@ export async function selectPlanItems(db: Db, projectId: string, filter: PlanIte
       jsonArrayFrom(
         eb
           .selectFrom('planItemMoves as m')
-          .select(['m.fromDue', 'm.toDue', sql<string>`m.moved_at::text`.as('movedAt')])
+          // Inside JSON, a timestamptz is ISO 8601 text.
+          .select(['m.fromDue', 'm.toDue', 'm.movedAt'])
           .whereRef('m.planItemId', '=', 'pi.id')
           .orderBy('m.movedAt'),
       ).as('moves'),
@@ -97,11 +99,15 @@ export async function selectPlanItems(db: Db, projectId: string, filter: PlanIte
       if (filter.plan !== undefined) {
         conditions.push(eb('p.horizon', '=', filter.plan.horizon), eb('p.periodStart', '=', filter.plan.periodStart));
       }
+      if (filter.openOnly === true) {
+        conditions.push(eb('pi.status', '<>', 'done'));
+      }
       return eb.and(conditions);
     })
     .orderBy('pi.dueDate')
     .orderBy('pi.position')
     .orderBy('pi.createdAt')
+    .$if(filter.limit !== undefined, (q) => q.limit(Number(filter.limit)))
     .execute();
 }
 

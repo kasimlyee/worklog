@@ -40,6 +40,12 @@ describe('parseEnv', () => {
     ]);
   });
 
+  it('requires https for APP_URL except on localhost', () => {
+    expect(errorsFor({ APP_URL: 'http://worklog.example.com' })).toEqual(['APP_URL: must be https:// (plain http is only allowed for localhost)']);
+    expect(errorsFor({ APP_URL: 'http://localhost:3000' })).toEqual([]);
+    expect(errorsFor({ APP_URL: 'http://127.0.0.1:3000' })).toEqual([]);
+  });
+
   it('rejects a GitHub login in place of the numeric user id', () => {
     expect(errorsFor({ ALLOWED_GITHUB_USER_ID: 'kasim' })[0]).toContain('ALLOWED_GITHUB_USER_ID');
   });

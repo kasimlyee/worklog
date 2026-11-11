@@ -5,7 +5,7 @@ const messages: Readonly<Record<string, string>> = {
 };
 
 /** Product spec §6: one "Sign in with GitHub" button. */
-export function SignInScreen({ notice }: { readonly notice?: string | undefined }): React.JSX.Element {
+export function SignInScreen({ notice, next = '' }: { readonly notice?: string | undefined; readonly next?: string }): React.JSX.Element {
   const message = notice === undefined ? undefined : messages[notice];
   return (
     <main id="main" className={styles.page}>
@@ -18,7 +18,7 @@ export function SignInScreen({ notice }: { readonly notice?: string | undefined 
           </p>
         )}
         {/* A plain link: the OAuth start is a GET that redirects to GitHub (docs/02 §7). */}
-        <a className="button" data-variant="primary" href="/auth/github">
+        <a className="button" data-variant="primary" href={next === '' ? '/auth/github' : `/auth/github?${new URLSearchParams({ next }).toString()}`}>
           Sign in with GitHub
         </a>
       </div>

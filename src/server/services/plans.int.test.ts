@@ -4,7 +4,7 @@ import { isoDate as d } from '#src/server/domain/calendar.ts';
 import { testDb } from '#tests/setup/test-db.ts';
 import { aPerson, aPlan, aPlanItem, aProject, anArea, anIssue } from '#tests/fixtures/builders.ts';
 import {
-  createPlanItem, deletePlanItem, getPlan, getPlanItem, movePlanItem, setPlanItemStatus, updatePlanItem,
+  createPlanItem, deletePlanItem, getPlan, getPlanItem, listOpenPlanItems, movePlanItem, setPlanItemStatus, updatePlanItem,
 } from './plans.ts';
 
 const today = d('2026-11-10');
@@ -234,5 +234,18 @@ describe('plan view', () => {
     expect(await deletePlanItem(testDb(), project.id, item.id)).toEqual({ ok: false, error: { code: 'not_found' } });
     expect(await deletePlanItem(testDb(), project.id, 'bad')).toEqual({ ok: false, error: { code: 'not_found' } });
     expect(await getPlanItem(testDb(), project.id, 'bad', today)).toBeNull();
+  });
+});
+
+describe('open plan items', () => {
+  it('lists unfinished items soonest first, with a limit', async () => {
+    const project = await aProject(testDb());
+    const plan = await aPlan(testDb(), project.id, { horizon: 'month', periodStart: '2026-11-01' });
+    await aPlanItem(testDb(), plan, { title: 'later', dueDate: '2026-11-20' });
+    await aPlanItem(testDb(), plan, { title: 'sooner', dueDate: '2026-11-05' });
+    await aPlanItem(testDb(), plan, { title: 'done', status: 'done', completedOn: '2026-11-02' });
+
+    expect((await listOpenPlanItems(testDb(), project.id, today)).map((i) => i.title)).toEqual(['sooner', 'later']);
+    expect(await listOpenPlanItems(testDb(), project.id, today, 1)).toHaveLength(1);
   });
 });

@@ -251,10 +251,11 @@ export default defineConfig([
     },
   },
   {
+    // Actions may use the view-model types (their FormState contract with the forms).
     files: ['src/server/actions/**/*.{ts,tsx}'],
     rules: {
       'no-restricted-imports': restrictImports({
-        layers: ['server/repositories', 'server/db', 'app', 'ui'],
+        layers: ['server/repositories', 'server/db', 'app', 'ui/components', 'ui/fixtures'],
         packages: dataAccess,
         reason: 'Server Actions call services, never repositories or the database directly.',
       }),
@@ -284,8 +285,13 @@ export default defineConfig([
     },
   },
   {
-    // The logger and command-line scripts write to stdout.
-    files: ['src/server/log.ts', 'scripts/**/*.ts'],
+    // Playwright requires a default export from its global setup file.
+    files: ['tests/e2e/global-setup.ts'],
+    rules: { 'no-restricted-syntax': ['error', ...bannedSyntax] },
+  },
+  {
+    // The logger, command-line scripts and the E2E fake server write to stdout.
+    files: ['src/server/log.ts', 'scripts/**/*.ts', 'tests/e2e/fake-github/server.ts'],
     rules: { 'no-console': 'off' },
   },
 

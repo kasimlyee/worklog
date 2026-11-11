@@ -23,8 +23,8 @@
     "test:coverage": "vitest run --coverage",
     "test:watch": "vitest",
     "test:rules": "node scripts/check-rule-coverage.ts",
-    "test:e2e": "playwright test --project=chromium",
-    "test:e2e:all": "playwright test",
+    "test:e2e": "NODE_OPTIONS=--conditions=react-server playwright test --project=chromium",
+    "test:e2e:all": "NODE_OPTIONS=--conditions=react-server playwright test",
     "check": "npm run typecheck && npm run lint && npm run test",
     "db:migrate": "node --conditions=react-server --env-file-if-exists=.env.local scripts/migrate.ts",
     "css:types": "node scripts/css-module-types.ts"

@@ -3,12 +3,11 @@ import * as z from 'zod';
 import type { Db } from '#src/server/db/client.ts';
 import { log } from '#src/server/log.ts';
 import { err, ok, type Result } from '#src/lib/result.ts';
-import { clearCookie, readCookie, serializeCookie } from './cookies.ts';
+import { clearCookie, cookieName, readCookie, serializeCookie, usesSecureCookies } from './cookies.ts';
 import { safeRedirectPath } from './safe-redirect.ts';
-import { createSession, sessionCookieName, sessionLifetimeMs } from './sessions.ts';
+import { createSession, sessionLifetimeMs } from './sessions.ts';
 import { randomToken, tokensMatch, type RandomToken } from './tokens.ts';
 
-export const stateCookieName = '__Host-oauth_state';
 const stateLifetimeSeconds = 10 * 60;
 const githubWeb = 'https://github.com';
 
@@ -59,8 +58,10 @@ export function startSignIn(request: Request, deps: Pick<OAuthDeps, 'random' | '
   authorize.searchParams.set('redirect_uri', redirectUri(deps.config));
   authorize.searchParams.set('state', state);
   authorize.searchParams.set('allow_signup', 'false');
-  const cookie = serializeCookie(stateCookieName, `${state}.${encodeURIComponent(next)}`, {
+  const secure = usesSecureCookies(deps.config.appUrl);
+  const cookie = serializeCookie(cookieName('oauth_state', secure), `${state}.${encodeURIComponent(next)}`, {
     maxAgeSeconds: stateLifetimeSeconds,
+    secure,
   });
   return redirect(authorize.toString(), [cookie]);
 }
@@ -117,11 +118,13 @@ export async function completeSignIn(request: Request, deps: OAuthDeps): Promise
   const params = new URL(request.url).searchParams;
   const code = params.get('code');
   const state = params.get('state');
+  const secure = usesSecureCookies(deps.config.appUrl);
+  const stateCookieName = cookieName('oauth_state', secure);
   const cookie = readCookie(request.headers.get('cookie'), stateCookieName) ?? '';
   const separator = cookie.indexOf('.');
   const expectedState = separator > 0 ? cookie.slice(0, separator) : '';
   const next = safeRedirectPath(separator > 0 ? safeDecode(cookie.slice(separator + 1)) : null);
-  const clearState = clearCookie(stateCookieName);
+  const clearState = clearCookie(stateCookieName, secure);
 
   if (state === null || expectedState === '' || !tokensMatch(state, expectedState)) {
     log('warn', 'auth.state_mismatch');
@@ -142,7 +145,7 @@ export async function completeSignIn(request: Request, deps: OAuthDeps): Promise
   }
 
   const session = await createSession(deps.db, userId.value, deps.now(), deps.random);
-  const sessionCookie = serializeCookie(sessionCookieName, session.token, { maxAgeSeconds: sessionLifetimeMs / 1000 });
+  const sessionCookie = serializeCookie(cookieName('session', secure), session.token, { maxAgeSeconds: sessionLifetimeMs / 1000, secure });
   log('info', 'auth.signed_in');
   return redirect(new URL(next, deps.config.appUrl).toString(), [clearState, sessionCookie]);
 }

@@ -247,3 +247,11 @@ th {
 .quick-log > form {
   padding: var(--space-4);
 }
+
+.standalone {
+  max-width: 36rem;
+  margin: var(--space-7) auto;
+  padding: 0 var(--space-4);
+  display: grid;
+  gap: var(--space-3);
+}

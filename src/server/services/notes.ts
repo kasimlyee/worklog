@@ -15,7 +15,7 @@ export type Note = {
   readonly body: string;
   /** BR-33: safe HTML, raw HTML in the source shown as text. */
   readonly bodyHtml: string;
-  readonly updatedAt: string;
+  readonly updatedAt: Date;
   readonly release: { readonly id: string; readonly version: string } | null;
   readonly pullRequest: PullRequest | null;
   readonly links: readonly { readonly label: string; readonly url: string }[];

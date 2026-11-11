@@ -46,12 +46,14 @@ export function SettingsScreen({
         <ul className={styles.list}>
           {active.map((area) => (
             <li key={area.id} className={styles.item}>
-              <ActionForm action={renameArea} submitLabel="Rename" label={`Rename ${area.name}`} layout="inline" extraActions={
-                <ActionButton action={setAreaArchived} label="Archive" fields={{ areaId: area.id, archived: 'true' }} accessibleLabel={`Archive ${area.name}`} />
-              }>
+              <ActionForm action={renameArea} submitLabel="Rename" label={`Rename ${area.name}`} layout="inline">
                 <HiddenField name="areaId" value={area.id} />
                 <TextField name="name" label="Area name" defaultValue={area.name} required maxLength={60} />
               </ActionForm>
+              {/* A sibling, never inside the rename form: forms cannot nest. */}
+              <div className={styles.actions}>
+                <ActionButton action={setAreaArchived} label="Archive" fields={{ areaId: area.id, archived: 'true' }} accessibleLabel={`Archive ${area.name}`} />
+              </div>
             </li>
           ))}
         </ul>
@@ -62,7 +64,8 @@ export function SettingsScreen({
         {active.length > 1 ? (
           <>
             <h3 className={styles.dayHeading}>Order in reports</h3>
-            <AreaReorder areas={active} reorder={reorderAreas} />
+            {/* Keyed by which areas exist (not their order): adding or archiving one resets the list. */}
+            <AreaReorder key={active.map((area) => area.id).sort().join(',')} areas={active} reorder={reorderAreas} />
           </>
         ) : null}
         {archived.length === 0 ? null : (
@@ -129,12 +132,13 @@ export function PeopleScreen({
         <ul className={styles.list}>
           {active.map((person) => (
             <li key={person.id} className={styles.item}>
-              <ActionForm action={rename} submitLabel="Rename" label={`Rename ${person.name}`} layout="inline" extraActions={
-                <ActionButton action={setArchived} label="Archive" fields={{ personId: person.id, archived: 'true' }} accessibleLabel={`Archive ${person.name}`} />
-              }>
+              <ActionForm action={rename} submitLabel="Rename" label={`Rename ${person.name}`} layout="inline">
                 <HiddenField name="personId" value={person.id} />
                 <TextField name="name" label="Name" defaultValue={person.name} required maxLength={80} />
               </ActionForm>
+              <div className={styles.actions}>
+                <ActionButton action={setArchived} label="Archive" fields={{ personId: person.id, archived: 'true' }} accessibleLabel={`Archive ${person.name}`} />
+              </div>
             </li>
           ))}
         </ul>
@@ -161,12 +165,15 @@ export function PeopleScreen({
 export function PullRequestsScreen({
   projectId,
   pullRequests,
+  notice = null,
   add,
   refresh,
   remove,
 }: {
   readonly projectId: string;
   readonly pullRequests: readonly PullRequestRowVM[];
+  /** A message from the last one-click action, if it failed. */
+  readonly notice?: string | null;
   readonly add: FormAction;
   readonly refresh: PlainAction;
   readonly remove: PlainAction;
@@ -174,6 +181,11 @@ export function PullRequestsScreen({
   return (
     <div>
       <PageHeader title="Pull requests" actions={<Link href={projectHref(projectId, 'log')}>Back to log</Link>} />
+      {notice === null ? null : (
+        <p className={styles.notice} role="alert">
+          {notice}
+        </p>
+      )}
       <Section title="Add a pull request">
         <ActionForm action={add} submitLabel="Add" label="Add pull request" layout="inline">
           <TextField name="url" label="Pull request link" type="url" required placeholder="https://github.com/org/repo/pull/123" wide />

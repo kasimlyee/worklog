@@ -1,19 +1,12 @@
 import type { Route } from 'next';
 
-/*
- * Every in-app URL is built here. typedRoutes cannot follow ids known only at run time,
- * so this is the one place a string becomes a Route (each path below exists in src/app).
- */
+/** Every in-app URL is built here, so links and redirects agree on the paths in src/app. */
 
 export type ProjectSection = '' | 'plans' | 'log' | 'issues' | 'releases' | 'notes' | 'reports' | 'settings' | 'pull-requests';
 
-function route(path: string): Route {
-  return path as Route; // see the note above
-}
-
 export function projectHref(projectId: string, section: ProjectSection = '', query = ''): Route {
   const base = `/projects/${encodeURIComponent(projectId)}${section === '' ? '' : `/${section}`}`;
-  return route(query === '' ? base : `${base}?${query}`);
+  return query === '' ? base : `${base}?${query}`;
 }
 
 export function projectItemHref(
@@ -22,12 +15,12 @@ export function projectItemHref(
   itemId: string,
   suffix: '' | 'edit' = '',
 ): Route {
-  return route(`${projectHref(projectId, '')}/${section}/${encodeURIComponent(itemId)}${suffix === '' ? '' : `/${suffix}`}`);
+  return `${projectHref(projectId)}/${section}/${encodeURIComponent(itemId)}${suffix === '' ? '' : `/${suffix}`}`;
 }
 
 export function newItemHref(projectId: string, section: 'issues' | 'releases' | 'notes'): Route {
-  return route(`${projectHref(projectId, '')}/${section}/new`);
+  return `${projectHref(projectId)}/${section}/new`;
 }
 
-export const projectsHref: Route = route('/projects');
-export const peopleHref: Route = route('/people');
+export const projectsHref: Route = '/projects';
+export const peopleHref: Route = '/people';

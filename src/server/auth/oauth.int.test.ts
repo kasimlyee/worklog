@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { testDb } from '#tests/setup/test-db.ts';
-import { completeSignIn, startSignIn, stateCookieName, type OAuthDeps } from './oauth.ts';
+import { completeSignIn, startSignIn, type OAuthDeps } from './oauth.ts';
 import { findSession } from './sessions.ts';
 
 const config = {
@@ -11,6 +11,7 @@ const config = {
   allowedUserId: 1234,
 } as const;
 const now = new Date('2026-11-10T08:00:00Z');
+const stateCookieName = '__Host-oauth_state';
 
 type FakeReply = { readonly status: number; readonly body: unknown } | 'network-error';
 
@@ -59,6 +60,15 @@ describe('GET /auth/github', () => {
     expect(response.headers.get('set-cookie')).toBe(
       '__Host-oauth_state=state-123.%2Fprojects%2Fx; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=600',
     );
+  });
+
+  it('uses plain, non-Secure cookie names when the app runs on http://localhost', () => {
+    const response = startSignIn(new Request('http://localhost:3000/auth/github'), {
+      config: { ...config, appUrl: 'http://localhost:3000' },
+      random: () => 's',
+    });
+
+    expect(response.headers.get('set-cookie')).toBe('worklog_oauth_state=s.%2Fprojects; Path=/; HttpOnly; SameSite=Lax; Max-Age=600');
   });
 
   it('replaces an off-site next with /projects', () => {

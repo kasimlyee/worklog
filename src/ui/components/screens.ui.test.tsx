@@ -270,7 +270,7 @@ describe('releases and notes', () => {
     render(<ReleaseScreen projectId={f.projectId} release={f.releaseDetail} pickers={f.pickers} update={formAction} remove={plainAction} />);
 
     expect(screen.getByRole('link', { name: /#12 Add login/ })).toBeDefined();
-    expect(screen.getByLabelText('Release notes').textContent?.trim()).toBe('Highlights: sign-in with GitHub.');
+    expect(screen.getByLabelText('Release notes').textContent.trim()).toBe('Highlights: sign-in with GitHub.');
     expect(screen.getByRole('link', { name: 'Rollout checklist' })).toBeDefined();
     expectHeadingOrder();
   });
@@ -283,7 +283,7 @@ describe('releases and notes', () => {
   });
 
   it('BR-33: a note renders its Markdown with HTML shown as text; BR-35 its release and PR', () => {
-    render(<NoteScreen projectId={f.projectId} note={f.notes[0] ?? f.notes[0]} remove={plainAction} />);
+    render(<NoteScreen projectId={f.projectId} note={f.note} remove={plainAction} />);
 
     expect(screen.getByLabelText('Note body').textContent).toContain('<script>alert(1)</script>');
     expect(document.querySelector('script')).toBeNull();
@@ -371,5 +371,27 @@ describe('settings, people, pull requests', () => {
     expect(screen.getByRole('button', { name: 'Refresh #12 from GitHub' })).toBeDefined();
     expect(screen.getAllByRole('button', { name: 'Delete' })).toHaveLength(2);
     expectHeadingOrder();
+  });
+});
+
+describe('markup validity', () => {
+  it('never nests a form inside another form', () => {
+    render(
+      <>
+        <SettingsScreen
+          vm={f.settings}
+          updateProject={formAction}
+          createArea={formAction}
+          renameArea={formAction}
+          setAreaArchived={plainAction}
+          reorderAreas={formAction}
+          setProjectArchived={plainAction}
+        />
+        <PeopleScreen people={f.people} create={formAction} rename={formAction} setArchived={plainAction} />
+        <PullRequestsScreen projectId={f.projectId} pullRequests={f.pullRequestRows} add={formAction} refresh={plainAction} remove={plainAction} />
+      </>,
+    );
+
+    expect(document.querySelectorAll('form form')).toHaveLength(0);
   });
 });

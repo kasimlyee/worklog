@@ -10,6 +10,7 @@ declare const styles: {
   readonly "item": string;
   readonly "list": string;
   readonly "meta": string;
+  readonly "notice": string;
   readonly "periodLabel": string;
   readonly "row": string;
   readonly "stack": string;

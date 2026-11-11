@@ -84,6 +84,11 @@ export async function getPlanItem(db: Db, projectId: string, itemId: string, tod
   return row === undefined ? null : toPlanItem(row, today);
 }
 
+/** Unfinished items, soonest first — for linking entries to plan items. */
+export async function listOpenPlanItems(db: Db, projectId: string, today: IsoDate, limit = 200): Promise<readonly PlanItem[]> {
+  return (await selectPlanItems(db, projectId, { openOnly: true, limit })).map((row) => toPlanItem(row, today));
+}
+
 const detailsInput = {
   title: requiredText('Title', 300),
   areaId: optionalId,

@@ -1,15 +1,15 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
-import type { FormAction, FormState } from '#src/ui/view-models/forms.ts';
+import type { FormAction, FormState, PlainAction } from '#src/ui/view-models/forms.ts';
 import { pickers, settings, today } from '#src/ui/fixtures/fixtures.ts';
 import { ActionForm, CheckboxGroupField, SelectField, TextField } from './form.tsx';
 import { QuickLog } from './entry-form.tsx';
 import { ConfirmDialog } from './confirm-dialog.tsx';
 import { AreaReorder } from './area-reorder.tsx';
 
-function returning(state: FormState): FormAction & ReturnType<typeof vi.fn> {
-  return vi.fn(() => Promise.resolve(state));
+function returning(state: FormState) {
+  return vi.fn<FormAction>(() => Promise.resolve(state));
 }
 
 const invalidName: FormState = {
@@ -100,7 +100,7 @@ describe('QuickLog', () => {
 
 describe('ConfirmDialog', () => {
   it('BR-36: asks before acting, and Cancel returns focus to the trigger', async () => {
-    const action = vi.fn(() => Promise.resolve());
+    const action = vi.fn<PlainAction>(() => Promise.resolve());
     render(<ConfirmDialog action={action} triggerLabel="Delete" title="Delete this entry?" message="Gone for good." confirmLabel="Delete entry" fields={{ entryId: 'e1' }} />);
     const trigger = screen.getByRole('button', { name: 'Delete' });
 
@@ -114,7 +114,7 @@ describe('ConfirmDialog', () => {
   });
 
   it('BR-36: confirming sends the hidden fields to the action', async () => {
-    const action = vi.fn((_formData: FormData) => Promise.resolve());
+    const action = vi.fn<PlainAction>(() => Promise.resolve());
     render(<ConfirmDialog action={action} triggerLabel="Delete" title="Delete?" message="Sure?" confirmLabel="Yes, delete" fields={{ entryId: 'e1' }} />);
 
     await userEvent.click(screen.getByRole('button', { name: 'Delete' }));

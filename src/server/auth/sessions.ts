@@ -6,7 +6,6 @@ import {
 import { hashToken, randomToken, type RandomToken } from './tokens.ts';
 
 export const sessionLifetimeMs = 30 * 24 * 60 * 60 * 1000;
-export const sessionCookieName = '__Host-session';
 
 export type Session = { readonly githubUserId: string; readonly expiresAt: Date };
 

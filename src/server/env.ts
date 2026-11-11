@@ -18,8 +18,17 @@ function isAllowedApiUrl(value: string): boolean {
 
 const requiredText = z.string().trim().min(1);
 
+// Plain http only for a local machine: production always runs on https (secure cookies).
+function isAllowedAppUrl(value: string): boolean {
+  const url = new URL(value);
+  return url.protocol === 'https:' || ['localhost', '127.0.0.1'].includes(url.hostname);
+}
+
 const envSchema = z.object({
-  APP_URL: z.url({ protocol: /^https?$/ }).transform((url) => url.replace(/\/+$/, '')),
+  APP_URL: z
+    .url({ protocol: /^https?$/ })
+    .refine(isAllowedAppUrl, 'must be https:// (plain http is only allowed for localhost)')
+    .transform((url) => url.replace(/\/+$/, '')),
   APP_TIME_ZONE: requiredText.refine(isTimeZone, 'must be an IANA time zone, e.g. Africa/Kampala'),
   DATABASE_URL: z.url({ protocol: /^postgres(ql)?$/ }),
   GITHUB_OAUTH_CLIENT_ID: requiredText,
