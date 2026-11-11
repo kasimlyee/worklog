@@ -7,6 +7,8 @@ const e2eDatabaseUrl = process.env['E2E_DATABASE_URL'] ?? 'postgres://worklog:wo
 
 export default defineConfig({
   testDir: 'tests/e2e',
+  snapshotPathTemplate: '{testDir}/__screenshots__/{platform}/{testFilePath}/{arg}{ext}',
+  expect: { toHaveScreenshot: { maxDiffPixelRatio: 0.01 } },
   globalSetup: './tests/e2e/global-setup.ts',
   // One shared test database: journeys run one at a time and reset data themselves.
   workers: 1,
