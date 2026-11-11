@@ -55,3 +55,26 @@ test('a signed-in visit to sign-in goes to the projects', async ({ page }) => {
   await expect(page).toHaveURL(/\/projects$/);
   await expect(page.getByRole('heading', { level: 1, name: 'Projects' })).toBeVisible();
 });
+
+test('NF-05: the report export Route Handler checks the session itself', async ({ page }) => {
+  await signIn(page, 'forged-token');
+
+  const response = await page.request.get('/projects/00000000-0000-4000-8000-000000000000/reports/export?kind=daily&start=2026-11-10&format=md', {
+    maxRedirects: 0,
+  });
+
+  expect(response.status()).toBe(303);
+  expect(response.headers()['location']).toBe('/sign-in');
+});
+
+test('security headers are present on every response', async ({ page }) => {
+  const response = await page.goto('/sign-in');
+  const headers = response?.headers() ?? {};
+
+  expect(headers['content-security-policy']).toMatch(/script-src 'self' 'nonce-[A-Za-z0-9+/=]+' 'strict-dynamic'/);
+  expect(headers['content-security-policy']).toContain("frame-ancestors 'none'");
+  expect(headers['strict-transport-security']).toContain('max-age=63072000');
+  expect(headers['x-content-type-options']).toBe('nosniff');
+  expect(headers['x-frame-options']).toBe('DENY');
+  expect(headers['x-powered-by']).toBeUndefined();
+});

@@ -17,7 +17,7 @@ describe('every preview screen', () => {
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
     expect(document.querySelectorAll('form form')).toHaveLength(0);
     // Every form control has an accessible name.
-    for (const control of document.querySelectorAll('input:not([type="hidden"]), select, textarea')) {
+    for (const control of document.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>('input:not([type="hidden"]), select, textarea')) {
       expect(control.labels?.length ?? 0, `${name}: ${control.outerHTML.slice(0, 80)}`).toBeGreaterThan(0);
     }
     cleanup();

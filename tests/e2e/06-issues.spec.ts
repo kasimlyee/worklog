@@ -1,10 +1,11 @@
+import type { Page } from '@playwright/test';
 import { addDays, appToday, nextWorkingDay, previousWorkingDay } from './support/dates.ts';
 import { expect, test } from './support/fixtures.ts';
 import { seedProject } from './support/seed.ts';
 
 /* Journey 6: due soon is yellow; resolving late is red "late", on time is green. */
 
-async function createIssue(page: import('@playwright/test').Page, projectId: string, title: string, assignedOn: string, deadline: string): Promise<void> {
+async function createIssue(page: Page, projectId: string, title: string, assignedOn: string, deadline: string): Promise<void> {
   await page.goto(`/projects/${projectId}/issues/new`);
   const form = page.getByRole('form', { name: 'New issue' });
   await form.getByLabel('Short title').fill(title);
