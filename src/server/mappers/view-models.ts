@@ -131,6 +131,7 @@ export function toIssueVM(issue: Issue): IssueVM {
   return {
     id: issue.id,
     title: issue.title,
+    description: issue.description,
     externalUrl: issue.externalUrl,
     area: issue.area?.name ?? null,
     assignees: names(issue.assignees),
@@ -159,6 +160,7 @@ export function toIssueDetailVM(issue: Issue): IssueDetailVM {
     ...toIssueVM(issue),
     form: {
       title: issue.title,
+      description: issue.description,
       priority: issue.priority,
       externalUrl: issue.externalUrl ?? '',
       areaId: issue.area?.id ?? '',

@@ -28,7 +28,7 @@ Worklog is a single user's notebook for running engineering work across several 
 These are deliberate. A feature request that falls here needs this document changed first.
 
 - Multiple users, organisations, roles, sharing or comments.
-- Storing full issue descriptions — those stay in Jira, GitHub or the testing document.
+- Copying full issue descriptions — those stay in Jira, GitHub or the testing document. An issue may carry a short description (BR-27), not a copy of the original.
 - File attachments or uploads of any kind.
 - Saving exported reports. Exports are generated on demand, as often as needed.
 - Time tracking in hours, story points, sprints, boards, custom fields.
@@ -105,7 +105,7 @@ These are deliberate. A feature request that falls here needs this document chan
 
 ### 4.6 Issues
 
-- **BR-27** An issue has a short title, an optional external link, an optional area, one or more assignees, an assigned date, a deadline date, a priority (BR-37), and a status: `open`, `in_progress` or `resolved`.
+- **BR-27** An issue has a short title, an optional short description (plain text, at most 2,000 characters), an optional external link, an optional area, one or more assignees, an assigned date, a deadline date, a priority (BR-37), and a status: `open`, `in_progress` or `resolved`.
 - **BR-28** The deadline must be on or after the assigned date.
 - **BR-29** When an issue becomes `resolved`, `resolved_on` is recorded (defaults to today, editable). Reopening clears it.
 - **BR-30** An issue may reference the PR that resolved it.

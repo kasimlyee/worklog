@@ -6,7 +6,7 @@ import { newItemHref, projectHref } from '#src/ui/routes.ts';
 import { ActionButton } from './action-button.tsx';
 import { ConfirmDialog } from './confirm-dialog.tsx';
 import { ExternalLink } from './external-link.tsx';
-import { ActionForm, CheckboxGroupField, SelectField, TextField } from './form.tsx';
+import { ActionForm, CheckboxGroupField, SelectField, TextAreaField, TextField } from './form.tsx';
 import { IssueTable } from './issue-table.tsx';
 import { PageHeader, Section } from './page-header.tsx';
 import { PersonList } from './person-list.tsx';
@@ -90,6 +90,14 @@ function IssueFields({ pickers, values }: { readonly pickers: Pickers; readonly 
     <>
       <TextField name="title" label="Short title" defaultValue={values.title} required maxLength={200} wide />
       <SelectField name="priority" label="Priority" options={priorityOptions} defaultValue={values.priority} />
+      <TextAreaField
+        name="description"
+        label="Description"
+        defaultValue={values.description}
+        maxLength={2000}
+        rows={4}
+        hint="Optional. A short summary — the full report stays behind the link."
+      />
       <TextField
         name="externalUrl"
         label="Link"
@@ -117,7 +125,7 @@ export function NewIssueScreen({
   readonly create: FormAction;
   readonly today: string;
 }): React.JSX.Element {
-  const blank: IssueFormValues = { title: '', priority: 'medium', externalUrl: '', areaId: '', personIds: [], assignedOn: today, deadline: today };
+  const blank: IssueFormValues = { title: '', description: '', priority: 'medium', externalUrl: '', areaId: '', personIds: [], assignedOn: today, deadline: today };
   return (
     <div>
       <PageHeader title="New issue" actions={<Link href={projectHref(projectId, 'issues')}>Back to issues</Link>} />
@@ -175,6 +183,7 @@ export function IssueScreen({
         }
       />
       <Section title="Summary">
+        {issue.description === '' ? null : <p className={styles.description}>{issue.description}</p>}
         <div className={styles.meta}>
           <span>Assigned {issue.assignedLabel}</span>
           <span>Deadline {issue.deadlineLabel}</span>

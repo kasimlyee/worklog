@@ -259,6 +259,24 @@ describe('issues', () => {
     expectHeadingOrder();
   });
 
+  it('BR-27: an issue shows its description with line breaks, and the form is prefilled', () => {
+    render(
+      <IssueScreen projectId={f.projectId} issue={f.issueDetail} pickers={f.pickers} update={formAction} resolve={formAction} setStatus={plainAction} remove={plainAction} today={f.today} />,
+    );
+
+    const shown = screen.getByText(/Saving a listing with more than 10 photos/, { selector: 'p' });
+    expect(shown.textContent).toContain('\n');
+    expect(screen.getByLabelText<HTMLTextAreaElement>('Description').value).toBe(f.issueDetail.form.description);
+  });
+
+  it('BR-27: no description, no empty paragraph', () => {
+    render(
+      <IssueScreen projectId={f.projectId} issue={f.resolvedIssueDetail} pickers={f.pickers} update={formAction} resolve={formAction} setStatus={plainAction} remove={plainAction} today={f.today} />,
+    );
+
+    expect(screen.queryByText(/Saving a listing/, { selector: 'p' })).toBeNull();
+  });
+
   it('BR-29: a resolved issue offers reopen and shows who resolved it', () => {
     render(
       <IssueScreen projectId={f.projectId} issue={f.resolvedIssueDetail} pickers={f.pickers} update={formAction} resolve={formAction} setStatus={plainAction} remove={plainAction} today={f.today} />,

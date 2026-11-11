@@ -5,6 +5,7 @@ declare const styles: {
   readonly "cards": string;
   readonly "dashboardGrid": string;
   readonly "dayHeading": string;
+  readonly "description": string;
   readonly "grid": string;
   readonly "history": string;
   readonly "item": string;

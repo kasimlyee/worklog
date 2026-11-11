@@ -45,6 +45,7 @@ const planItem: PlanItem = {
 const issue: Issue = {
   id: 's1',
   title: 'Crash',
+  description: '',
   externalUrl: null,
   status: 'resolved',
   priority: 'high',

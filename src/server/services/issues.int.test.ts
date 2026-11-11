@@ -32,6 +32,7 @@ describe('issues', () => {
     expect(issue).toEqual({
       id: anyString,
       title: 'Crash on save',
+      description: '',
       externalUrl: 'https://jira.example.com/browse/APP-12',
       status: 'open',
       priority: 'medium',
@@ -218,6 +219,26 @@ describe('priority', () => {
     expect(await updateIssue(testDb(), project.id, issueId, { ...valid(grace.id), priority: 'critical' })).toEqual({
       ok: false,
       error: { code: 'invalid', fieldErrors: { priority: 'Choose a valid priority.' } },
+    });
+  });
+});
+
+describe('description', () => {
+  it('BR-27: an issue may carry a short plain-text description, line breaks kept', async () => {
+    const { project, grace } = await base();
+
+    const created = await createIssue(testDb(), project.id, { ...valid(grace.id), description: '  Crashes on save.\nOnly on Android 13.  ' });
+
+    expect((await getIssue(testDb(), project.id, created.ok ? created.value.id : '', today))?.description).toBe('Crashes on save.\nOnly on Android 13.');
+  });
+
+  it('BR-27: the description is optional and at most 2,000 characters', async () => {
+    const { project, grace } = await base();
+
+    expect((await createIssue(testDb(), project.id, valid(grace.id))).ok).toBe(true);
+    expect(await createIssue(testDb(), project.id, { ...valid(grace.id), description: 'x'.repeat(2001) })).toEqual({
+      ok: false,
+      error: { code: 'invalid', fieldErrors: { description: 'Description must be at most 2000 characters.' } },
     });
   });
 });

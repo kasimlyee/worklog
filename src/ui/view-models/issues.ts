@@ -6,6 +6,8 @@ export type IssuePriority = 'low' | 'medium' | 'high' | 'urgent';
 export type IssueVM = {
   readonly id: string;
   readonly title: string;
+  /** BR-27: plain text, line breaks kept; '' when none. */
+  readonly description: string;
   readonly externalUrl: string | null;
   readonly area: string | null;
   readonly assignees: readonly string[];
@@ -23,6 +25,7 @@ export type IssueVM = {
 
 export type IssueFormValues = {
   readonly title: string;
+  readonly description: string;
   readonly priority: IssuePriority;
   readonly externalUrl: string;
   readonly areaId: string;

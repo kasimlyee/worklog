@@ -70,6 +70,7 @@ export type IssuesTable = {
   areaId: string | null;
   resolvedByPrId: string | null;
   title: string;
+  description: Generated<string>;
   externalUrl: string | null;
   status: Generated<IssueStatus>;
   priority: Generated<IssuePriority>;
@@ -232,7 +233,7 @@ export const schemaContract = {
   people: { id: uuid, name: text, archivedAt: tzNull, createdAt: tz },
   pullRequests: { id: uuid, projectId: uuid, owner: text, repo: text, number: int, title: text, state: userEnum(), fetchedAt: tz, createdAt: tz },
   issues: {
-    id: uuid, projectId: uuid, areaId: uuidNull, resolvedByPrId: uuidNull, title: text, externalUrl: textNull,
+    id: uuid, projectId: uuid, areaId: uuidNull, resolvedByPrId: uuidNull, title: text, description: text, externalUrl: textNull,
     status: userEnum(), priority: userEnum(), assignedOn: date, deadline: date, resolvedOn: dateNull, createdAt: tz, updatedAt: tz,
   },
   issueAssignees: { issueId: uuid, personId: uuid },

@@ -167,3 +167,10 @@
   color: var(--danger-text);
   font-weight: 600;
 }
+
+.description {
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+  margin-bottom: var(--space-3);
+  max-width: 70ch;
+}

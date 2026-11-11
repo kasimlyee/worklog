@@ -10,7 +10,7 @@ import {
   deleteIssueRow, insertIssue, selectIssues, updateIssueRow, updateIssueStatus, type IssueRow,
 } from '#src/server/repositories/issues.ts';
 import { invalid, notFound, parseInput, type ServiceResult } from './errors.ts';
-import { idList, isUuid, oneOf, optionalDate, optionalId, optionalWebUrl, requiredDate, requiredText } from './fields.ts';
+import { idList, isUuid, oneOf, optionalDate, optionalId, optionalText, optionalWebUrl, requiredDate, requiredText } from './fields.ts';
 import { toPullRequest, type PullRequest } from './pull-requests.ts';
 import { referenceErrors } from './references.ts';
 
@@ -22,6 +22,7 @@ export const priorityRank: Readonly<Record<IssuePriority, number>> = { urgent: 0
 export type Issue = {
   readonly id: string;
   readonly title: string;
+  readonly description: string;
   readonly externalUrl: string | null;
   readonly status: IssueStatus;
   readonly priority: IssuePriority;
@@ -40,6 +41,7 @@ export function toIssue(row: IssueRow, today: IsoDate): Issue {
   return {
     id: row.id,
     title: row.title,
+    description: row.description,
     externalUrl: row.externalUrl,
     status: row.status,
     priority: row.priority,
@@ -72,6 +74,7 @@ export async function getIssue(db: Db, projectId: string, issueId: string, today
 const issueInput = z
   .object({
     title: requiredText('Title', 200),
+    description: optionalText('Description', 2000),
     // BR-37: medium unless chosen.
     priority: z
       .preprocess((value) => (value === '' ? undefined : value), oneOf(issuePriorities, 'priority').optional())

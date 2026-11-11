@@ -160,6 +160,7 @@ export const planItems: readonly PlanItemVM[] = [shipLogin, billing, releaseNote
 const crash: IssueVM = {
   id: 's1',
   title: 'Crash on save',
+  description: 'Saving a listing with more than 10 photos crashes the app on Android 13.\nSeen by two brokers today.',
   externalUrl: 'https://jira.example.com/browse/APP-12',
   area: 'Mobile',
   assignees: ['Grace'],
@@ -176,6 +177,7 @@ const crash: IssueVM = {
 const slowQuery: IssueVM = {
   id: 's2',
   title: 'Slow dashboard query',
+  description: '',
   externalUrl: null,
   area: null,
   assignees: ['Ali', 'Wanjiru'],
@@ -192,6 +194,7 @@ const slowQuery: IssueVM = {
 const typo: IssueVM = {
   id: 's3',
   title: 'Typo on invoice',
+  description: '',
   externalUrl: null,
   area: 'Frontend',
   assignees: ['Grace'],
@@ -284,7 +287,7 @@ export const entryValues: EntryFormValues = {
 
 export const issueDetail: IssueDetailVM = {
   ...crash,
-  form: { title: 'Crash on save', priority: 'urgent', externalUrl: 'https://jira.example.com/browse/APP-12', areaId: 'a3', personIds: ['p2'], assignedOn: '2026-11-02', deadline: '2026-11-06' },
+  form: { title: 'Crash on save', description: 'Saving a listing with more than 10 photos crashes the app on Android 13.\nSeen by two brokers today.', priority: 'urgent', externalUrl: 'https://jira.example.com/browse/APP-12', areaId: 'a3', personIds: ['p2'], assignedOn: '2026-11-02', deadline: '2026-11-06' },
 };
 
 export const resolvedIssueDetail: IssueDetailVM = { ...issueDetail, ...(issues[2] ?? issues[0]) };

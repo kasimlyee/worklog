@@ -10,6 +10,7 @@ import type { NamedRef } from './entries.ts';
 export type IssueRow = {
   readonly id: string;
   readonly title: string;
+  readonly description: string;
   readonly externalUrl: string | null;
   readonly status: IssueStatus;
   readonly priority: IssuePriority;
@@ -45,6 +46,7 @@ export async function selectIssues(db: Db, projectId: string, filter: IssueFilte
     .select([
       'i.id',
       'i.title',
+      'i.description',
       'i.externalUrl',
       'i.status',
       'i.priority',
@@ -96,6 +98,7 @@ export async function selectIssues(db: Db, projectId: string, filter: IssueFilte
 
 export type IssueValues = {
   readonly title: string;
+  readonly description: string;
   readonly priority: IssuePriority;
   readonly externalUrl: string | null;
   readonly areaId: string | null;
