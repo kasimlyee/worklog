@@ -10,7 +10,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 const sessionCookies = ['__Host-session', 'worklog_session'];
 const publicPaths = ['/sign-in', '/auth/github', '/auth/github/callback'];
 
-export function contentSecurityPolicy(nonce: string, isDevelopment: boolean): string {
+export function contentSecurityPolicy(nonce: string, { isDevelopment, isHttps }: { readonly isDevelopment: boolean; readonly isHttps: boolean }): string {
   return [
     "default-src 'self'",
     // 'strict-dynamic' lets Next.js's nonce'd bootstrap load its own chunks.
@@ -23,7 +23,8 @@ export function contentSecurityPolicy(nonce: string, isDevelopment: boolean): st
     "base-uri 'none'",
     "form-action 'self'",
     "frame-ancestors 'none'",
-    ...(isDevelopment ? [] : ['upgrade-insecure-requests']),
+    // Only on https: on http://localhost, Safari would upgrade the app's own assets and break.
+    ...(isHttps ? ['upgrade-insecure-requests'] : []),
   ].join('; ');
 }
 
@@ -38,7 +39,10 @@ export function proxy(request: NextRequest): NextResponse {
   }
 
   const nonce = Buffer.from(crypto.randomUUID()).toString('base64');
-  const csp = contentSecurityPolicy(nonce, process.env.NODE_ENV === 'development');
+  const csp = contentSecurityPolicy(nonce, {
+    isDevelopment: process.env.NODE_ENV === 'development',
+    isHttps: process.env['APP_URL']?.startsWith('https://') ?? true,
+  });
   const headers = new Headers(request.headers);
   headers.set('x-nonce', nonce);
   // Next.js reads the policy from the request to put the nonce on its own scripts.

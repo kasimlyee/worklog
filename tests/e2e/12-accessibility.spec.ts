@@ -15,6 +15,8 @@ async function violations(page: Page): Promise<readonly string[]> {
 }
 
 test('NF-07: every page with data has no WCAG 2.2 AA violations', async ({ signedIn: page }) => {
+  // axe over every page takes longer than the 30-second default in slower browsers.
+  test.setTimeout(120_000);
   const ids = await seedEverything();
   const found: string[] = [];
   for (const route of pageRoutes()) {
@@ -24,32 +26,53 @@ test('NF-07: every page with data has no WCAG 2.2 AA violations', async ({ signe
   expect(found).toEqual([]);
 });
 
-test('NF-07: empty states, dark mode, errors, the open quick log and a dialog are accessible', async ({ signedIn: page }) => {
+test('NF-07: a weekend day plan (empty state) has no violations', async ({ signedIn: page }) => {
   const ids = await seedEverything();
   await page.goto(`/projects/${ids.projectId}/plans?horizon=day&date=2020-01-04`);
-  expect(await violations(page), 'weekend day plan').toEqual([]);
+  expect(await violations(page)).toEqual([]);
+});
 
-  await page.emulateMedia({ colorScheme: 'dark' });
+test('NF-07: the quick log with validation errors is accessible', async ({ signedIn: page, browserName }) => {
+  const ids = await seedEverything();
   await page.goto(`/projects/${ids.projectId}`);
-  expect(await violations(page), 'dark dashboard').toEqual([]);
-  await page.emulateMedia({ colorScheme: 'light' });
-
   await page.getByText('Quick log').click();
-  await page.getByRole('form', { name: 'Quick log' }).getByRole('button', { name: 'Log work' }).click();
-  await expect(page.getByRole('form', { name: 'Quick log' }).getByRole('alert')).toBeVisible();
-  expect(await violations(page), 'quick log with errors').toEqual([]);
+  const form = page.getByRole('form', { name: 'Quick log' });
+  await form.getByRole('button', { name: 'Log work' }).click();
+  await expect(form.getByRole('alert')).toBeVisible();
+  await expect(form.getByRole('alert')).toBeFocused();
+  // axe-core on this state crashes Playwright's Firefox build (reproduced in isolation:
+  // without axe the page works). The state is still checked in Chromium and WebKit.
+  if (browserName !== 'firefox') {
+    expect(await violations(page)).toEqual([]);
+  }
+});
 
+test('NF-07: the confirm dialog is accessible', async ({ signedIn: page }) => {
+  const ids = await seedEverything();
   await page.goto(`/projects/${ids.projectId}/issues/${ids.issueId}`);
   await page.getByRole('button', { name: 'Delete' }).click();
   await expect(page.getByRole('dialog')).toBeVisible();
-  expect(await violations(page), 'confirm dialog').toEqual([]);
+  expect(await violations(page)).toEqual([]);
+});
 
+test('NF-07: no projects, and the sign-in page, are accessible', async ({ signedIn: page }) => {
   await resetDatabase();
   await page.goto('/projects');
   expect(await violations(page), 'no projects').toEqual([]);
   await page.context().clearCookies();
   await page.goto('/sign-in');
   expect(await violations(page), 'sign in').toEqual([]);
+});
+
+test('NF-07: dark mode has no violations', async ({ signedIn: page }) => {
+  const ids = await seedEverything();
+  await page.emulateMedia({ colorScheme: 'dark' });
+  const found: string[] = [];
+  for (const route of ['', '/plans', '/issues', '/reports']) {
+    await page.goto(`/projects/${ids.projectId}${route}`);
+    found.push(...(await violations(page)).map((violation) => `${route} → ${violation}`));
+  }
+  expect(found).toEqual([]);
 });
 
 test('NF-07: keyboard only — carry over an overdue item (journey 5)', async ({ signedIn: page }) => {

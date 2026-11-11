@@ -13,8 +13,8 @@ test('sign out removes the session server-side', async ({ signedIn: page }) => {
   await expect(page).toHaveURL(/\/sign-in$/);
   expect(await e2eDb().selectFrom('sessions').selectAll().execute()).toEqual([]);
 
+  // Pages are no-store, so Back fetches again and is sent to sign-in instead of showing data.
   await page.goBack();
-  await expect(page.getByRole('heading', { level: 1, name: 'Dashboard' })).toHaveCount(0);
-  await page.reload();
   await expect(page).toHaveURL(/\/sign-in/);
+  await expect(page.getByRole('heading', { level: 1, name: 'Dashboard' })).toHaveCount(0);
 });
