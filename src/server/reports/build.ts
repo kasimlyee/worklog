@@ -273,7 +273,7 @@ function planItemLine(item: ReportPlanItemRow, done: boolean): ReportLine {
 function planVsActualSection(data: ReportData): ReportSection {
   const done = data.planItems.filter((item) => isDoneBy(item, data.range.to));
   const notDone = data.planItems.filter((item) => !isDoneBy(item, data.range.to));
-  const unplanned = data.entries.filter((entry) => entry.planItemId === null);
+  const unplanned = data.entries.filter((entry) => entry.planItems.length === 0);
   const listUnplanned = data.kind !== 'monthly';
   const planned = data.planItems.length + data.moves.length;
   if (planned === 0 && (!listUnplanned || unplanned.length === 0)) {

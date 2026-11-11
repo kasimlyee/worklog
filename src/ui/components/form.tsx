@@ -278,9 +278,11 @@ type CheckboxGroupProps = {
   readonly options: readonly Option[];
   readonly defaultValues?: readonly string[];
   readonly hint?: string;
+  /** Long lists (issues, plan items) scroll inside a box instead of growing the form. */
+  readonly scrollable?: boolean;
 };
 
-export function CheckboxGroupField({ name, legend, options, defaultValues = [], hint }: CheckboxGroupProps): React.JSX.Element {
+export function CheckboxGroupField({ name, legend, options, defaultValues = [], hint, scrollable = false }: CheckboxGroupProps): React.JSX.Element {
   const field = useField(name);
   const echoed = field.echoed;
   const checked = new Set(echoed === undefined ? defaultValues : typeof echoed === 'string' ? [echoed] : echoed);
@@ -299,7 +301,7 @@ export function CheckboxGroupField({ name, legend, options, defaultValues = [], 
         </p>
       )}
       {options.length === 0 ? <p className="muted">Nothing to choose yet.</p> : null}
-      <div className={styles.checkboxes} key={field.key}>
+      <div className={styles.checkboxes} data-scrollable={scrollable ? 'true' : undefined} key={field.key}>
         {options.map((option) => (
           <label key={option.value} className={styles.checkbox}>
             <input type="checkbox" name={name} value={option.value} defaultChecked={checked.has(option.value)} />

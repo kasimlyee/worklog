@@ -137,6 +137,20 @@ export type EntriesTable = {
   updatedAt: Timestamp;
 };
 
+/** BR-17: the issues an entry relates to. */
+export type EntryIssuesTable = {
+  projectId: string;
+  entryId: string;
+  issueId: string;
+};
+
+/** BR-17: the plan items an entry fulfils. */
+export type EntryPlanItemsTable = {
+  projectId: string;
+  entryId: string;
+  planItemId: string;
+};
+
 export type EntryPeopleTable = {
   entryId: string;
   personId: string;
@@ -201,6 +215,8 @@ export type Database = {
   planItemMoves: PlanItemMovesTable;
   entries: EntriesTable;
   entryPeople: EntryPeopleTable;
+  entryIssues: EntryIssuesTable;
+  entryPlanItems: EntryPlanItemsTable;
   releases: ReleasesTable;
   releasePullRequests: ReleasePullRequestsTable;
   notes: NotesTable;
@@ -249,6 +265,8 @@ export const schemaContract = {
     planItemId: uuidNull, issueId: uuidNull, createdAt: tz, updatedAt: tz,
   },
   entryPeople: { entryId: uuid, personId: uuid },
+  entryIssues: { projectId: uuid, entryId: uuid, issueId: uuid },
+  entryPlanItems: { projectId: uuid, entryId: uuid, planItemId: uuid },
   releases: {
     id: uuid, projectId: uuid, version: text, status: userEnum(), targetDate: dateNull, releasedOn: dateNull,
     notes: text, createdAt: tz, updatedAt: tz,

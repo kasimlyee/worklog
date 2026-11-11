@@ -41,7 +41,7 @@ export function LogScreen({
   readonly createEntry: FormAction;
   readonly today: string;
 }): React.JSX.Element {
-  const blank: EntryFormValues = { workDate: today, description: '', areaId: '', personIds: [], prUrl: '', planItemId: '', issueId: '' };
+  const blank: EntryFormValues = { workDate: today, description: '', areaId: '', personIds: [], prUrl: '', planItemIds: [], issueIds: [] };
   return (
     <div>
       <PageHeader title="Log" actions={<Link href={projectHref(projectId, 'pull-requests')}>Pull requests</Link>} />

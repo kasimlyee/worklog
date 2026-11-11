@@ -47,7 +47,7 @@ export async function openWorkerDb(workerId: string): Promise<Db> {
 
 const tables = [
   'sessions', 'projects', 'areas', 'people', 'pull_requests', 'issues', 'issue_assignees', 'plans',
-  'plan_items', 'plan_item_assignees', 'plan_item_moves', 'entries', 'entry_people', 'releases',
+  'plan_items', 'plan_item_assignees', 'plan_item_moves', 'entries', 'entry_people', 'entry_issues', 'entry_plan_items', 'releases',
   'release_pull_requests', 'notes', 'note_links', 'report_notes',
 ] as const;
 

@@ -185,7 +185,7 @@ describe('daily sections', () => {
     const data = reportData({
       kind: 'daily',
       planItems: [planItem('shipped', { completedOn: '2026-11-10' }), planItem('slipped'), planItem('done later', { completedOn: '2026-11-12' })],
-      entries: [entry('planned work', { planItemId: 'x' }), entry('unplanned work')],
+      entries: [entry('planned work', { planItemIds: ['x'] }), entry('unplanned work')],
     });
 
     const plan = sectionOf(buildReportModel(data, today), 'Plan vs. actual');

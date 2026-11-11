@@ -23,8 +23,8 @@ const entry = (overrides: Partial<Entry> = {}): Entry => ({
   area: { id: 'a1', name: 'Backend' },
   people: [grace],
   pullRequest: pr,
-  planItem: { id: 'i1', title: 'Ship login' },
-  issue: null,
+  planItems: [{ id: 'i1', title: 'Ship login' }],
+  issues: [],
   ...overrides,
 });
 
@@ -81,22 +81,20 @@ describe('view-model mappers', () => {
       area: 'Backend',
       people: ['Grace'],
       pullRequest: { id: 'pr1', number: 12, repo: 'app', title: 'Add login', url: pr.url, state: { tone: 'success', label: 'Merged' } },
-      planItem: 'Ship login',
-      planItemId: 'i1',
-      issue: null,
-      issueId: null,
+      planItems: [{ id: 'i1', title: 'Ship login' }],
+      issues: [],
     });
   });
 
   it('prefills the entry form with ids and the PR link', () => {
-    expect(toEntryFormValues(entry({ area: null, pullRequest: null, planItem: null, issue: { id: 's1', title: 'x' } }))).toEqual({
+    expect(toEntryFormValues(entry({ area: null, pullRequest: null, planItems: [], issues: [{ id: 's1', title: 'x' }, { id: 's2', title: 'y' }] }))).toEqual({
       workDate: '2026-11-14',
       description: 'Hotfix',
       areaId: '',
       personIds: ['p1'],
       prUrl: '',
-      planItemId: '',
-      issueId: 's1',
+      planItemIds: [],
+      issueIds: ['s1', 's2'],
     });
   });
 

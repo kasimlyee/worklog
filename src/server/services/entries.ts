@@ -4,7 +4,7 @@ import { ok } from '#src/lib/result.ts';
 import type { Db } from '#src/server/db/client.ts';
 import { parseIsoDate, type IsoDate } from '#src/server/domain/calendar.ts';
 import {
-  deleteEntryRow, insertEntry, selectEntries, updateEntryRow, type EntryRow, type NamedRef,
+  deleteEntryRow, insertEntry, selectEntries, updateEntryRow, type EntryLinks, type EntryRow, type NamedRef,
 } from '#src/server/repositories/entries.ts';
 import { invalid, notFound, parseInput, type ServiceResult } from './errors.ts';
 import { idList, isUuid, optionalId, requiredDate, requiredText } from './fields.ts';
@@ -18,8 +18,9 @@ export type Entry = {
   readonly area: NamedRef | null;
   readonly people: readonly NamedRef[];
   readonly pullRequest: PullRequest | null;
-  readonly planItem: { readonly id: string; readonly title: string } | null;
-  readonly issue: { readonly id: string; readonly title: string } | null;
+  /** BR-17: any number of each — one PR often carries several fixes. */
+  readonly planItems: readonly { readonly id: string; readonly title: string }[];
+  readonly issues: readonly { readonly id: string; readonly title: string }[];
 };
 
 export function toEntry(row: EntryRow): Entry {
@@ -34,12 +35,12 @@ export function toEntry(row: EntryRow): Entry {
       row.pullRequestId !== null && prOwner !== null && prRepo !== null && prNumber !== null && prTitle !== null && prState !== null
         ? toPullRequest({ id: row.pullRequestId, owner: prOwner, repo: prRepo, number: prNumber, title: prTitle, state: prState })
         : null,
-    planItem: row.planItemId !== null && row.planItemTitle !== null ? { id: row.planItemId, title: row.planItemTitle } : null,
-    issue: row.issueId !== null && row.issueTitle !== null ? { id: row.issueId, title: row.issueTitle } : null,
+    planItems: row.planItems,
+    issues: row.issues,
   };
 }
 
-/** BR-17: date, description, area, one or more people; optional PR, plan item and issue. */
+/** BR-17: date, description, area, one or more people; optional PR; any number of plan items and issues. */
 const entryInput = z.object({
   workDate: requiredDate('Date'),
   description: requiredText('Description', 2000),
@@ -51,8 +52,8 @@ const entryInput = z.object({
     .max(300, 'That link is too long.')
     .nullish()
     .transform((value) => value ?? ''),
-  planItemId: optionalId,
-  issueId: optionalId,
+  planItemIds: idList('plan item'),
+  issueIds: idList('issue'),
 });
 
 type ValidEntry = {
@@ -61,10 +62,8 @@ type ValidEntry = {
     readonly description: string;
     readonly areaId: string | null;
     readonly pullRequestId: string | null;
-    readonly planItemId: string | null;
-    readonly issueId: string | null;
   };
-  readonly personIds: readonly string[];
+  readonly links: EntryLinks;
 };
 
 async function validateEntry(deps: PullRequestDeps, projectId: string, input: unknown): Promise<ServiceResult<ValidEntry>> {
@@ -72,9 +71,9 @@ async function validateEntry(deps: PullRequestDeps, projectId: string, input: un
   if (!parsed.ok) {
     return parsed;
   }
-  const { prUrl, personIds, ...rest } = parsed.value;
+  const { prUrl, personIds, planItemIds, issueIds, ...rest } = parsed.value;
   // BR-19: everything referenced belongs to this project (the database enforces it too).
-  const errors = await referenceErrors(deps.db, projectId, { ...rest, personIds });
+  const errors = await referenceErrors(deps.db, projectId, { areaId: rest.areaId, personIds, planItemIds, issueIds });
   if (Object.keys(errors).length > 0) {
     return invalid(errors);
   }
@@ -86,7 +85,7 @@ async function validateEntry(deps: PullRequestDeps, projectId: string, input: un
     }
     pullRequestId = pr.value.id;
   }
-  return ok({ values: { ...rest, pullRequestId }, personIds });
+  return ok({ values: { ...rest, pullRequestId }, links: { personIds, planItemIds, issueIds } });
 }
 
 /**
@@ -98,7 +97,7 @@ export async function createEntry(deps: PullRequestDeps, projectId: string, inpu
   if (!valid.ok) {
     return valid;
   }
-  return ok({ id: await insertEntry(deps.db, projectId, valid.value.values, valid.value.personIds) });
+  return ok({ id: await insertEntry(deps.db, projectId, valid.value.values, valid.value.links) });
 }
 
 export async function updateEntry(
@@ -114,7 +113,7 @@ export async function updateEntry(
   if (!valid.ok) {
     return valid;
   }
-  const updated = await updateEntryRow(deps.db, projectId, entryId, valid.value.values, valid.value.personIds);
+  const updated = await updateEntryRow(deps.db, projectId, entryId, valid.value.values, valid.value.links);
   return updated ? ok({ id: entryId }) : notFound;
 }
 
@@ -158,6 +157,8 @@ const logQuery = z.object({
   areaId: z.uuid().optional().catch(undefined),
   personId: z.uuid().optional().catch(undefined),
   pullRequestId: z.uuid().optional().catch(undefined),
+  issueId: z.uuid().optional().catch(undefined),
+  planItemId: z.uuid().optional().catch(undefined),
   cursor: z.string().max(200).optional().catch(undefined),
 });
 
@@ -166,12 +167,14 @@ export type EntryPage = { readonly entries: readonly Entry[]; readonly nextCurso
 /** Log screen: newest first, keyset-paginated (docs/02 §13). Unknown filter values are ignored. */
 export async function listEntries(db: Db, projectId: string, query: unknown, pageSize = 50): Promise<EntryPage> {
   const parsed = logQuery.safeParse(query);
-  const { areaId, personId, pullRequestId, cursor } = parsed.success ? parsed.data : {};
+  const { areaId, personId, pullRequestId, issueId, planItemId, cursor } = parsed.success ? parsed.data : {};
   const before = cursor === undefined ? undefined : decodeCursor(cursor);
   const rows = await selectEntries(db, projectId, {
     ...(areaId === undefined ? {} : { areaId }),
     ...(personId === undefined ? {} : { personId }),
     ...(pullRequestId === undefined ? {} : { pullRequestId }),
+    ...(issueId === undefined ? {} : { issueId }),
+    ...(planItemId === undefined ? {} : { planItemId }),
     ...(before === undefined ? {} : { before }),
     limit: pageSize + 1,
   });

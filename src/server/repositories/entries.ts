@@ -20,10 +20,9 @@ export type EntryRow = {
   readonly prNumber: number | null;
   readonly prTitle: string | null;
   readonly prState: PrState | null;
-  readonly planItemId: string | null;
-  readonly planItemTitle: string | null;
-  readonly issueId: string | null;
-  readonly issueTitle: string | null;
+  /** BR-17: the plan items this entry fulfils and the issues it relates to — any number. */
+  readonly planItems: readonly { readonly id: string; readonly title: string }[];
+  readonly issues: readonly { readonly id: string; readonly title: string }[];
   readonly people: readonly NamedRef[];
 };
 
@@ -52,8 +51,6 @@ export async function selectEntries(db: Db, projectId: string, filter: EntryFilt
     .selectFrom('entries as e')
     .leftJoin('areas as a', 'a.id', 'e.areaId')
     .leftJoin('pullRequests as pr', 'pr.id', 'e.pullRequestId')
-    .leftJoin('planItems as pi', 'pi.id', 'e.planItemId')
-    .leftJoin('issues as i', 'i.id', 'e.issueId')
     .select([
       'e.id',
       'e.workDate',
@@ -68,10 +65,26 @@ export async function selectEntries(db: Db, projectId: string, filter: EntryFilt
       'pr.number as prNumber',
       'pr.title as prTitle',
       'pr.state as prState',
-      'e.planItemId',
-      'pi.title as planItemTitle',
-      'e.issueId',
-      'i.title as issueTitle',
+    ])
+    .select((eb) => [
+      jsonArrayFrom(
+        eb
+          .selectFrom('entryPlanItems as epi')
+          .innerJoin('planItems as pi', 'pi.id', 'epi.planItemId')
+          .select(['pi.id', 'pi.title'])
+          .whereRef('epi.entryId', '=', 'e.id')
+          .orderBy('pi.dueDate')
+          .orderBy('pi.title'),
+      ).as('planItems'),
+      jsonArrayFrom(
+        eb
+          .selectFrom('entryIssues as ei')
+          .innerJoin('issues as i', 'i.id', 'ei.issueId')
+          .select(['i.id', 'i.title'])
+          .whereRef('ei.entryId', '=', 'e.id')
+          .orderBy('i.deadline')
+          .orderBy('i.title'),
+      ).as('issues'),
     ])
     .select((eb) =>
       jsonArrayFrom(
@@ -102,10 +115,16 @@ export async function selectEntries(db: Db, projectId: string, filter: EntryFilt
         conditions.push(eb('e.pullRequestId', '=', filter.pullRequestId));
       }
       if (filter.planItemId !== undefined) {
-        conditions.push(eb('e.planItemId', '=', filter.planItemId));
+        const planItemId = filter.planItemId;
+        conditions.push(
+          eb.exists(eb.selectFrom('entryPlanItems as fp').select('fp.entryId').whereRef('fp.entryId', '=', 'e.id').where('fp.planItemId', '=', planItemId)),
+        );
       }
       if (filter.issueId !== undefined) {
-        conditions.push(eb('e.issueId', '=', filter.issueId));
+        const issueId = filter.issueId;
+        conditions.push(
+          eb.exists(eb.selectFrom('entryIssues as fi').select('fi.entryId').whereRef('fi.entryId', '=', 'e.id').where('fi.issueId', '=', issueId)),
+        );
       }
       if (filter.personId !== undefined) {
         conditions.push(
@@ -137,37 +156,51 @@ export type EntryValues = {
   readonly description: string;
   readonly areaId: string | null;
   readonly pullRequestId: string | null;
-  readonly planItemId: string | null;
-  readonly issueId: string | null;
 };
 
-export async function insertEntry(db: Db, projectId: string, values: EntryValues, personIds: readonly string[]): Promise<string> {
+export type EntryLinks = {
+  readonly personIds: readonly string[];
+  readonly planItemIds: readonly string[];
+  readonly issueIds: readonly string[];
+};
+
+async function replaceLinks(db: Db, projectId: string, entryId: string, links: EntryLinks): Promise<void> {
+  await db.deleteFrom('entryPeople').where('entryId', '=', entryId).execute();
+  await db.deleteFrom('entryPlanItems').where('entryId', '=', entryId).execute();
+  await db.deleteFrom('entryIssues').where('entryId', '=', entryId).execute();
+  await db.insertInto('entryPeople').values(links.personIds.map((personId) => ({ entryId, personId }))).execute();
+  if (links.planItemIds.length > 0) {
+    await db.insertInto('entryPlanItems').values(links.planItemIds.map((planItemId) => ({ projectId, entryId, planItemId }))).execute();
+  }
+  if (links.issueIds.length > 0) {
+    await db.insertInto('entryIssues').values(links.issueIds.map((issueId) => ({ projectId, entryId, issueId }))).execute();
+  }
+}
+
+// The single-link columns plan_item_id / issue_id are superseded by the link tables
+// (migration 0005) and always written as NULL.
+const noLegacyLinks = { planItemId: null, issueId: null } as const;
+
+export async function insertEntry(db: Db, projectId: string, values: EntryValues, links: EntryLinks): Promise<string> {
   return await db.transaction().execute(async (trx) => {
-    const { id } = await trx.insertInto('entries').values({ projectId, ...values }).returning('id').executeTakeFirstOrThrow();
-    await trx.insertInto('entryPeople').values(personIds.map((personId) => ({ entryId: id, personId }))).execute();
+    const { id } = await trx.insertInto('entries').values({ projectId, ...values, ...noLegacyLinks }).returning('id').executeTakeFirstOrThrow();
+    await replaceLinks(trx, projectId, id, links);
     return id;
   });
 }
 
-export async function updateEntryRow(
-  db: Db,
-  projectId: string,
-  id: string,
-  values: EntryValues,
-  personIds: readonly string[],
-): Promise<boolean> {
+export async function updateEntryRow(db: Db, projectId: string, id: string, values: EntryValues, links: EntryLinks): Promise<boolean> {
   return await db.transaction().execute(async (trx) => {
     const updated = await trx
       .updateTable('entries')
-      .set({ ...values, updatedAt: new Date() })
+      .set({ ...values, ...noLegacyLinks, updatedAt: new Date() })
       .where('id', '=', id)
       .where('projectId', '=', projectId)
       .executeTakeFirst();
     if (updated.numUpdatedRows === 0n) {
       return false;
     }
-    await trx.deleteFrom('entryPeople').where('entryId', '=', id).execute();
-    await trx.insertInto('entryPeople').values(personIds.map((personId) => ({ entryId: id, personId }))).execute();
+    await replaceLinks(trx, projectId, id, links);
     return true;
   });
 }

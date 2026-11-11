@@ -89,7 +89,7 @@ These are deliberate. A feature request that falls here needs this document chan
 
 ### 4.4 Entries
 
-- **BR-17** An entry has a work date, a description, an area, one or more people, and optionally a PR, a plan item it fulfils, and an issue it relates to.
+- **BR-17** An entry has a work date, a description, an area, one or more people, and optionally a PR, any number of plan items it fulfils, and any number of issues it relates to (one PR often carries several fixes).
 - **BR-18** Entries are recorded on the **actual date the work was done**, including Saturday and Sunday.
 - **BR-19** An entry's area, PR, plan item and issue must all belong to the entry's project.
 - **BR-20** Linking an entry to a plan item does **not** change the plan item's status automatically. Marking done is a separate, explicit action. (One plan item may need several entries.)

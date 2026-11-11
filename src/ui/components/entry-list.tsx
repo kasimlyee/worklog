@@ -7,6 +7,32 @@ import { PersonList } from './person-list.tsx';
 import { StatusTag } from './status-tag.tsx';
 import styles from './lists.module.css';
 
+/** "Issues: A, B" — each a link; nothing when empty. */
+function LinkedList({
+  label,
+  items,
+  href,
+}: {
+  readonly label: string;
+  readonly items: readonly { readonly id: string; readonly title: string }[];
+  readonly href: (id: string) => ReturnType<typeof projectItemHref>;
+}): React.JSX.Element | null {
+  if (items.length === 0) {
+    return null;
+  }
+  return (
+    <span>
+      {label}:{' '}
+      {items.map((item, index) => (
+        <span key={item.id}>
+          {index > 0 ? ', ' : null}
+          <Link href={href(item.id)}>{item.title}</Link>
+        </span>
+      ))}
+    </span>
+  );
+}
+
 export function EntryList({
   entries,
   projectId,
@@ -39,16 +65,8 @@ export function EntryList({
                 <StatusTag status={entry.pullRequest.state} />
               </span>
             )}
-            {entry.planItem === null || entry.planItemId === null ? null : (
-              <span>
-                Plan: <Link href={projectItemHref(projectId, 'plans/items', entry.planItemId)}>{entry.planItem}</Link>
-              </span>
-            )}
-            {entry.issue === null || entry.issueId === null ? null : (
-              <span>
-                Issue: <Link href={projectItemHref(projectId, 'issues', entry.issueId)}>{entry.issue}</Link>
-              </span>
-            )}
+            <LinkedList label="Plan" items={entry.planItems} href={(id) => projectItemHref(projectId, 'plans/items', id)} />
+            <LinkedList label={entry.issues.length > 1 ? 'Issues' : 'Issue'} items={entry.issues} href={(id) => projectItemHref(projectId, 'issues', id)} />
             <Link href={projectItemHref(projectId, 'log', entry.id, 'edit')} aria-label={`Edit entry: ${entry.description}`}>
               Edit
             </Link>

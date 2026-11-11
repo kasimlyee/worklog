@@ -25,6 +25,12 @@ export async function referenceErrors(db: Db, projectId: string, refs: Reference
   if (!check.people) {
     errors['personIds'] = 'One of the chosen people no longer exists.';
   }
+  if (!check.planItems) {
+    errors['planItemIds'] = 'Choose plan items of this project.';
+  }
+  if (!check.issues) {
+    errors['issueIds'] = 'Choose issues of this project.';
+  }
   if (!check.pullRequests) {
     errors['pullRequestIds'] = 'Choose pull requests of this project.';
   }

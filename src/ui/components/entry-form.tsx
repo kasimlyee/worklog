@@ -26,7 +26,7 @@ type EntryFormProps = {
   readonly autoFocus?: boolean;
 };
 
-/** BR-17: date, description, area, people, PR link, plan item, issue. */
+/** BR-17: date, description, area, people, PR link, any plan items and issues. */
 export function EntryForm({ action, pickers, values, submitLabel, label, autoFocus = false }: EntryFormProps): React.JSX.Element {
   return (
     <ActionForm action={action} submitLabel={submitLabel} label={label} onKeyDown={submitOnModEnter}>
@@ -49,8 +49,8 @@ export function EntryForm({ action, pickers, values, submitLabel, label, autoFoc
         defaultValue={values.prUrl}
         placeholder="https://github.com/org/repo/pull/123"
       />
-      <SelectField name="planItemId" label="Plan item" options={pickers.planItems} defaultValue={values.planItemId} emptyLabel="None" />
-      <SelectField name="issueId" label="Issue" options={pickers.issues} defaultValue={values.issueId} emptyLabel="None" />
+      <CheckboxGroupField name="issueIds" legend="Issues it fixes or works on" options={pickers.issues} defaultValues={values.issueIds} scrollable />
+      <CheckboxGroupField name="planItemIds" legend="Plan items it fulfils" options={pickers.planItems} defaultValues={values.planItemIds} scrollable />
       <CheckboxGroupField name="personIds" legend="People" options={pickers.people} defaultValues={values.personIds} />
     </ActionForm>
   );
@@ -58,7 +58,7 @@ export function EntryForm({ action, pickers, values, submitLabel, label, autoFoc
 
 /** Reachable from every project page (product spec §6). */
 export function QuickLog({ action, pickers, today }: { readonly action: FormAction; readonly pickers: Pickers; readonly today: string }): React.JSX.Element {
-  const values: EntryFormValues = { workDate: today, description: '', areaId: '', personIds: [], prUrl: '', planItemId: '', issueId: '' };
+  const values: EntryFormValues = { workDate: today, description: '', areaId: '', personIds: [], prUrl: '', planItemIds: [], issueIds: [] };
   // Opening the panel puts the cursor in the description, so logging needs no mouse.
   const focusDescription = (event: React.SyntheticEvent<HTMLDetailsElement>): void => {
     if (event.currentTarget.open) {

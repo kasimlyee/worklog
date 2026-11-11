@@ -91,10 +91,12 @@ describe('QuickLog', () => {
   it('has every field of product spec §6 with a label', () => {
     render(<QuickLog action={returning({ status: 'idle' })} pickers={pickers} today={today} />);
 
-    for (const label of ['What was done', 'Date', 'Area', 'Pull request link', 'Plan item', 'Issue']) {
+    for (const label of ['What was done', 'Date', 'Area', 'Pull request link']) {
       expect(screen.getByLabelText(label)).toBeDefined();
     }
-    expect(screen.getByRole('group', { name: 'People' })).toBeDefined();
+    for (const group of ['People', 'Issues it fixes or works on', 'Plan items it fulfils']) {
+      expect(screen.getByRole('group', { name: group })).toBeDefined();
+    }
   });
 });
 

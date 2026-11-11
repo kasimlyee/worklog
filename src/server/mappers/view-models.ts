@@ -49,10 +49,8 @@ export function toEntryVM(entry: Entry): EntryVM {
     area: entry.area?.name ?? null,
     people: names(entry.people),
     pullRequest: entry.pullRequest === null ? null : toPullRequestVM(entry.pullRequest),
-    planItem: entry.planItem?.title ?? null,
-    planItemId: entry.planItem?.id ?? null,
-    issue: entry.issue?.title ?? null,
-    issueId: entry.issue?.id ?? null,
+    planItems: entry.planItems,
+    issues: entry.issues,
   };
 }
 
@@ -63,8 +61,8 @@ export function toEntryFormValues(entry: Entry): EntryFormValues {
     areaId: entry.area?.id ?? '',
     personIds: entry.people.map((person) => person.id),
     prUrl: entry.pullRequest?.url ?? '',
-    planItemId: entry.planItem?.id ?? '',
-    issueId: entry.issue?.id ?? '',
+    planItemIds: entry.planItems.map((item) => item.id),
+    issueIds: entry.issues.map((issue) => issue.id),
   };
 }
 

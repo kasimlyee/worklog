@@ -9,6 +9,8 @@ export type References = {
   readonly releaseId?: string | null;
   readonly personIds?: readonly string[];
   readonly pullRequestIds?: readonly string[];
+  readonly planItemIds?: readonly string[];
+  readonly issueIds?: readonly string[];
 };
 
 export type ReferenceCheck = {
@@ -19,12 +21,16 @@ export type ReferenceCheck = {
   readonly release: boolean;
   readonly people: boolean;
   readonly pullRequests: boolean;
+  readonly planItems: boolean;
+  readonly issues: boolean;
 };
 
 /** BR-19: whether each referenced record exists in this project — one query for all of them. */
 export async function checkReferences(db: Db, projectId: string, refs: References): Promise<ReferenceCheck> {
   const personIds = refs.personIds ?? [];
   const prIds = refs.pullRequestIds ?? [];
+  const planItemIds = refs.planItemIds ?? [];
+  const issueIds = refs.issueIds ?? [];
   const row = await db
     .selectNoFrom((eb) => {
       const exists = (
@@ -62,6 +68,26 @@ export async function checkReferences(db: Db, projectId: string, refs: Reference
               String(prIds.length),
             )
         ).as('pullRequests'),
+        (planItemIds.length === 0
+          ? eb.lit(true)
+          : eb(
+              eb
+                .selectFrom('planItems')
+                .select((s) => s.fn.countAll<string>().as('n'))
+                .where('id', 'in', planItemIds)
+                .where('projectId', '=', projectId),
+              '=',
+              String(planItemIds.length),
+            )
+        ).as('planItems'),
+        (issueIds.length === 0
+          ? eb.lit(true)
+          : eb(
+              eb.selectFrom('issues').select((s) => s.fn.countAll<string>().as('n')).where('id', 'in', issueIds).where('projectId', '=', projectId),
+              '=',
+              String(issueIds.length),
+            )
+        ).as('issues'),
       ];
     })
     .executeTakeFirstOrThrow();
@@ -73,5 +99,7 @@ export async function checkReferences(db: Db, projectId: string, refs: Reference
     release: row.release === true,
     people: row.people === true,
     pullRequests: row.pullRequests === true,
+    planItems: row.planItems === true,
+    issues: row.issues === true,
   };
 }

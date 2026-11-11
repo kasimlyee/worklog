@@ -117,16 +117,30 @@ export async function aPlanItem(
     .executeTakeFirstOrThrow();
 }
 
+/**
+ * `planItemId` / `issueId` (one each) or `planItemIds` / `issueIds` (any number) are written to
+ * the link tables (BR-17), as the app does.
+ */
 export async function anEntry(
   db: Db,
   projectId: string,
-  overrides: Partial<Insertable<EntriesTable>> = {},
+  overrides: Partial<Insertable<EntriesTable>> & { readonly planItemIds?: readonly string[]; readonly issueIds?: readonly string[] } = {},
 ): Promise<Selectable<EntriesTable>> {
-  return await db
+  const { planItemId, issueId, planItemIds = [], issueIds = [], ...values } = overrides;
+  const entry = await db
     .insertInto('entries')
-    .values({ projectId, workDate: '2026-11-10', description: `Work ${String(next())}`, ...overrides })
+    .values({ projectId, workDate: '2026-11-10', description: `Work ${String(next())}`, ...values })
     .returningAll()
     .executeTakeFirstOrThrow();
+  const plans = [...planItemIds, ...(planItemId === undefined || planItemId === null ? [] : [planItemId])];
+  const issues = [...issueIds, ...(issueId === undefined || issueId === null ? [] : [issueId])];
+  if (plans.length > 0) {
+    await db.insertInto('entryPlanItems').values(plans.map((id) => ({ projectId, entryId: entry.id, planItemId: id }))).execute();
+  }
+  if (issues.length > 0) {
+    await db.insertInto('entryIssues').values(issues.map((id) => ({ projectId, entryId: entry.id, issueId: id }))).execute();
+  }
+  return entry;
 }
 
 export async function aRelease(

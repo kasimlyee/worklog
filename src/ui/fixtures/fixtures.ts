@@ -72,10 +72,8 @@ const loginEntry: EntryVM = {
   area: 'Frontend',
   people: ['Ali', 'Grace'],
   pullRequest,
-  planItem: 'Ship login',
-  planItemId: 'i1',
-  issue: null,
-  issueId: null,
+  planItems: [{ id: 'i1', title: 'Ship login' }],
+  issues: [],
 };
 const weekendEntry: EntryVM = {
   id: 'e2',
@@ -86,10 +84,11 @@ const weekendEntry: EntryVM = {
   area: null,
   people: ['Wanjiru'],
   pullRequest: null,
-  planItem: null,
-  planItemId: null,
-  issue: 'Crash on save',
-  issueId: 's1',
+  planItems: [],
+  issues: [
+    { id: 's1', title: 'Crash on save' },
+    { id: 's2', title: 'Slow dashboard query' },
+  ],
 };
 const longEntry: EntryVM = {
   id: 'e3',
@@ -100,10 +99,8 @@ const longEntry: EntryVM = {
   area: 'Backend',
   people: ['Grace'],
   pullRequest: { ...pullRequest, id: 'pr13', number: 13, title: 'Experiment: new cache', state: statuses.closed },
-  planItem: null,
-  planItemId: null,
-  issue: null,
-  issueId: null,
+  planItems: [],
+  issues: [],
 };
 
 export const entries: readonly EntryVM[] = [loginEntry, weekendEntry, longEntry];
@@ -291,8 +288,8 @@ export const entryValues: EntryFormValues = {
   areaId: 'a1',
   personIds: ['p1', 'p2'],
   prUrl: 'https://github.com/acme/app/pull/12',
-  planItemId: 'i1',
-  issueId: '',
+  planItemIds: ['i1'],
+  issueIds: [],
 };
 
 export const issueDetail: IssueDetailVM = {

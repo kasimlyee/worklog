@@ -25,7 +25,7 @@ type EntryOptions = {
   readonly area?: { readonly id: string } | null;
   readonly people?: readonly NamedRef[];
   readonly pr?: { readonly id: string; readonly number: number; readonly title: string; readonly state: PrState; readonly repo?: string };
-  readonly planItemId?: string | null;
+  readonly planItemIds?: readonly string[];
   readonly createdAt?: string;
 };
 
@@ -44,10 +44,8 @@ export function entry(description: string, options: EntryOptions = {}): EntryRow
     prNumber: pr?.number ?? null,
     prTitle: pr?.title ?? null,
     prState: pr?.state ?? null,
-    planItemId: options.planItemId ?? null,
-    planItemTitle: null,
-    issueId: null,
-    issueTitle: null,
+    planItems: (options.planItemIds ?? []).map((id) => ({ id, title: `Plan item ${id}` })),
+    issues: [],
     people: options.people ?? [person('Grace')],
   };
 }

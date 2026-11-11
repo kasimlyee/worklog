@@ -9,10 +9,9 @@ export type EntryVM = {
   readonly area: string | null;
   readonly people: readonly string[];
   readonly pullRequest: PullRequestVM | null;
-  readonly planItem: string | null;
-  readonly planItemId: string | null;
-  readonly issue: string | null;
-  readonly issueId: string | null;
+  /** BR-17: any number of each. */
+  readonly planItems: readonly { readonly id: string; readonly title: string }[];
+  readonly issues: readonly { readonly id: string; readonly title: string }[];
 };
 
 /** Values to prefill the entry form when editing. */
@@ -22,8 +21,8 @@ export type EntryFormValues = {
   readonly areaId: string;
   readonly personIds: readonly string[];
   readonly prUrl: string;
-  readonly planItemId: string;
-  readonly issueId: string;
+  readonly planItemIds: readonly string[];
+  readonly issueIds: readonly string[];
 };
 
 export type LogDayVM = { readonly date: string; readonly label: string; readonly isWeekend: boolean; readonly entries: readonly EntryVM[] };

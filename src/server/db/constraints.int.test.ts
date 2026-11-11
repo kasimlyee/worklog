@@ -97,6 +97,15 @@ describe('database constraints', () => {
     await expect(anEntry(testDb(), a, { planItemId: foreignItem.id })).rejects.toThrow(/foreign key/);
   });
 
+  it('BR-17, BR-19: an entry may link several issues, but never another project’s, enforced by the database', async () => {
+    const { a, b } = await twoProjects();
+    const mine = [await anIssue(testDb(), a), await anIssue(testDb(), a)];
+    const foreign = await anIssue(testDb(), b);
+
+    await expect(anEntry(testDb(), a, { issueIds: mine.map((issue) => issue.id) })).resolves.toBeDefined();
+    await expect(anEntry(testDb(), a, { issueIds: [mine[0]?.id ?? '', foreign.id] })).rejects.toThrow(/foreign key/);
+  });
+
   it('BR-36: a PR referenced by an entry cannot be deleted', async () => {
     const project = await aProject(testDb());
     const pr = await aPullRequest(testDb(), project.id);
@@ -115,6 +124,8 @@ describe('database constraints', () => {
     await testDb().deleteFrom('planItems').where('id', '=', item.id).execute();
 
     const row = await testDb().selectFrom('entries').selectAll().where('id', '=', entry.id).executeTakeFirstOrThrow();
-    expect(row).toMatchObject({ projectId: project.id, issueId: null, planItemId: null });
+    expect(row).toMatchObject({ projectId: project.id });
+    expect(await testDb().selectFrom('entryIssues').selectAll().execute()).toEqual([]);
+    expect(await testDb().selectFrom('entryPlanItems').selectAll().execute()).toEqual([]);
   });
 });

@@ -84,3 +84,15 @@
   padding: var(--space-2) var(--space-3);
   font-weight: 600;
 }
+
+.checkboxes[data-scrollable='true'] {
+  flex-direction: column;
+  flex-wrap: nowrap;
+  gap: var(--space-1);
+  max-height: 11rem;
+  overflow-y: auto;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}

@@ -27,8 +27,8 @@ describe('entries', () => {
       areaId: area.id,
       personIds: [grace.id, ali.id],
       prUrl: 'https://github.com/acme/app/pull/12',
-      planItemId: item.id,
-      issueId: issue.id,
+      planItemIds: [item.id],
+      issueIds: [issue.id],
     });
 
     const entry = await getEntry(testDb(), project.id, created.ok ? created.value.id : '');
@@ -39,8 +39,8 @@ describe('entries', () => {
       area: { id: area.id, name: 'Backend' },
       people: [{ id: ali.id, name: 'Ali' }, { id: grace.id, name: 'Grace' }],
       pullRequest: objectContaining({ number: 12, title: 'PR 12', url: 'https://github.com/acme/app/pull/12' }),
-      planItem: { id: item.id, title: 'Ship login' },
-      issue: { id: issue.id, title: 'Crash on save' },
+      planItems: [{ id: item.id, title: 'Ship login' }],
+      issues: [{ id: issue.id, title: 'Crash on save' }],
     });
   });
 
@@ -60,6 +60,45 @@ describe('entries', () => {
         },
       },
     });
+  });
+
+  it('BR-17: one entry can relate to several issues and fulfil several plan items (one PR, many fixes)', async () => {
+    const { project, grace } = await setup();
+    const shareLinks = await anIssue(testDb(), project.id, { title: 'Share links broken', deadline: '2026-11-12' });
+    const preview = await anIssue(testDb(), project.id, { title: 'No link preview', deadline: '2026-11-13' });
+    const plan = await aPlan(testDb(), project.id, { horizon: 'week', periodStart: '2026-11-09' });
+    const moveVm = await aPlanItem(testDb(), plan, { title: 'Move domain', dueDate: '2026-11-10' });
+    const ssr = await aPlanItem(testDb(), plan, { title: 'Server-render share pages', dueDate: '2026-11-11' });
+
+    const created = await createEntry(prDeps(testDb()), project.id, {
+      workDate: '2026-11-10',
+      description: 'Moved go.nestlyhousing.org; share pages are now server-rendered',
+      personIds: [grace.id],
+      prUrl: 'https://github.com/acme/web/pull/41',
+      issueIds: [preview.id, shareLinks.id],
+      planItemIds: [ssr.id, moveVm.id],
+    });
+    const entryId = created.ok ? created.value.id : '';
+
+    expect(await getEntry(testDb(), project.id, entryId)).toMatchObject({
+      issues: [{ title: 'Share links broken' }, { title: 'No link preview' }],
+      planItems: [{ title: 'Move domain' }, { title: 'Server-render share pages' }],
+    });
+
+    // Editing replaces the whole set.
+    await updateEntry(prDeps(testDb()), project.id, entryId, { workDate: '2026-11-10', description: 'x', personIds: [grace.id], issueIds: [preview.id] });
+    expect(await getEntry(testDb(), project.id, entryId)).toMatchObject({ issues: [{ title: 'No link preview' }], planItems: [] });
+  });
+
+  it('BR-17: the log can be filtered to the entries of one issue or plan item, whichever else they link to', async () => {
+    const { project } = await setup();
+    const a = await anIssue(testDb(), project.id);
+    const b = await anIssue(testDb(), project.id);
+    const both = await anEntry(testDb(), project.id, { issueIds: [a.id, b.id] });
+    await anEntry(testDb(), project.id, { issueIds: [a.id] });
+
+    const ids = async (issueId: string) => (await listEntries(testDb(), project.id, { issueId })).entries.map((e) => e.id);
+    expect(await ids(b.id)).toEqual([both.id]);
   });
 
   it('BR-18: records work on a Saturday or Sunday', async () => {
@@ -83,8 +122,8 @@ describe('entries', () => {
       description: 'x',
       personIds: [grace.id, '00000000-0000-4000-8000-000000000000'],
       areaId: area.id,
-      issueId: issue.id,
-      planItemId: item.id,
+      issueIds: [issue.id],
+      planItemIds: [item.id],
       prUrl: 'https://github.com/acme/app/pull/1',
     });
 
@@ -94,8 +133,8 @@ describe('entries', () => {
         code: 'invalid',
         fieldErrors: {
           areaId: 'Choose an area of this project.',
-          issueId: 'Choose an issue of this project.',
-          planItemId: 'Choose a plan item of this project.',
+          issueIds: 'Choose issues of this project.',
+          planItemIds: 'Choose plan items of this project.',
           personIds: 'One of the chosen people no longer exists.',
         },
       },
@@ -137,7 +176,7 @@ describe('entries', () => {
     const { project, grace } = await setup();
     const item = await aPlanItem(testDb(), await aPlan(testDb(), project.id));
 
-    await createEntry(prDeps(testDb()), project.id, { workDate: '2026-11-10', description: 'x', personIds: [grace.id], planItemId: item.id });
+    await createEntry(prDeps(testDb()), project.id, { workDate: '2026-11-10', description: 'x', personIds: [grace.id], planItemIds: [item.id] });
 
     const row = await testDb().selectFrom('planItems').select('status').executeTakeFirstOrThrow();
     expect(row.status).toBe('planned');
