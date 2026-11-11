@@ -59,9 +59,12 @@ export async function getDashboard(db: Db, projectId: string, today: IsoDate): P
   ].sort(byDue);
   const stateOf = (entry: DashboardItem): string | undefined =>
     entry.kind === 'plan_item' ? entry.item.deadline?.state : entry.issue.deadlineState.state;
+  // BR-37: an urgent issue is urgent whatever its deadline; it is listed only once.
+  const isUrgent = (entry: DashboardItem): boolean =>
+    stateOf(entry) === 'overdue' || (entry.kind === 'issue' && entry.issue.priority === 'urgent');
   return {
-    urgent: tracked.filter((entry) => stateOf(entry) === 'overdue'),
-    dueSoon: tracked.filter((entry) => stateOf(entry) === 'due_soon'),
+    urgent: tracked.filter(isUrgent),
+    dueSoon: tracked.filter((entry) => !isUrgent(entry) && stateOf(entry) === 'due_soon'),
     todaysPlan: todayRows === null ? null : todayRows.map((row) => toPlanItem(row, today)),
     openIssues,
     recentEntries: entryRows.map(toEntry),

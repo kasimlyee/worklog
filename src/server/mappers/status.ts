@@ -1,5 +1,5 @@
 import 'server-only';
-import type { IssueStatus, PlanItemStatus, PrState, ReleaseStatus } from '#src/server/db/types.ts';
+import type { IssuePriority, IssueStatus, PlanItemStatus, PrState, ReleaseStatus } from '#src/server/db/types.ts';
 import type { Deadline, IssueDeadlineState } from '#src/server/domain/deadlines.ts';
 import type { StatusVM } from '#src/ui/view-models/common.ts';
 
@@ -16,6 +16,14 @@ export const issueStatusTag: Readonly<Record<IssueStatus, StatusVM>> = {
   open: { tone: 'neutral', label: 'Open' },
   in_progress: { tone: 'warning', label: 'In progress' },
   resolved: { tone: 'success', label: 'Resolved' },
+};
+
+/** BR-37 */
+export const issuePriorityTag: Readonly<Record<IssuePriority, StatusVM>> = {
+  urgent: { tone: 'danger', label: 'Urgent' },
+  high: { tone: 'warning', label: 'High' },
+  medium: { tone: 'neutral', label: 'Medium' },
+  low: { tone: 'neutral', label: 'Low' },
 };
 
 export const prStateTag: Readonly<Record<PrState, StatusVM>> = {

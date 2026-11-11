@@ -9,8 +9,9 @@ import type { Release } from '#src/server/services/releases.ts';
 import { deadlineTag } from './status.ts';
 import {
   timestampLabel, toDashboardVM, toEntryFormValues, toEntryVM, toIssueDetailVM, toLogDays, toNoteFormValues, toNoteVM, toPickers,
-  toPlanItemDetailVM, toPlansVM, toPullRequestRowVM, toReleaseDetailVM,
+  arrangeIssues, toPlanItemDetailVM, toPlansVM, toPullRequestRowVM, toReleaseDetailVM,
 } from './view-models.ts';
+import { issuePriorityTag } from './status.ts';
 
 const pr: PullRequest = { id: 'pr1', owner: 'acme', repo: 'app', number: 12, title: 'Add login', state: 'merged', url: 'https://github.com/acme/app/pull/12' };
 const grace = { id: 'p1', name: 'Grace' };
@@ -46,6 +47,7 @@ const issue: Issue = {
   title: 'Crash',
   externalUrl: null,
   status: 'resolved',
+  priority: 'high',
   assignedOn: d('2026-11-02'),
   deadline: d('2026-11-05'),
   resolvedOn: d('2026-11-06'),
@@ -226,5 +228,39 @@ describe('plans screen', () => {
     const vm = toPlansVM(null, 'day', d('2026-11-14'), d('2026-11-10'), 'UTC');
 
     expect(vm).toMatchObject({ label: 'Saturday 14 Nov 2026', canAdd: false, items: [], previousQuery: 'horizon=day&date=2026-11-13', defaultDueDate: '2026-11-14' });
+  });
+});
+
+describe('issue priority', () => {
+  const withPriority = (id: string, priority: Issue['priority']): Issue => ({ ...issue, id, priority });
+  const list = [withPriority('a', 'low'), withPriority('b', 'urgent'), withPriority('c', 'medium'), withPriority('d', 'urgent'), withPriority('e', 'high')];
+
+  it('BR-37: colours — urgent red, high yellow, medium and low neutral, always labelled', () => {
+    expect(Object.values(issuePriorityTag).map((tag) => `${tag.tone}:${tag.label}`)).toEqual(['danger:Urgent', 'warning:High', 'neutral:Medium', 'neutral:Low']);
+  });
+
+  it('BR-37: filters by one priority', () => {
+    expect(arrangeIssues(list, { priority: 'urgent', sortBy: 'deadline' }).map((i) => i.id)).toEqual(['b', 'd']);
+  });
+
+  it('BR-37: sorts urgent first, keeping the deadline order within a priority', () => {
+    expect(arrangeIssues(list, { priority: null, sortBy: 'priority' }).map((i) => i.id)).toEqual(['b', 'd', 'e', 'c', 'a']);
+    expect(arrangeIssues(list, { priority: null, sortBy: 'deadline' }).map((i) => i.id)).toEqual(['a', 'b', 'c', 'd', 'e']);
+  });
+
+  it('BR-37: the dashboard shows the priority of high and urgent issues only', () => {
+    const vm = toDashboardVM(
+      {
+        urgent: [{ kind: 'issue', due: issue.deadline, issue: { ...issue, priority: 'urgent' } }],
+        dueSoon: [{ kind: 'issue', due: issue.deadline, issue: { ...issue, priority: 'medium' } }],
+        todaysPlan: null,
+        openIssues: [],
+        recentEntries: [],
+      },
+      d('2026-11-10'),
+      'UTC',
+    );
+
+    expect([vm.urgent[0]?.priority, vm.dueSoon[0]?.priority]).toEqual([{ tone: 'danger', label: 'Urgent' }, null]);
   });
 });

@@ -36,6 +36,20 @@ describe('dashboard', () => {
     expect(dashboard.urgent).toHaveLength(1);
   });
 
+  it('BR-37: an urgent issue is in Urgent before its deadline, and not also in Due soon', async () => {
+    const project = await aProject(testDb());
+    await anIssue(testDb(), project.id, { title: 'urgent, far away', deadline: '2026-12-01', priority: 'urgent' });
+    await anIssue(testDb(), project.id, { title: 'urgent, due tomorrow', deadline: '2026-11-11', priority: 'urgent' });
+    await anIssue(testDb(), project.id, { title: 'high, due tomorrow', deadline: '2026-11-11', priority: 'high' });
+    await anIssue(testDb(), project.id, { title: 'urgent but resolved', deadline: '2026-11-11', priority: 'urgent', status: 'resolved', resolvedOn: '2026-11-09' });
+
+    const dashboard = await getDashboard(testDb(), project.id, tuesday);
+    const titles = (items: typeof dashboard.urgent) => items.map((u) => (u.kind === 'issue' ? u.issue.title : u.item.title));
+
+    expect(titles(dashboard.urgent)).toEqual(['urgent, due tomorrow', 'urgent, far away']);
+    expect(titles(dashboard.dueSoon)).toEqual(['high, due tomorrow']);
+  });
+
   it('shows today’s day plan, and none on a weekend', async () => {
     const project = await aProject(testDb());
     await aPlanItem(testDb(), await aPlan(testDb(), project.id, { horizon: 'day', periodStart: '2026-11-10' }), { title: 'Standup notes' });

@@ -14,6 +14,7 @@ type CreatedAt = ColumnType<Date, Date | string | undefined, never>;
 export type PlanHorizon = 'day' | 'week' | 'month';
 export type PlanItemStatus = 'planned' | 'in_progress' | 'done' | 'blocked';
 export type IssueStatus = 'open' | 'in_progress' | 'resolved';
+export type IssuePriority = 'low' | 'medium' | 'high' | 'urgent';
 export type PrState = 'open' | 'closed' | 'merged';
 export type ReleaseStatus = 'planned' | 'released';
 export type ReportKind = 'daily' | 'weekly' | 'monthly';
@@ -71,6 +72,7 @@ export type IssuesTable = {
   title: string;
   externalUrl: string | null;
   status: Generated<IssueStatus>;
+  priority: Generated<IssuePriority>;
   assignedOn: DateColumn;
   deadline: DateColumn;
   resolvedOn: DateColumn | null;
@@ -231,7 +233,7 @@ export const schemaContract = {
   pullRequests: { id: uuid, projectId: uuid, owner: text, repo: text, number: int, title: text, state: userEnum(), fetchedAt: tz, createdAt: tz },
   issues: {
     id: uuid, projectId: uuid, areaId: uuidNull, resolvedByPrId: uuidNull, title: text, externalUrl: textNull,
-    status: userEnum(), assignedOn: date, deadline: date, resolvedOn: dateNull, createdAt: tz, updatedAt: tz,
+    status: userEnum(), priority: userEnum(), assignedOn: date, deadline: date, resolvedOn: dateNull, createdAt: tz, updatedAt: tz,
   },
   issueAssignees: { issueId: uuid, personId: uuid },
   plans: { id: uuid, projectId: uuid, horizon: userEnum(), periodStart: date, createdAt: tz },

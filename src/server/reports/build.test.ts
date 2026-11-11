@@ -143,6 +143,25 @@ describe('daily sections', () => {
     expect(releaseLine?.children.map((c) => c.text)).toEqual(['#7 PR 7']);
   });
 
+  it('BR-37: reports tag high and urgent issues, not medium or low', () => {
+    const data = reportData({
+      kind: 'daily',
+      issues: [
+        issue('urgent one', '2026-11-12', '2026-11-10', [person('Grace')], 'urgent'),
+        issue('high one', '2026-11-12', '2026-11-10', [person('Grace')], 'high'),
+        issue('low one', '2026-11-12', '2026-11-10', [person('Grace')], 'low'),
+      ],
+    });
+
+    const lines = sectionOf(buildReportModel(data, today), 'Issues').groups[0]?.lines ?? [];
+
+    expect(lines.map((l) => l.tags.map((t) => `${t.tone}:${t.label}`))).toEqual([
+      ['danger:Urgent', 'success:Resolved on time'],
+      ['warning:High', 'success:Resolved on time'],
+      ['success:Resolved on time'],
+    ]);
+  });
+
   it('BR-31: issues resolved that day show on time or late; those that became overdue that day show red', () => {
     const data = reportData({
       kind: 'daily',

@@ -165,6 +165,8 @@ const crash: IssueVM = {
   assignees: ['Grace'],
   status: 'open',
   statusTag: statuses.open,
+  priority: 'urgent',
+  priorityTag: status('danger', 'Urgent'),
   assignedLabel: '2 Nov 2026',
   deadlineLabel: '6 Nov 2026',
   deadline: statuses.overdue,
@@ -179,6 +181,8 @@ const slowQuery: IssueVM = {
   assignees: ['Ali', 'Wanjiru'],
   status: 'in_progress',
   statusTag: statuses.inProgress,
+  priority: 'high',
+  priorityTag: status('warning', 'High'),
   assignedLabel: '9 Nov 2026',
   deadlineLabel: '11 Nov 2026',
   deadline: statuses.dueSoon,
@@ -193,6 +197,8 @@ const typo: IssueVM = {
   assignees: ['Grace'],
   status: 'resolved',
   statusTag: status('success', 'Resolved'),
+  priority: 'low',
+  priorityTag: status('neutral', 'Low'),
   assignedLabel: '1 Nov 2026',
   deadlineLabel: '3 Nov 2026',
   deadline: statuses.late,
@@ -212,10 +218,10 @@ export const projectHeader: ProjectHeaderVM = { id: projectId, name: 'Atlas', is
 export const dashboard: DashboardVM = {
   todayLabel: 'Tuesday 10 Nov 2026',
   urgent: [
-    { id: 's1', kind: 'issue', title: 'Crash on save', dueLabel: 'Deadline 6 Nov', deadline: statuses.overdue, people: ['Grace'] },
-    { id: 'i2', kind: 'plan_item', title: 'Migrate billing tables', dueLabel: 'Due Fri 6 Nov', deadline: statuses.overdue, people: ['Wanjiru'] },
+    { id: 's1', kind: 'issue', title: 'Crash on save', dueLabel: 'Deadline 6 Nov', deadline: statuses.overdue, priority: status('danger', 'Urgent'), people: ['Grace'] },
+    { id: 'i2', kind: 'plan_item', title: 'Migrate billing tables', dueLabel: 'Due Fri 6 Nov', deadline: statuses.overdue, priority: null, people: ['Wanjiru'] },
   ],
-  dueSoon: [{ id: 'i4', kind: 'plan_item', title: 'Review the onboarding copy', dueLabel: 'Due Wed 11 Nov', deadline: statuses.dueSoon, people: ['Ali'] }],
+  dueSoon: [{ id: 'i4', kind: 'plan_item', title: 'Review the onboarding copy', dueLabel: 'Due Wed 11 Nov', deadline: statuses.dueSoon, priority: null, people: ['Ali'] }],
   todaysPlan: [releaseNotes, shipLogin],
   openIssues: [crash, slowQuery],
   recentEntries: entries,
@@ -278,7 +284,7 @@ export const entryValues: EntryFormValues = {
 
 export const issueDetail: IssueDetailVM = {
   ...crash,
-  form: { title: 'Crash on save', externalUrl: 'https://jira.example.com/browse/APP-12', areaId: 'a3', personIds: ['p2'], assignedOn: '2026-11-02', deadline: '2026-11-06' },
+  form: { title: 'Crash on save', priority: 'urgent', externalUrl: 'https://jira.example.com/browse/APP-12', areaId: 'a3', personIds: ['p2'], assignedOn: '2026-11-02', deadline: '2026-11-06' },
 };
 
 export const resolvedIssueDetail: IssueDetailVM = { ...issueDetail, ...(issues[2] ?? issues[0]) };

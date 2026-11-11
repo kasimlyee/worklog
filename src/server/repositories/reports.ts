@@ -1,7 +1,7 @@
 import 'server-only';
 import { jsonArrayFrom } from 'kysely/helpers/postgres';
 import type { Db } from '#src/server/db/client.ts';
-import type { PlanHorizon, PlanItemStatus } from '#src/server/db/types.ts';
+import type { IssuePriority, PlanHorizon, PlanItemStatus } from '#src/server/db/types.ts';
 import type { IsoDate } from '#src/server/domain/calendar.ts';
 import type { NamedRef } from './entries.ts';
 
@@ -22,6 +22,7 @@ export type ReportMoveRow = { readonly title: string; readonly fromDue: IsoDate;
 export type ReportIssueRow = {
   readonly id: string;
   readonly title: string;
+  readonly priority: IssuePriority;
   readonly deadline: IsoDate;
   readonly resolvedOn: IsoDate | null;
   readonly assignees: readonly NamedRef[];
@@ -118,7 +119,7 @@ export async function selectReportIssues(
 ): Promise<readonly ReportIssueRow[]> {
   return await db
     .selectFrom('issues as i')
-    .select(['i.id', 'i.title', 'i.deadline', 'i.resolvedOn'])
+    .select(['i.id', 'i.title', 'i.priority', 'i.deadline', 'i.resolvedOn'])
     .select((eb) =>
       jsonArrayFrom(
         eb

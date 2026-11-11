@@ -105,7 +105,7 @@ These are deliberate. A feature request that falls here needs this document chan
 
 ### 4.6 Issues
 
-- **BR-27** An issue has a short title, an optional external link, an optional area, one or more assignees, an assigned date, a deadline date, and a status: `open`, `in_progress` or `resolved`.
+- **BR-27** An issue has a short title, an optional external link, an optional area, one or more assignees, an assigned date, a deadline date, a priority (BR-37), and a status: `open`, `in_progress` or `resolved`.
 - **BR-28** The deadline must be on or after the assigned date.
 - **BR-29** When an issue becomes `resolved`, `resolved_on` is recorded (defaults to today, editable). Reopening clears it.
 - **BR-30** An issue may reference the PR that resolved it.
@@ -120,6 +120,12 @@ These are deliberate. A feature request that falls here needs this document chan
   | Resolved after the deadline | `late` | Red | "Resolved 2 days late" |
 
   Day counts in labels are **calendar days** between the two dates.
+
+- **BR-37** An issue has a priority: `low`, `medium` (default), `high` or `urgent`. Priority is the user's judgement and is independent of the deadline state:
+  - An unresolved `urgent` issue appears in the dashboard's *Urgent* section even when it is not overdue.
+  - The Issues screen can filter by priority and sort by priority (urgent first, then by deadline).
+  - Colours: `urgent` red, `high` yellow, `medium` and `low` neutral — always with the text label.
+  - Reports show the priority of `high` and `urgent` issues next to the issue.
 
 ### 4.7 Releases and notes
 
@@ -153,7 +159,7 @@ Colours are semantic and identical in the UI and in PDF exports. Colour is never
 | **Plans** | Day / week / month view; create items; change status; move (carry-over) with history visible. |
 | **Log** | Entries by date, newest first; quick-add form; filter by area, person, PR. |
 | **Quick log** | Reachable from every project page. Fields: date (default today), description, area, people, PR URL, plan item, issue. Submits with keyboard only. |
-| **Issues** | Table with assignees, deadline state, link out; resolve / reopen. |
+| **Issues** | Table with priority, assignees, deadline state, link out; filter and sort by priority; resolve / reopen. |
 | **Releases** | List and detail with linked PRs and notes. |
 | **Notes** | List, editor, rendered view. |
 | **Reports** | Choose type and period → preview → export PDF / Markdown. Report note editable here. |

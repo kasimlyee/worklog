@@ -7,7 +7,7 @@
  * A rule counts as covered when its ID appears in the name of a describe/it/test
  * block in any test file (docs/03-engineering-standards.md §2.2).
  */
-import { readFileSync, readdirSync } from 'node:fs';
+import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
 const root = join(import.meta.dirname, '..');
@@ -49,7 +49,9 @@ function testFiles(): readonly string[] {
     try {
       return readdirSync(absolute, { recursive: true, encoding: 'utf8' })
         .filter((file) => testFilePattern.test(file) && !file.includes('node_modules'))
-        .map((file) => join(absolute, file));
+        .map((file) => join(absolute, file))
+        // Playwright's screenshot folders are named after their spec file.
+        .filter((path) => statSync(path).isFile());
     } catch {
       return []; // folder does not exist yet
     }

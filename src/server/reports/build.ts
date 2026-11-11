@@ -41,6 +41,21 @@ function resolvedTag(issue: ReportIssueRow): StatusTag {
   return { tone: state.state === 'on_time' ? 'success' : 'danger', label: state.label };
 }
 
+/** BR-37: only high and urgent are worth a tag in a report. */
+function priorityTags(issue: ReportIssueRow): readonly StatusTag[] {
+  switch (issue.priority) {
+    case 'urgent':
+      return [{ tone: 'danger', label: 'Urgent' }];
+    case 'high':
+      return [{ tone: 'warning', label: 'High' }];
+    case 'medium':
+    case 'low':
+      return [];
+    default:
+      return issue.priority satisfies never;
+  }
+}
+
 function overdueTag(due: IsoDate, asOf: IsoDate): StatusTag {
   return { tone: 'danger', label: openDeadline(due, asOf).label };
 }
@@ -150,19 +165,19 @@ function openOverdueIssues(data: ReportData): readonly ReportIssueRow[] {
 }
 
 function issuesSection(data: ReportData): ReportSection {
-  const resolved = resolvedIssues(data).map((issue) => line(issue.title, { tags: [resolvedTag(issue)], people: names(issue.assignees) }));
+  const resolved = resolvedIssues(data).map((issue) => line(issue.title, { tags: [...priorityTags(issue), resolvedTag(issue)], people: names(issue.assignees) }));
   if (data.kind === 'daily') {
     // §7.2: issues that became overdue on this very day.
     const became = data.issues
       .filter((issue) => isOpenAt(issue.resolvedOn, data.start) && overdueFrom(issue.deadline) === data.start)
-      .map((issue) => line(issue.title, { tags: [overdueTag(issue.deadline, data.start)], people: names(issue.assignees) }));
+      .map((issue) => line(issue.title, { tags: [...priorityTags(issue), overdueTag(issue.deadline, data.start)], people: names(issue.assignees) }));
     return section('Issues', [
       { title: 'Resolved', lines: resolved },
       { title: 'Became overdue', lines: became },
     ]);
   }
   const overdue = openOverdueIssues(data).map((issue) =>
-    line(issue.title, { tags: [overdueTag(issue.deadline, data.asOf)], people: names(issue.assignees) }),
+    line(issue.title, { tags: [...priorityTags(issue), overdueTag(issue.deadline, data.asOf)], people: names(issue.assignees) }),
   );
   return section('Issues', [
     { title: 'Resolved', lines: resolved },

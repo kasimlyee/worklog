@@ -9,6 +9,8 @@ export type TrackedVM = {
   readonly title: string;
   readonly dueLabel: string;
   readonly deadline: StatusVM;
+  /** BR-37: shown for high and urgent issues only. */
+  readonly priority: StatusVM | null;
   readonly people: readonly string[];
 };
 

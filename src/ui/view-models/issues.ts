@@ -1,6 +1,7 @@
 import type { PullRequestVM, StatusVM } from './common.ts';
 
 export type IssueStatus = 'open' | 'in_progress' | 'resolved';
+export type IssuePriority = 'low' | 'medium' | 'high' | 'urgent';
 
 export type IssueVM = {
   readonly id: string;
@@ -10,6 +11,8 @@ export type IssueVM = {
   readonly assignees: readonly string[];
   readonly status: IssueStatus;
   readonly statusTag: StatusVM;
+  readonly priority: IssuePriority;
+  readonly priorityTag: StatusVM;
   readonly assignedLabel: string;
   readonly deadlineLabel: string;
   /** BR-31 deadline state, with its label ("3 days overdue", "Resolved on time"). */
@@ -20,6 +23,7 @@ export type IssueVM = {
 
 export type IssueFormValues = {
   readonly title: string;
+  readonly priority: IssuePriority;
   readonly externalUrl: string;
   readonly areaId: string;
   readonly personIds: readonly string[];
@@ -28,3 +32,6 @@ export type IssueFormValues = {
 };
 
 export type IssueDetailVM = IssueVM & { readonly form: IssueFormValues };
+
+/** The Issues screen's filter and sort, as they are in the URL (BR-37). */
+export type IssueListControls = { readonly priority: IssuePriority | ''; readonly sortBy: 'deadline' | 'priority' };

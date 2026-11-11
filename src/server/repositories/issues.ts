@@ -1,7 +1,7 @@
 import 'server-only';
 import { jsonArrayFrom } from 'kysely/helpers/postgres';
 import type { Db } from '#src/server/db/client.ts';
-import type { IssueStatus, PrState } from '#src/server/db/types.ts';
+import type { IssuePriority, IssueStatus, PrState } from '#src/server/db/types.ts';
 import type { IsoDate } from '#src/server/domain/calendar.ts';
 import type { NamedRef } from './entries.ts';
 
@@ -12,6 +12,7 @@ export type IssueRow = {
   readonly title: string;
   readonly externalUrl: string | null;
   readonly status: IssueStatus;
+  readonly priority: IssuePriority;
   readonly assignedOn: IsoDate;
   readonly deadline: IsoDate;
   readonly resolvedOn: IsoDate | null;
@@ -46,6 +47,7 @@ export async function selectIssues(db: Db, projectId: string, filter: IssueFilte
       'i.title',
       'i.externalUrl',
       'i.status',
+      'i.priority',
       'i.assignedOn',
       'i.deadline',
       'i.resolvedOn',
@@ -94,6 +96,7 @@ export async function selectIssues(db: Db, projectId: string, filter: IssueFilte
 
 export type IssueValues = {
   readonly title: string;
+  readonly priority: IssuePriority;
   readonly externalUrl: string | null;
   readonly areaId: string | null;
   readonly assignedOn: IsoDate;

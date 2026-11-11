@@ -18,6 +18,7 @@ export function IssueTable({ issues, projectId, caption }: { readonly issues: re
         <thead>
           <tr>
             <th scope="col">Issue</th>
+            <th scope="col">Priority</th>
             <th scope="col">Assignees</th>
             <th scope="col">Assigned</th>
             <th scope="col">Deadline</th>
@@ -36,6 +37,9 @@ export function IssueTable({ issues, projectId, caption }: { readonly issues: re
                   </>
                 )}
                 {issue.area === null ? null : <div className="muted">{issue.area}</div>}
+              </td>
+              <td>
+                <StatusTag status={issue.priorityTag} />
               </td>
               <td>
                 <PersonList people={issue.assignees} />

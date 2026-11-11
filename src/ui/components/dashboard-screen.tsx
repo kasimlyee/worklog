@@ -8,7 +8,7 @@ import { IssueTable } from './issue-table.tsx';
 import { PageHeader, Section } from './page-header.tsx';
 import { PersonList } from './person-list.tsx';
 import { PlanItemList } from './plan-item-list.tsx';
-import { DeadlineLabel } from './status-tag.tsx';
+import { DeadlineLabel, StatusTag } from './status-tag.tsx';
 import styles from './lists.module.css';
 
 function TrackedList({ items, projectId, empty }: { readonly items: readonly TrackedVM[]; readonly projectId: string; readonly empty: string }): React.JSX.Element {
@@ -23,6 +23,7 @@ function TrackedList({ items, projectId, empty }: { readonly items: readonly Tra
             <Link className={styles.title} href={projectItemHref(projectId, item.kind === 'issue' ? 'issues' : 'plans/items', item.id)}>
               {item.title}
             </Link>
+            {item.priority === null ? null : <StatusTag status={item.priority} title="Priority" />}
             <DeadlineLabel status={item.deadline} />
           </div>
           <div className={styles.meta}>

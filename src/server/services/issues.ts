@@ -2,7 +2,7 @@ import 'server-only';
 import * as z from 'zod';
 import { ok } from '#src/lib/result.ts';
 import type { Db } from '#src/server/db/client.ts';
-import type { IssueStatus } from '#src/server/db/types.ts';
+import type { IssuePriority, IssueStatus } from '#src/server/db/types.ts';
 import type { IsoDate } from '#src/server/domain/calendar.ts';
 import { issueDeadline, type Deadline, type IssueDeadlineState } from '#src/server/domain/deadlines.ts';
 import type { NamedRef } from '#src/server/repositories/entries.ts';
@@ -14,11 +14,17 @@ import { idList, isUuid, oneOf, optionalDate, optionalId, optionalWebUrl, requir
 import { toPullRequest, type PullRequest } from './pull-requests.ts';
 import { referenceErrors } from './references.ts';
 
+export const issuePriorities = ['low', 'medium', 'high', 'urgent'] as const satisfies readonly IssuePriority[];
+
+/** BR-37: urgent first. */
+export const priorityRank: Readonly<Record<IssuePriority, number>> = { urgent: 0, high: 1, medium: 2, low: 3 };
+
 export type Issue = {
   readonly id: string;
   readonly title: string;
   readonly externalUrl: string | null;
   readonly status: IssueStatus;
+  readonly priority: IssuePriority;
   readonly assignedOn: IsoDate;
   readonly deadline: IsoDate;
   readonly resolvedOn: IsoDate | null;
@@ -36,6 +42,7 @@ export function toIssue(row: IssueRow, today: IsoDate): Issue {
     title: row.title,
     externalUrl: row.externalUrl,
     status: row.status,
+    priority: row.priority,
     assignedOn: row.assignedOn,
     deadline: row.deadline,
     resolvedOn: row.resolvedOn,
@@ -65,6 +72,10 @@ export async function getIssue(db: Db, projectId: string, issueId: string, today
 const issueInput = z
   .object({
     title: requiredText('Title', 200),
+    // BR-37: medium unless chosen.
+    priority: z
+      .preprocess((value) => (value === '' ? undefined : value), oneOf(issuePriorities, 'priority').optional())
+      .transform((value) => value ?? 'medium'),
     externalUrl: optionalWebUrl('Link'),
     areaId: optionalId,
     personIds: idList('assignee', { min: 1 }),

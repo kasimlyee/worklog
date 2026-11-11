@@ -93,7 +93,7 @@ describe('dashboard', () => {
 
     const urgent = screen.getByRole('region', { name: 'Urgent' });
     expect(within(urgent).getAllByRole('link').map((link) => link.textContent)).toEqual(['Crash on save', 'Migrate billing tables']);
-    expect(tagsIn(urgent)).toEqual(['danger:3 days overdue', 'danger:3 days overdue']);
+    expect(tagsIn(urgent)).toEqual(['danger:Urgent', 'danger:3 days overdue', 'danger:3 days overdue']);
     expectHeadingOrder();
   });
 
@@ -207,9 +207,30 @@ describe('issues', () => {
   it('BR-31: shows every deadline state with its colour and label', () => {
     render(<IssuesScreen projectId={f.projectId} open={f.issues.slice(0, 2)} resolved={f.issues.slice(2)} />);
 
-    expect(tagsIn(document.body)).toEqual(['danger:3 days overdue', 'neutral:Open', 'warning:Due tomorrow', 'warning:In progress', 'danger:Resolved 2 days late', 'success:Resolved']);
+    expect(tagsIn(document.body)).toEqual([
+      'danger:Urgent', 'danger:3 days overdue', 'neutral:Open',
+      'warning:High', 'warning:Due tomorrow', 'warning:In progress',
+      'neutral:Low', 'danger:Resolved 2 days late', 'success:Resolved',
+    ]);
     expect(screen.getByRole('link', { name: /Open link/ }).getAttribute('rel')).toBe('noopener noreferrer');
     expectHeadingOrder();
+  });
+
+  it('BR-37: filters and sorts by priority from a plain GET form', () => {
+    render(<IssuesScreen projectId={f.projectId} open={f.issues.slice(0, 2)} resolved={[]} controls={{ priority: 'urgent', sortBy: 'priority' }} />);
+
+    const controls = screen.getByRole('form', { name: 'Filter and sort issues' });
+    expect(within(controls).getByLabelText<HTMLSelectElement>('Priority').value).toBe('urgent');
+    expect(within(controls).getByLabelText<HTMLSelectElement>('Sort by').value).toBe('priority');
+    expect(screen.getByRole('link', { name: 'Clear' })).toBeDefined();
+  });
+
+  it('BR-37: the issue form offers the four priorities, medium for a new issue', () => {
+    render(<NewIssueScreen projectId={f.projectId} pickers={f.pickers} create={formAction} today={f.today} />);
+
+    const select = screen.getByLabelText<HTMLSelectElement>('Priority');
+    expect(select.value).toBe('medium');
+    expect([...select.options].map((o) => o.text)).toEqual(['Urgent', 'High', 'Medium', 'Low']);
   });
 
   it('shows empty tables', () => {

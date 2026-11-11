@@ -58,8 +58,14 @@ export function pr(number: number, state: PrState = 'open', title = `PR ${String
   return { id: `pr-${String(number)}`, number, title, state };
 }
 
-export function issue(title: string, deadline: string, resolvedOn: string | null = null, assignees = [person('Grace')]): ReportIssueRow {
-  return { id: nextId(), title, deadline: isoDate(deadline), resolvedOn: resolvedOn === null ? null : isoDate(resolvedOn), assignees };
+export function issue(
+  title: string,
+  deadline: string,
+  resolvedOn: string | null = null,
+  assignees = [person('Grace')],
+  priority: ReportIssueRow['priority'] = 'medium',
+): ReportIssueRow {
+  return { id: nextId(), title, priority, deadline: isoDate(deadline), resolvedOn: resolvedOn === null ? null : isoDate(resolvedOn), assignees };
 }
 
 export function planItem(

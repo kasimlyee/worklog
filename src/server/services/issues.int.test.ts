@@ -34,6 +34,7 @@ describe('issues', () => {
       title: 'Crash on save',
       externalUrl: 'https://jira.example.com/browse/APP-12',
       status: 'open',
+      priority: 'medium',
       assignedOn: '2026-11-09',
       deadline: '2026-11-16',
       resolvedOn: null,
@@ -193,5 +194,30 @@ describe('listing and deleting', () => {
 
     expect(await testDb().selectFrom('entries').select('issueId').where('id', '=', entry.id).executeTakeFirst()).toEqual({ issueId: null });
     expect(await testDb().selectFrom('planItems').select('issueId').where('id', '=', item.id).executeTakeFirst()).toEqual({ issueId: null });
+  });
+});
+
+describe('priority', () => {
+  it('BR-37: an issue is medium unless a priority is chosen', async () => {
+    const { project, grace } = await base();
+
+    const plain = await createIssue(testDb(), project.id, valid(grace.id));
+    const urgent = await createIssue(testDb(), project.id, { ...valid(grace.id), priority: 'urgent' });
+
+    expect((await getIssue(testDb(), project.id, plain.ok ? plain.value.id : '', today))?.priority).toBe('medium');
+    expect((await getIssue(testDb(), project.id, urgent.ok ? urgent.value.id : '', today))?.priority).toBe('urgent');
+  });
+
+  it('BR-37: the priority can be changed, and only to a known value', async () => {
+    const { project, grace } = await base();
+    const created = await createIssue(testDb(), project.id, valid(grace.id));
+    const issueId = created.ok ? created.value.id : '';
+
+    expect((await updateIssue(testDb(), project.id, issueId, { ...valid(grace.id), priority: 'low' })).ok).toBe(true);
+    expect((await getIssue(testDb(), project.id, issueId, today))?.priority).toBe('low');
+    expect(await updateIssue(testDb(), project.id, issueId, { ...valid(grace.id), priority: 'critical' })).toEqual({
+      ok: false,
+      error: { code: 'invalid', fieldErrors: { priority: 'Choose a valid priority.' } },
+    });
   });
 });

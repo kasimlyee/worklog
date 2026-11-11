@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import type { Pickers } from '#src/ui/view-models/common.ts';
 import type { FormAction, PlainAction } from '#src/ui/view-models/forms.ts';
-import type { IssueDetailVM, IssueFormValues, IssueVM } from '#src/ui/view-models/issues.ts';
+import type { IssueDetailVM, IssueFormValues, IssueListControls, IssueVM } from '#src/ui/view-models/issues.ts';
 import { newItemHref, projectHref } from '#src/ui/routes.ts';
 import { ActionButton } from './action-button.tsx';
 import { ConfirmDialog } from './confirm-dialog.tsx';
@@ -14,14 +14,54 @@ import { DeadlineLabel, StatusTag } from './status-tag.tsx';
 import styles from './lists.module.css';
 
 /** Product spec §6: issues with assignees, deadline state and a link out. */
+const priorityOptions = [
+  { value: 'urgent', label: 'Urgent' },
+  { value: 'high', label: 'High' },
+  { value: 'medium', label: 'Medium' },
+  { value: 'low', label: 'Low' },
+] as const;
+
+/** BR-37: filter by priority and sort by priority or deadline — a GET form, no JavaScript. */
+function IssueControls({ projectId, controls }: { readonly projectId: string; readonly controls: IssueListControls }): React.JSX.Element {
+  const isFiltered = controls.priority !== '' || controls.sortBy !== 'deadline';
+  return (
+    <form method="get" className={styles.toolbar} aria-label="Filter and sort issues">
+      <div>
+        <label htmlFor="issues-priority">Priority</label>
+        <select id="issues-priority" name="priority" defaultValue={controls.priority}>
+          <option value="">All</option>
+          {priorityOptions.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div>
+        <label htmlFor="issues-sort">Sort by</label>
+        <select id="issues-sort" name="sort" defaultValue={controls.sortBy}>
+          <option value="deadline">Deadline</option>
+          <option value="priority">Priority, then deadline</option>
+        </select>
+      </div>
+      <button type="submit" data-size="small">
+        Apply
+      </button>
+      {isFiltered ? <Link href={projectHref(projectId, 'issues')}>Clear</Link> : null}
+    </form>
+  );
+}
+
 export function IssuesScreen({
   projectId,
   open,
   resolved,
+  controls = { priority: '', sortBy: 'deadline' },
 }: {
   readonly projectId: string;
   readonly open: readonly IssueVM[];
   readonly resolved: readonly IssueVM[];
+  readonly controls?: IssueListControls;
 }): React.JSX.Element {
   return (
     <div>
@@ -34,6 +74,7 @@ export function IssuesScreen({
           </Link>
         }
       />
+      <IssueControls projectId={projectId} controls={controls} />
       <Section title="Open">
         <IssueTable issues={open} projectId={projectId} caption="Open issues by deadline" />
       </Section>
@@ -48,6 +89,7 @@ function IssueFields({ pickers, values }: { readonly pickers: Pickers; readonly 
   return (
     <>
       <TextField name="title" label="Short title" defaultValue={values.title} required maxLength={200} wide />
+      <SelectField name="priority" label="Priority" options={priorityOptions} defaultValue={values.priority} />
       <TextField
         name="externalUrl"
         label="Link"
@@ -75,7 +117,7 @@ export function NewIssueScreen({
   readonly create: FormAction;
   readonly today: string;
 }): React.JSX.Element {
-  const blank: IssueFormValues = { title: '', externalUrl: '', areaId: '', personIds: [], assignedOn: today, deadline: today };
+  const blank: IssueFormValues = { title: '', priority: 'medium', externalUrl: '', areaId: '', personIds: [], assignedOn: today, deadline: today };
   return (
     <div>
       <PageHeader title="New issue" actions={<Link href={projectHref(projectId, 'issues')}>Back to issues</Link>} />
@@ -113,6 +155,7 @@ export function IssueScreen({
         title={issue.title}
         description={
           <span className={styles.row}>
+            <StatusTag status={issue.priorityTag} title="Priority" />
             <StatusTag status={issue.statusTag} />
             <DeadlineLabel status={issue.deadline} />
           </span>

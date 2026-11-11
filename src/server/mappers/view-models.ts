@@ -2,7 +2,8 @@ import 'server-only';
 import { formatDate, formatShortDate, dayLabel, isWorkingDay, today as todayIn, type IsoDate } from '#src/server/domain/calendar.ts';
 import type { Dashboard, DashboardItem } from '#src/server/services/dashboard.ts';
 import type { Entry, EntryPage } from '#src/server/services/entries.ts';
-import type { Issue } from '#src/server/services/issues.ts';
+import { priorityRank, type Issue } from '#src/server/services/issues.ts';
+import type { IssuePriority } from '#src/server/db/types.ts';
 import type { Note } from '#src/server/services/notes.ts';
 import type { PlanItem, PlanView } from '#src/server/services/plans.ts';
 import { isInPeriod, periodLabel, shiftPeriod, type Horizon } from '#src/server/domain/plans.ts';
@@ -17,7 +18,7 @@ import type { NoteFormValues, NoteVM } from '#src/ui/view-models/notes.ts';
 import type { PlanItemDetailVM, PlanItemVM, PlansVM } from '#src/ui/view-models/plans.ts';
 import type { ReleaseDetailVM, ReleaseVM } from '#src/ui/view-models/releases.ts';
 import type { AreaVM, PersonVM, PullRequestRowVM } from '#src/ui/view-models/settings.ts';
-import { deadlineTag, issueStatusTag, planStatusTag, prStateTag, releaseStatusTag } from './status.ts';
+import { deadlineTag, issuePriorityTag, issueStatusTag, planStatusTag, prStateTag, releaseStatusTag } from './status.ts';
 
 /* Service outputs → the view-models the UI components accept (docs/04 §3.1). Pure. */
 
@@ -135,6 +136,8 @@ export function toIssueVM(issue: Issue): IssueVM {
     assignees: names(issue.assignees),
     status: issue.status,
     statusTag: issueStatusTag[issue.status],
+    priority: issue.priority,
+    priorityTag: issuePriorityTag[issue.priority],
     assignedLabel: formatDate(issue.assignedOn),
     deadlineLabel: formatDate(issue.deadline),
     deadline: deadlineTag(issue.deadlineState),
@@ -143,11 +146,20 @@ export function toIssueVM(issue: Issue): IssueVM {
   };
 }
 
+export type IssueListOptions = { readonly priority: IssuePriority | null; readonly sortBy: 'deadline' | 'priority' };
+
+/** BR-37: filter by one priority; sort by priority (urgent first), then by the service's deadline order. */
+export function arrangeIssues(issues: readonly Issue[], { priority, sortBy }: IssueListOptions): readonly Issue[] {
+  const filtered = priority === null ? issues : issues.filter((issue) => issue.priority === priority);
+  return sortBy === 'priority' ? [...filtered].sort((a, b) => priorityRank[a.priority] - priorityRank[b.priority]) : filtered;
+}
+
 export function toIssueDetailVM(issue: Issue): IssueDetailVM {
   return {
     ...toIssueVM(issue),
     form: {
       title: issue.title,
+      priority: issue.priority,
       externalUrl: issue.externalUrl ?? '',
       areaId: issue.area?.id ?? '',
       personIds: issue.assignees.map((person) => person.id),
@@ -165,6 +177,7 @@ function toTrackedVM(item: DashboardItem): TrackedVM {
       title: item.issue.title,
       dueLabel: `Deadline ${formatShortDate(item.due)}`,
       deadline: deadlineTag(item.issue.deadlineState),
+      priority: ['urgent', 'high'].includes(item.issue.priority) ? issuePriorityTag[item.issue.priority] : null,
       people: names(item.issue.assignees),
     };
   }
@@ -175,6 +188,7 @@ function toTrackedVM(item: DashboardItem): TrackedVM {
     dueLabel: `Due ${formatShortDate(item.due)}`,
     // Items in urgent / due soon are never done, so they always have a deadline.
     deadline: item.item.deadline === null ? planStatusTag.done : deadlineTag(item.item.deadline),
+    priority: null,
     people: names(item.item.assignees),
   };
 }
