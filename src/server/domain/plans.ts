@@ -5,7 +5,7 @@ import {
 } from './calendar.ts';
 
 export type Horizon = 'day' | 'week' | 'month';
-export const horizons: readonly Horizon[] = ['day', 'week', 'month'];
+export const horizons = ['day', 'week', 'month'] as const satisfies readonly Horizon[];
 
 export type Period = { readonly start: IsoDate; readonly end: IsoDate };
 
