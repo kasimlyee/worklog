@@ -12,7 +12,7 @@ import { join } from 'node:path';
 
 const root = join(import.meta.dirname, '..');
 const specPath = join(root, 'docs', '01-product-spec.md');
-const testRoots = ['src', 'tests'] as const;
+const testRoots = ['src', 'tests', 'scripts'] as const;
 const testFilePattern = /\.(test|int\.test|ui\.test)\.tsx?$|\.spec\.ts$/;
 
 // Rule IDs are defined in bold: **BR-13**, **R-02**, **NF-01**.
