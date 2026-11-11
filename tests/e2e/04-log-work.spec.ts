@@ -38,7 +38,7 @@ test('quick log three entries across two PRs', async ({ signedIn: page }) => {
 
   // BR-25: two PR records, not three.
   await page.goto(`/projects/${projectId}/pull-requests`);
-  await expect(page.getByRole('button', { name: /^Refresh #/ })).toHaveCount(2);
+  await expect(page.getByRole('button', { name: /^Refresh from GitHub: #/ })).toHaveCount(2);
 });
 
 test('BR-26: a PR GitHub cannot find stops the entry and says why', async ({ signedIn: page }) => {

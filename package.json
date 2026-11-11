@@ -27,7 +27,9 @@
     "test:e2e:all": "NODE_OPTIONS=--conditions=react-server playwright test",
     "check": "npm run typecheck && npm run lint && npm run test",
     "db:migrate": "node --conditions=react-server --env-file-if-exists=.env.local scripts/migrate.ts",
-    "css:types": "node scripts/css-module-types.ts"
+    "css:types": "node scripts/css-module-types.ts",
+    "test:tz": "bash scripts/test-time-zones.sh",
+    "test:bundle": "node scripts/scan-client-bundle.ts"
   },
   "dependencies": {
     "kysely": "0.29.8",

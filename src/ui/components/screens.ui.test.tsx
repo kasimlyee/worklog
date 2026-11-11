@@ -368,7 +368,7 @@ describe('settings, people, pull requests', () => {
   it('BR-24: pull requests can be refreshed and BR-36 deleted', () => {
     render(<PullRequestsScreen projectId={f.projectId} pullRequests={f.pullRequestRows} add={formAction} refresh={plainAction} remove={plainAction} />);
 
-    expect(screen.getByRole('button', { name: 'Refresh #12 from GitHub' })).toBeDefined();
+    expect(screen.getByRole('button', { name: 'Refresh from GitHub: #12' })).toBeDefined();
     expect(screen.getAllByRole('button', { name: 'Delete' })).toHaveLength(2);
     expectHeadingOrder();
   });

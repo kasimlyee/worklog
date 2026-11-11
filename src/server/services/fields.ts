@@ -7,20 +7,25 @@ import { parseIsoDate, type IsoDate } from '#src/server/domain/calendar.ts';
  * strings mean "not set" for optional fields. Lengths match the database CHECKs.
  */
 
+/** Postgres cannot store U+0000 in text, so it is removed rather than failing the request. */
+function withoutNul(value: unknown): unknown {
+  return typeof value === 'string' ? value.replaceAll('\u0000', '') : value;
+}
+
 export function requiredText(label: string, max: number): z.ZodType<string> {
-  return z
-    .string({ error: `${label} is required.` })
-    .trim()
-    .min(1, `${label} is required.`)
-    .max(max, `${label} must be at most ${String(max)} characters.`);
+  return z.preprocess(
+    withoutNul,
+    z
+      .string({ error: `${label} is required.` })
+      .trim()
+      .min(1, `${label} is required.`)
+      .max(max, `${label} must be at most ${String(max)} characters.`),
+  );
 }
 
 export function optionalText(label: string, max: number): z.ZodType<string> {
   return z
-    .string()
-    .trim()
-    .max(max, `${label} must be at most ${String(max)} characters.`)
-    .nullish()
+    .preprocess(withoutNul, z.string().trim().max(max, `${label} must be at most ${String(max)} characters.`).nullish())
     .transform((value) => value ?? '');
 }
 

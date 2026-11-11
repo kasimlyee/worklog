@@ -205,7 +205,7 @@ export function PullRequestsScreen({
                   <StatusTag status={pr.state} />
                 </div>
                 <div className={styles.actions}>
-                  <ActionButton action={refresh} label="Refresh from GitHub" fields={{ pullRequestId: pr.id }} accessibleLabel={`Refresh #${String(pr.number)} from GitHub`} />
+                  <ActionButton action={refresh} label="Refresh from GitHub" fields={{ pullRequestId: pr.id }} accessibleLabel={`Refresh from GitHub: #${String(pr.number)}`} />
                   <ConfirmDialog
                     action={remove}
                     triggerLabel="Delete"
