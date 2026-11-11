@@ -18,6 +18,11 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
   typedRoutes: true,
+  experimental: {
+    // Revisiting a page within 30 s shows it from the browser instantly. Every write calls
+    // revalidatePath, which clears this cache, so nothing stale is shown after a change.
+    staleTimes: { dynamic: 30 },
+  },
   headers: () =>
     Promise.resolve([
       {

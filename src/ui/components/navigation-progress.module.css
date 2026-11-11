@@ -1,0 +1,25 @@
+.bar {
+  position: fixed;
+  inset: 0 0 auto;
+  height: 3px;
+  z-index: 50;
+  background: var(--accent);
+  transform-origin: left;
+  animation: grow 2s cubic-bezier(0.1, 0.7, 0.2, 1) forwards;
+}
+
+@keyframes grow {
+  from {
+    transform: scaleX(0.05);
+  }
+  to {
+    transform: scaleX(0.9);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bar {
+    animation: none;
+    transform: scaleX(0.6);
+  }
+}

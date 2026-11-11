@@ -67,3 +67,35 @@ test('NF-08: quick logging works in this browser and viewport', async ({ signedI
 
   await expect(form.getByRole('status')).toHaveText('Work logged.');
 });
+
+test('NF-01: a click shows progress at once, even when the server is slow', async ({ signedIn: page }) => {
+  const ids = await seedEverything();
+  await page.goto(`/projects/${ids.projectId}`);
+  // Simulate a slow network for the next page's data.
+  await page.route('**/issues**', async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+    await route.continue();
+  });
+
+  await page.getByRole('navigation', { name: 'Project' }).getByRole('link', { name: 'Issues' }).click();
+
+  await expect(page.getByRole('progressbar', { name: 'Loading page' })).toBeVisible({ timeout: 300 });
+  await expect(page.getByRole('heading', { level: 1, name: 'Issues' })).toBeVisible();
+  await expect(page.getByRole('progressbar', { name: 'Loading page' })).toHaveCount(0);
+});
+
+test('NF-01: one-click actions say what they are doing while they run', async ({ signedIn: page }) => {
+  const ids = await seedEverything();
+  await page.goto(`/projects/${ids.projectId}/issues/${ids.issueId}`);
+  await page.route('**/issues/**', async (route) => {
+    if (route.request().method() === 'POST') {
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+    }
+    await route.continue();
+  });
+
+  await page.getByRole('button', { name: 'Mark in progress' }).click();
+
+  await expect(page.getByRole('button', { name: 'Saving…' })).toBeVisible({ timeout: 300 });
+  await expect(page.getByRole('button', { name: 'Back to open' })).toBeVisible();
+});

@@ -181,13 +181,13 @@ describe('view-model mappers', () => {
     expect(timestampLabel('2026-11-09T20:59:00Z', 'Africa/Kampala')).toBe('9 Nov 2026');
   });
 
-  it('BR-06: pickers leave out archived areas and people', () => {
+  it('maps picker options to labelled choices', () => {
     const pickers = toPickers({
-      areas: [{ id: 'a1', name: 'Web', position: 0, isArchived: false }, { id: 'a2', name: 'Old', position: 1, isArchived: true }],
-      people: [{ id: 'p1', name: 'Grace', isArchived: false }, { id: 'p2', name: 'Gone', isArchived: true }],
-      planItems: [planItem],
-      issues: [issue],
-      pullRequests: [pr],
+      areas: [{ id: 'a1', name: 'Web' }],
+      people: [{ id: 'p1', name: 'Grace' }],
+      planItems: [{ id: 'i1', title: 'Ship login', dueDate: d('2026-11-06') }],
+      issues: [{ id: 's1', title: 'Crash' }],
+      pullRequests: [{ id: 'pr1', repo: 'app', number: 12, title: 'Add login' }],
       releases: [],
     });
 

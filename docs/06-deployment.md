@@ -4,7 +4,7 @@ Netlify (app) + Neon (Postgres) + GitHub (sign-in and PR data). About 20 minutes
 
 ## 1. Neon
 
-1. Create a project; pick the region closest to your Netlify functions (e.g. AWS `eu-central-1` with Netlify's Frankfurt functions). NF-01 depends on this more than on any code.
+1. Create a project in the **same region as your Netlify functions**. Netlify runs functions in **US East (Ohio), `us-east-2`** unless you change it (Project configuration → Build & deploy → Functions → *Functions region*); pick Neon's **AWS US East (Ohio)** to match, or move both to Frankfurt (`eu-central-1`). Each database round trip across regions costs ~100–250 ms, and a page makes two or more; in the same region it is a few milliseconds. NF-01 depends on this more than on any code.
 2. Copy two connection strings from *Connection details*:
    - **Pooled** (host contains `-pooler`) → `DATABASE_URL`
    - **Direct** → `DATABASE_URL_DIRECT` (migrations only)

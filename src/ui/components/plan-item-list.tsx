@@ -5,6 +5,7 @@ import { projectItemHref } from '#src/ui/routes.ts';
 import { EmptyState } from './empty-state.tsx';
 import { PersonList } from './person-list.tsx';
 import { DeadlineLabel, StatusTag } from './status-tag.tsx';
+import { AutoSubmitSelect, PendingSubmit } from './pending.tsx';
 import styles from './lists.module.css';
 
 const statusOptions = [
@@ -22,16 +23,8 @@ export function StatusForm({ item, action }: { readonly item: PlanItemVM; readon
       <label className="visually-hidden" htmlFor={`status-${item.id}`}>
         Status of {item.title}
       </label>
-      <select id={`status-${item.id}`} name="status" defaultValue={item.status} className={styles.statusSelect}>
-        {statusOptions.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
-      <button type="submit" data-size="small">
-        Update
-      </button>
+      <AutoSubmitSelect id={`status-${item.id}`} name="status" defaultValue={item.status} className={styles.statusSelect} options={statusOptions} />
+      <PendingSubmit label="Update" />
     </form>
   );
 }

@@ -10,6 +10,7 @@ import { isInPeriod, periodLabel, shiftPeriod, type Horizon } from '#src/server/
 import type { Area, Person } from '#src/server/services/projects.ts';
 import type { PullRequest } from '#src/server/services/pull-requests.ts';
 import type { Release } from '#src/server/services/releases.ts';
+import type { PickerOptions } from '#src/server/services/project-chrome.ts';
 import type { Pickers, PullRequestVM } from '#src/ui/view-models/common.ts';
 import type { DashboardVM, TrackedVM } from '#src/ui/view-models/dashboard.ts';
 import type { EntryFormValues, EntryVM, LogDayVM } from '#src/ui/view-models/entries.ts';
@@ -258,21 +259,14 @@ export function toNoteFormValues(note: Note): NoteFormValues {
 export const toAreaVM = (area: Area): AreaVM => ({ id: area.id, name: area.name, isArchived: area.isArchived });
 export const toPersonVM = (person: Person): PersonVM => ({ id: person.id, name: person.name, isArchived: person.isArchived });
 
-/** Option lists for forms. Archived areas and people are left out (BR-06). */
-export function toPickers(source: {
-  readonly areas: readonly Area[];
-  readonly people: readonly Person[];
-  readonly planItems: readonly PlanItem[];
-  readonly issues: readonly Issue[];
-  readonly pullRequests: readonly PullRequest[];
-  readonly releases: readonly Release[];
-}): Pickers {
+/** Option lists for forms (archived areas and people are already left out, BR-06). */
+export function toPickers(options: PickerOptions): Pickers {
   return {
-    areas: source.areas.filter((area) => !area.isArchived).map((area) => ({ value: area.id, label: area.name })),
-    people: source.people.filter((person) => !person.isArchived).map((person) => ({ value: person.id, label: person.name })),
-    planItems: source.planItems.map((item) => ({ value: item.id, label: `${item.title} (due ${formatShortDate(item.dueDate)})` })),
-    issues: source.issues.map((issue) => ({ value: issue.id, label: issue.title })),
-    pullRequests: source.pullRequests.map((pr) => ({ value: pr.id, label: `${pr.repo} #${String(pr.number)} ${pr.title}` })),
-    releases: source.releases.map((release) => ({ value: release.id, label: release.version })),
+    areas: options.areas.map((area) => ({ value: area.id, label: area.name })),
+    people: options.people.map((person) => ({ value: person.id, label: person.name })),
+    planItems: options.planItems.map((item) => ({ value: item.id, label: `${item.title} (due ${formatShortDate(item.dueDate)})` })),
+    issues: options.issues.map((issue) => ({ value: issue.id, label: issue.title })),
+    pullRequests: options.pullRequests.map((pr) => ({ value: pr.id, label: `${pr.repo} #${String(pr.number)} ${pr.title}` })),
+    releases: options.releases.map((release) => ({ value: release.id, label: release.version })),
   };
 }

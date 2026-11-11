@@ -13,17 +13,23 @@ pg.types.setTypeParser(pg.types.builtins.INT8, (value: string) => value);
 
 type CreateDbOptions = {
   readonly connectionString: string;
+  /** Per function instance. Requests run several queries at once (dashboard, reports). */
   readonly maxConnections?: number;
   readonly log?: KyselyConfig['log'];
 };
 
-export function createDb({ connectionString, maxConnections = 3, log }: CreateDbOptions): Db {
+export function createDb({ connectionString, maxConnections = 8, log }: CreateDbOptions): Db {
   const pool = new pg.Pool({
     connectionString,
     max: maxConnections,
-    idleTimeoutMillis: 10_000,
+    // Keep connections between clicks: a new TLS connection to Neon costs several round trips.
+    idleTimeoutMillis: 300_000,
     connectionTimeoutMillis: 5_000,
+    keepAlive: true,
   });
+  // A connection can die while a serverless instance is frozen. The pool then drops it and
+  // opens a new one; without this listener the error would crash the process.
+  pool.on('error', () => undefined);
   return new Kysely<Database>({
     dialect: new PostgresDialect({ pool }),
     plugins: [new CamelCasePlugin()],

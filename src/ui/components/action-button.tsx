@@ -1,4 +1,5 @@
 import type { PlainAction } from '#src/ui/view-models/forms.ts';
+import { PendingSubmit } from './pending.tsx';
 
 /** A one-button form for a one-click action. Works without JavaScript. */
 export function ActionButton({
@@ -19,9 +20,7 @@ export function ActionButton({
       {Object.entries(fields).map(([name, value]) => (
         <input key={name} type="hidden" name={name} value={value} />
       ))}
-      <button type="submit" data-size="small" data-variant={variant} aria-label={accessibleLabel}>
-        {label}
-      </button>
+      <PendingSubmit label={label} {...(variant === undefined ? {} : { variant })} {...(accessibleLabel === undefined ? {} : { accessibleLabel })} />
     </form>
   );
 }

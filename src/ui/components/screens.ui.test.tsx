@@ -17,7 +17,7 @@ import { ProjectHeader } from './project-header.tsx';
 import { AppShell } from './app-shell.tsx';
 import { ProjectNav } from './project-nav.tsx';
 
-vi.mock('next/navigation', () => ({ usePathname: () => `/projects/${f.projectId}/issues/s1` }));
+vi.mock('next/navigation', () => ({ usePathname: () => `/projects/${f.projectId}/issues/s1`, useSearchParams: () => new URLSearchParams() }));
 
 const formAction: FormAction = () => Promise.resolve({ status: 'idle' });
 const plainAction: PlainAction = () => Promise.resolve();

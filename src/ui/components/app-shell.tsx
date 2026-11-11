@@ -1,4 +1,6 @@
 import Link from 'next/link';
+import { Suspense } from 'react';
+import { NavigationProgress } from './navigation-progress.tsx';
 import type { PlainAction } from '#src/ui/view-models/forms.ts';
 import { peopleHref, projectsHref } from '#src/ui/routes.ts';
 import styles from './app-shell.module.css';
@@ -7,6 +9,9 @@ import styles from './app-shell.module.css';
 export function AppShell({ signOut, children }: { readonly signOut: PlainAction; readonly children: React.ReactNode }): React.JSX.Element {
   return (
     <>
+      <Suspense fallback={null}>
+        <NavigationProgress />
+      </Suspense>
       <a className={styles.skip} href="#main">
         Skip to content
       </a>
