@@ -7,7 +7,7 @@ import { parseIsoDate, type IsoDate } from '#src/server/domain/calendar.ts';
  * strings mean "not set" for optional fields. Lengths match the database CHECKs.
  */
 
-export function requiredText(label: string, max: number): z.ZodType<string, unknown> {
+export function requiredText(label: string, max: number): z.ZodType<string> {
   return z
     .string({ error: `${label} is required.` })
     .trim()
@@ -15,7 +15,7 @@ export function requiredText(label: string, max: number): z.ZodType<string, unkn
     .max(max, `${label} must be at most ${String(max)} characters.`);
 }
 
-export function optionalText(label: string, max: number): z.ZodType<string, unknown> {
+export function optionalText(label: string, max: number): z.ZodType<string> {
   return z
     .string()
     .trim()
@@ -24,7 +24,7 @@ export function optionalText(label: string, max: number): z.ZodType<string, unkn
     .transform((value) => value ?? '');
 }
 
-export function requiredDate(label: string): z.ZodType<IsoDate, unknown> {
+export function requiredDate(label: string): z.ZodType<IsoDate> {
   return z
     .string({ error: `${label} is required.` })
     .trim()
@@ -39,7 +39,7 @@ export function requiredDate(label: string): z.ZodType<IsoDate, unknown> {
     });
 }
 
-export function optionalDate(label: string): z.ZodType<IsoDate | null, unknown> {
+export function optionalDate(label: string): z.ZodType<IsoDate | null> {
   return z
     .union([z.literal(''), z.null(), requiredDate(label)])
     .optional()
@@ -48,14 +48,14 @@ export function optionalDate(label: string): z.ZodType<IsoDate | null, unknown> 
 
 const uuid = z.uuid({ error: 'Choose a valid option.' });
 
-export const id: z.ZodType<string, unknown> = uuid;
+export const id: z.ZodType<string> = uuid;
 
-export const optionalId: z.ZodType<string | null, unknown> = z
+export const optionalId: z.ZodType<string | null> = z
   .union([z.literal(''), z.null(), uuid])
   .optional()
   .transform((value) => (value === '' || value === undefined ? null : value));
 
-export function idList(label: string, { min = 0, max = 50 } = {}): z.ZodType<readonly string[], unknown> {
+export function idList(label: string, { min = 0, max = 50 } = {}): z.ZodType<readonly string[]> {
   return z
     .union([uuid, z.array(uuid), z.null()])
     .optional()
@@ -65,7 +65,7 @@ export function idList(label: string, { min = 0, max = 50 } = {}): z.ZodType<rea
 }
 
 /** BR-34: http(s) only. */
-export function webUrl(label: string): z.ZodType<string, unknown> {
+export function webUrl(label: string): z.ZodType<string> {
   return z
     .string({ error: `${label} is required.` })
     .trim()
@@ -82,7 +82,7 @@ export function webUrl(label: string): z.ZodType<string, unknown> {
     }, `${label} must start with https:// or http://`);
 }
 
-export function optionalWebUrl(label: string): z.ZodType<string | null, unknown> {
+export function optionalWebUrl(label: string): z.ZodType<string | null> {
   return z
     .union([z.literal(''), z.null(), webUrl(label)])
     .optional()
@@ -92,7 +92,7 @@ export function optionalWebUrl(label: string): z.ZodType<string | null, unknown>
 export function oneOf<const T extends readonly [string, ...string[]]>(
   values: T,
   label: string,
-): z.ZodType<T[number], unknown> {
+): z.ZodType<T[number]> {
   return z.enum(values, { error: `Choose a valid ${label}.` });
 }
 

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { anyString, objectContaining } from '#tests/fixtures/matchers.ts';
 import { testDb, countQueries } from '#tests/setup/test-db.ts';
 import { fakeGitHub, prDeps } from '#tests/fixtures/github.ts';
 import {
@@ -32,12 +33,12 @@ describe('entries', () => {
 
     const entry = await getEntry(testDb(), project.id, created.ok ? created.value.id : '');
     expect(entry).toEqual({
-      id: expect.any(String),
+      id: anyString,
       workDate: '2026-11-10',
       description: 'Fixed the token refresh',
       area: { id: area.id, name: 'Backend' },
       people: [{ id: ali.id, name: 'Ali' }, { id: grace.id, name: 'Grace' }],
-      pullRequest: expect.objectContaining({ number: 12, title: 'PR 12', url: 'https://github.com/acme/app/pull/12' }),
+      pullRequest: objectContaining({ number: 12, title: 'PR 12', url: 'https://github.com/acme/app/pull/12' }),
       planItem: { id: item.id, title: 'Ship login' },
       issue: { id: issue.id, title: 'Crash on save' },
     });

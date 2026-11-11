@@ -239,6 +239,17 @@ export default defineConfig([
     },
   },
   {
+    // Framework-free HTTP handlers (OAuth lives in auth/): plain Request → Response.
+    files: ['src/server/http/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': restrictImports({
+        layers: ['server/actions', 'app', 'ui'],
+        packages: framework,
+        reason: 'HTTP handlers use web-standard Request/Response, never Next.js.',
+      }),
+    },
+  },
+  {
     files: ['src/server/actions/**/*.{ts,tsx}'],
     rules: {
       'no-restricted-imports': restrictImports({

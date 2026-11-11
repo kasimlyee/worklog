@@ -1,0 +1,61 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Markdown export > R-02: renders a full weekly report (snapshot) 1`] = `
+"# Atlas — Weekly report
+
+**Week of 9–13 Nov 2026** · Prepared by Kasim · Generated 20 Nov 2026
+
+> Short week.
+> Public holiday on Friday.
+
+## Summary
+
+Entries: **3** · PRs touched: **1** · PRs merged: **1** · Releases: **1** · Issues resolved: **1**
+
+## Work done
+
+### Frontend
+
+- \\#12 Add login **[Merged]** _(2 entries)_ — Ali, Grace
+
+### Backend
+
+- Hotfix on Saturday _(Sat 14 Nov · weekend work)_ — Grace
+
+## Releases
+
+- 1.4.0 **[Released]** _(12 Nov 2026)_
+  - \\#12 Add login **[Merged]**
+
+## Issues
+
+### Resolved
+
+- Crash on save **[Resolved 2 days late]** — Grace
+
+## Per developer
+
+### Ali
+
+- Entries: 1
+
+### Grace
+
+- Entries: 3
+- Issues resolved: 1 **[1 late]**
+
+## Plan vs. actual
+
+Planned: **1** · Done: **1** · Not done: **0** · Carried over: **0** · Unplanned entries: **3**
+
+### Done
+
+- Ship login **[Done]** _(Due Fri 13 Nov)_ — Ali
+
+### Unplanned work
+
+- Wired the login form _(Tue 10 Nov)_ — Ali, Grace
+- Styled errors _(Tue 10 Nov)_ — Grace
+- Hotfix on Saturday _(Sat 14 Nov · weekend work)_ — Grace
+"
+`;

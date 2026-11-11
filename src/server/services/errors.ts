@@ -1,5 +1,5 @@
 import 'server-only';
-import * as z from 'zod';
+import type * as z from 'zod';
 import { err, ok, type Result } from '#src/lib/result.ts';
 
 export type FieldErrors = Readonly<Record<string, string>>;

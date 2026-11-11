@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { anyString } from '#tests/fixtures/matchers.ts';
 import { err, ok } from '#src/lib/result.ts';
 import type { GitHubClient, GitHubErrorCode } from '#src/server/github/client.ts';
 import { testDb } from '#tests/setup/test-db.ts';
@@ -29,7 +30,7 @@ describe('pull requests', () => {
 
     expect(result).toEqual({
       ok: true,
-      value: { id: expect.any(String), owner: 'acme', repo: 'app', number: 42, title: 'Add login', state: 'merged', url },
+      value: { id: anyString, owner: 'acme', repo: 'app', number: 42, title: 'Add login', state: 'merged', url },
     });
     expect(client.fetchPullRequest).toHaveBeenCalledWith({ owner: 'acme', repo: 'app', number: 42 });
     const row = await testDb().selectFrom('pullRequests').selectAll().executeTakeFirstOrThrow();

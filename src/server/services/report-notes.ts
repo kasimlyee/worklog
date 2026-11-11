@@ -7,7 +7,7 @@ import type { IsoDate } from '#src/server/domain/calendar.ts';
 import { deleteReportNote, selectReportNote, upsertReportNote } from '#src/server/repositories/notes.ts';
 import { invalid, parseInput, type ServiceResult } from './errors.ts';
 import { oneOf, optionalText, requiredDate } from './fields.ts';
-import { isValidReportStart, reportKinds } from './report-request.ts';
+import { isValidReportStart, reportKinds } from '#src/server/domain/report-periods.ts';
 
 export async function getReportNote(db: Db, projectId: string, kind: ReportKind, periodStart: IsoDate): Promise<string> {
   return (await selectReportNote(db, projectId, kind, periodStart)) ?? '';

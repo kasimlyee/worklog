@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { anyString } from '#tests/fixtures/matchers.ts';
 import { isoDate as d } from '#src/server/domain/calendar.ts';
 import { testDb } from '#tests/setup/test-db.ts';
 import { aPerson, aPlan, aPlanItem, aProject, anArea, anIssue } from '#tests/fixtures/builders.ts';
@@ -148,7 +149,7 @@ describe('carry-over', () => {
 
     expect(result).toEqual({ ok: true, value: { id: item.id } });
     const moved = await getPlanItem(testDb(), project.id, item.id, today);
-    expect(moved).toMatchObject({ dueDate: '2026-11-11', moves: [{ fromDue: '2026-11-09', toDue: '2026-11-11', movedAt: expect.any(String) }] });
+    expect(moved).toMatchObject({ dueDate: '2026-11-11', moves: [{ fromDue: '2026-11-09', toDue: '2026-11-11', movedAt: anyString }] });
     expect((await getPlan(testDb(), project.id, 'day', d('2026-11-09'), today))?.items).toEqual([]);
     expect((await getPlan(testDb(), project.id, 'day', d('2026-11-11'), today))?.items.map((i) => i.id)).toEqual([item.id]);
   });

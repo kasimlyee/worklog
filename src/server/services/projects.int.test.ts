@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { objectContaining } from '#tests/fixtures/matchers.ts';
 import { testDb } from '#tests/setup/test-db.ts';
 import { aProject, anArea } from '#tests/fixtures/builders.ts';
 import {
@@ -14,7 +15,7 @@ describe('projects', () => {
 
     expect(result).toEqual({
       ok: true,
-      value: expect.objectContaining({ name: 'Atlas Mobile', slug: 'atlas-mobile', description: 'Field app', isArchived: false }),
+      value: objectContaining({ name: 'Atlas Mobile', slug: 'atlas-mobile', description: 'Field app', isArchived: false }),
     });
   });
 

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { anyString } from '#tests/fixtures/matchers.ts';
 import { isoDate as d } from '#src/server/domain/calendar.ts';
 import { testDb } from '#tests/setup/test-db.ts';
 import { aPerson, aPlan, aPlanItem, aProject, aPullRequest, anArea, anEntry, anIssue, withPeople } from '#tests/fixtures/builders.ts';
@@ -29,7 +30,7 @@ describe('issues', () => {
 
     const issue = await getIssue(testDb(), project.id, created.ok ? created.value.id : '', today);
     expect(issue).toEqual({
-      id: expect.any(String),
+      id: anyString,
       title: 'Crash on save',
       externalUrl: 'https://jira.example.com/browse/APP-12',
       status: 'open',

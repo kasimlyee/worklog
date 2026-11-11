@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { anyInstanceOf } from '#tests/fixtures/matchers.ts';
 import { createGitHubClient } from './client.ts';
 import { badCredentials, closedPull, forbidden, mergedPull, notFound, openPull } from './fixtures/recorded.ts';
 
@@ -17,7 +18,7 @@ describe('GitHub client', () => {
 
     expect(fetchMock).toHaveBeenCalledWith('https://api.github.com/repos/acme/app/pulls/1', {
       headers: { Accept: 'application/vnd.github+json', Authorization: 'Bearer tok', 'X-GitHub-Api-Version': '2022-11-28' },
-      signal: expect.any(AbortSignal),
+      signal: anyInstanceOf(AbortSignal),
       cache: 'no-store',
     });
   });
