@@ -211,14 +211,14 @@ export async function updatePlanItemStatus(
   itemId: string,
   status: PlanItemStatus,
   completedOn: IsoDate | null,
-): Promise<boolean> {
-  const result = await db
+): Promise<{ readonly issueId: string | null } | undefined> {
+  return await db
     .updateTable('planItems')
     .set({ status, completedOn, updatedAt: new Date() })
     .where('id', '=', itemId)
     .where('projectId', '=', projectId)
+    .returning('issueId')
     .executeTakeFirst();
-  return result.numUpdatedRows > 0n;
 }
 
 /** BR-15: new due date, new plan, and a history row. Call inside a transaction. */

@@ -139,6 +139,50 @@ describe('status', () => {
   });
 });
 
+describe('resolving linked issues', () => {
+  it('BR-39: marking a plan item done resolves its issue, dated the completion day', async () => {
+    const project = await aProject(testDb());
+    const issue = await anIssue(testDb(), project.id, { status: 'in_progress' });
+    const item = await aPlanItem(testDb(), await aPlan(testDb(), project.id), { issueId: issue.id });
+
+    await setPlanItemStatus(testDb(), project.id, item.id, { status: 'done' }, today);
+
+    const row = await testDb().selectFrom('issues').select(['status', 'resolvedOn']).where('id', '=', issue.id).executeTakeFirstOrThrow();
+    expect(row).toEqual({ status: 'resolved', resolvedOn: '2026-11-10' });
+  });
+
+  it('BR-39: an already resolved issue keeps its own resolution date', async () => {
+    const project = await aProject(testDb());
+    const issue = await anIssue(testDb(), project.id, { status: 'resolved', resolvedOn: '2026-11-05' });
+    const item = await aPlanItem(testDb(), await aPlan(testDb(), project.id), { issueId: issue.id });
+
+    await setPlanItemStatus(testDb(), project.id, item.id, { status: 'done' }, today);
+
+    expect((await testDb().selectFrom('issues').select('resolvedOn').where('id', '=', issue.id).executeTakeFirstOrThrow()).resolvedOn).toBe('2026-11-05');
+  });
+
+  it('BR-39: other statuses leave the issue alone, and reopening the item does not reopen the issue', async () => {
+    const project = await aProject(testDb());
+    const issue = await anIssue(testDb(), project.id);
+    const item = await aPlanItem(testDb(), await aPlan(testDb(), project.id), { issueId: issue.id });
+    const statusOf = async () => (await testDb().selectFrom('issues').select('status').where('id', '=', issue.id).executeTakeFirstOrThrow()).status;
+
+    await setPlanItemStatus(testDb(), project.id, item.id, { status: 'blocked' }, today);
+    expect(await statusOf()).toBe('open');
+
+    await setPlanItemStatus(testDb(), project.id, item.id, { status: 'done' }, today);
+    await setPlanItemStatus(testDb(), project.id, item.id, { status: 'in_progress' }, today);
+    expect(await statusOf()).toBe('resolved');
+  });
+
+  it('BR-39: a plan item without an issue just becomes done', async () => {
+    const project = await aProject(testDb());
+    const item = await aPlanItem(testDb(), await aPlan(testDb(), project.id));
+
+    expect(await setPlanItemStatus(testDb(), project.id, item.id, { status: 'done' }, today)).toEqual({ ok: true, value: { id: item.id } });
+  });
+});
+
 describe('carry-over', () => {
   it('BR-15: moves into the plan covering the new date, creating it, and records history', async () => {
     const project = await aProject(testDb());

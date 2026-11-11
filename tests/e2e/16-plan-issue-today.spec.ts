@@ -30,3 +30,18 @@ test('BR-38: drag an issue onto Today’s plan, and use the button for another',
   await page.reload();
   await expect(todaysPlan.getByRole('link', { name: 'Slow export' })).toHaveCount(1);
 });
+
+test('BR-39: marking the plan item done resolves the issue', async ({ signedIn: page }) => {
+  const { projectId } = await seedProject();
+  const issue = await anIssue(e2eDb(), projectId, { title: 'Broken share links', deadline: '2099-01-01' });
+  await page.goto(`/projects/${projectId}`);
+
+  await page.getByRole('region', { name: 'Open issues' }).getByRole('button', { name: 'Plan today: Broken share links' }).click();
+  const todaysPlan = page.getByRole('region', { name: 'Today’s plan' });
+  await expect(todaysPlan.getByRole('link', { name: 'Broken share links' })).toBeVisible();
+  await todaysPlan.getByLabel('Status of Broken share links').selectOption('done');
+  await expect(todaysPlan.locator('[data-tone="success"]').filter({ hasText: 'Done' })).toBeVisible();
+
+  await page.goto(`/projects/${projectId}/issues/${issue.id}`);
+  await expect(page.locator('[data-tone="success"]').filter({ hasText: 'Resolved' }).first()).toBeVisible();
+});

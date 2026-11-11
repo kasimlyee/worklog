@@ -142,6 +142,17 @@ export async function updateIssueStatus(
   return result.numUpdatedRows > 0n;
 }
 
+/** BR-39: resolve an issue unless it already is (an existing resolution is kept as it is). */
+export async function resolveIssueIfOpen(db: Db, projectId: string, id: string, resolvedOn: IsoDate): Promise<void> {
+  await db
+    .updateTable('issues')
+    .set({ status: 'resolved', resolvedOn, updatedAt: new Date() })
+    .where('id', '=', id)
+    .where('projectId', '=', projectId)
+    .where('status', '<>', 'resolved')
+    .execute();
+}
+
 export async function deleteIssueRow(db: Db, projectId: string, id: string): Promise<boolean> {
   const result = await db.deleteFrom('issues').where('id', '=', id).where('projectId', '=', projectId).executeTakeFirst();
   return result.numDeletedRows > 0n;

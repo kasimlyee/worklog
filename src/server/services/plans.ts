@@ -9,6 +9,7 @@ import {
   horizons, isInPeriod, isValidPeriodStart, periodLabel, planPeriod, planStartFor, type Horizon, type Period,
 } from '#src/server/domain/plans.ts';
 import type { NamedRef } from '#src/server/repositories/entries.ts';
+import { resolveIssueIfOpen } from '#src/server/repositories/issues.ts';
 import {
   deletePlanItemRow, getOrCreatePlan, insertPlanItem, moveItem, selectItemPlan, selectPlan, selectPlanItems,
   updatePlanItemRow, updatePlanItemStatus, type MoveRow, type PlanItemRow,
@@ -166,8 +167,17 @@ export async function setPlanItemStatus(
     return parsed;
   }
   const { status } = parsed.value;
-  const updated = await updatePlanItemStatus(db, projectId, itemId, status, status === 'done' ? today : null);
-  return updated ? ok({ id: itemId }) : notFound;
+  return await db.transaction().execute(async (trx) => {
+    const updated = await updatePlanItemStatus(trx, projectId, itemId, status, status === 'done' ? today : null);
+    if (updated === undefined) {
+      return notFound;
+    }
+    // BR-39: finishing the work on an issue resolves the issue.
+    if (status === 'done' && updated.issueId !== null) {
+      await resolveIssueIfOpen(trx, projectId, updated.issueId, today);
+    }
+    return ok({ id: itemId });
+  });
 }
 
 const moveInput = z.object({ dueDate: requiredDate('New due date') });

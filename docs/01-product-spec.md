@@ -129,6 +129,8 @@ These are deliberate. A feature request that falls here needs this document chan
 
 - **BR-38** An unresolved issue can be put on *today's* day plan — by dragging it onto Today's plan on the dashboard, or with a "Plan today" button (keyboard and touch). This creates a plan item due today, linked to the issue (BR-12), with the issue's title, area and assignees. An `open` issue becomes `in_progress`. An issue already on today's plan is not added twice. There is no day plan at the weekend (BR-08), so nothing is added then.
 
+- **BR-39** Marking a plan item `done` resolves the issue it references (BR-12), if that issue is not already resolved; `resolved_on` is the item's `completed_on`. Reopening the plan item does not reopen the issue — reopening an issue is always done on the issue.
+
 ### 4.7 Releases and notes
 
 - **BR-32** A release has a version (unique within the project), a status (`planned` or `released`), a target date, a released date (required when `released`), notes in Markdown and zero or more linked PRs.
