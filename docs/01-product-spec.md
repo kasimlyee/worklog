@@ -131,6 +131,8 @@ These are deliberate. A feature request that falls here needs this document chan
 
 - **BR-39** Marking a plan item `done` resolves the issue it references (BR-12), if that issue is not already resolved; `resolved_on` is the item's `completed_on`. Reopening the plan item does not reopen the issue — reopening an issue is always done on the issue.
 
+- **BR-40** An issue shows its history: when it was assigned, every plan item that references it (with status and due date), every log entry linked to it (with date, people and PR), and when and how it was resolved (on time or late, resolving PR). A resolved issue also shows a summary: resolved date and deadline state, days from assignment to resolution, the people who logged work on it, and the pull requests involved.
+
 ### 4.7 Releases and notes
 
 - **BR-32** A release has a version (unique within the project), a status (`planned` or `released`), a target date, a released date (required when `released`), notes in Markdown and zero or more linked PRs.
@@ -163,7 +165,7 @@ Colours are semantic and identical in the UI and in PDF exports. Colour is never
 | **Plans** | Day / week / month view; create items; change status; move (carry-over) with history visible. |
 | **Log** | Entries by date, newest first; quick-add form; filter by area, person, PR. |
 | **Quick log** | Reachable from every project page. Fields: date (default today), description, area, people, PR URL, plan item, issue. Submits with keyboard only. |
-| **Issues** | Table with priority, assignees, deadline state, link out; filter and sort by priority; resolve / reopen. |
+| **Issues** | Issue page with its history (BR-40). Table with priority, assignees, deadline state, link out; filter and sort by priority; resolve / reopen. |
 | **Releases** | List and detail with linked PRs and notes. |
 | **Notes** | List, editor, rendered view. |
 | **Reports** | Choose type and period → preview → export PDF / Markdown. Report note editable here. |

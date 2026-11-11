@@ -35,6 +35,7 @@ export type EntryFilter = {
   readonly personId?: string;
   readonly pullRequestId?: string;
   readonly planItemId?: string;
+  readonly issueId?: string;
   /** Keyset: rows strictly before this position in newest-first order. */
   readonly before?: { readonly workDate: IsoDate; readonly createdAt: string; readonly id: string };
   readonly limit?: number;
@@ -102,6 +103,9 @@ export async function selectEntries(db: Db, projectId: string, filter: EntryFilt
       }
       if (filter.planItemId !== undefined) {
         conditions.push(eb('e.planItemId', '=', filter.planItemId));
+      }
+      if (filter.issueId !== undefined) {
+        conditions.push(eb('e.issueId', '=', filter.issueId));
       }
       if (filter.personId !== undefined) {
         conditions.push(

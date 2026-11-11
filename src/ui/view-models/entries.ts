@@ -10,7 +10,9 @@ export type EntryVM = {
   readonly people: readonly string[];
   readonly pullRequest: PullRequestVM | null;
   readonly planItem: string | null;
+  readonly planItemId: string | null;
   readonly issue: string | null;
+  readonly issueId: string | null;
 };
 
 /** Values to prefill the entry form when editing. */

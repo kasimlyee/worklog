@@ -9,7 +9,7 @@ import type { Release } from '#src/server/services/releases.ts';
 import { deadlineTag } from './status.ts';
 import {
   timestampLabel, toDashboardVM, toEntryFormValues, toEntryVM, toIssueDetailVM, toLogDays, toNoteFormValues, toNoteVM, toPickers,
-  arrangeIssues, toPlanItemDetailVM, toPlansVM, toPullRequestRowVM, toReleaseDetailVM,
+  arrangeIssues, toIssueHistoryVM, toPlanItemDetailVM, toPlansVM, toPullRequestRowVM, toReleaseDetailVM,
 } from './view-models.ts';
 import { issuePriorityTag } from './status.ts';
 
@@ -82,7 +82,9 @@ describe('view-model mappers', () => {
       people: ['Grace'],
       pullRequest: { id: 'pr1', number: 12, repo: 'app', title: 'Add login', url: pr.url, state: { tone: 'success', label: 'Merged' } },
       planItem: 'Ship login',
+      planItemId: 'i1',
       issue: null,
+      issueId: null,
     });
   });
 
@@ -263,5 +265,59 @@ describe('issue priority', () => {
     );
 
     expect([vm.urgent[0]?.priority, vm.dueSoon[0]?.priority]).toEqual([{ tone: 'danger', label: 'Urgent' }, null]);
+  });
+});
+
+describe('issue history', () => {
+  const resolvedIssue: Issue = {
+    ...issue,
+    assignedOn: d('2026-11-02'),
+    deadline: d('2026-11-05'),
+    resolvedOn: d('2026-11-06'),
+    resolvedBy: pr,
+    deadlineState: { state: 'late', label: 'Resolved 1 day late' },
+  };
+  const doneItem: PlanItem = { ...planItem, id: 'i2', title: 'Fix it', status: 'done', dueDate: d('2026-11-05'), completedOn: d('2026-11-06'), deadline: null, moves: [] };
+
+  it('BR-40: orders assignment, plan items, log entries and resolution by date', () => {
+    const vm = toIssueHistoryVM(resolvedIssue, {
+      planItems: [doneItem],
+      entries: [entry({ id: 'e2', workDate: d('2026-11-06'), description: 'Shipped fix' }), entry({ id: 'e1', workDate: d('2026-11-03'), description: 'Found cause', pullRequest: null })],
+    });
+
+    expect(vm.events.map((e) => [e.dateLabel, e.kind, e.title])).toEqual([
+      ['2 Nov 2026', 'assigned', 'Assigned'],
+      ['3 Nov 2026', 'logged', 'Found cause'],
+      ['6 Nov 2026', 'planned', 'Fix it'],
+      ['6 Nov 2026', 'logged', 'Shipped fix'],
+      ['6 Nov 2026', 'resolved', 'Resolved'],
+    ]);
+    expect(vm.events.find((e) => e.kind === 'planned')).toMatchObject({ detail: 'Planned for Thu 5 Nov, done Fri 6 Nov', planItemId: 'i2', tags: [{ label: 'Done' }] });
+    expect(vm.events.find((e) => e.kind === 'resolved')).toMatchObject({ tags: [{ tone: 'danger', label: 'Resolved 1 day late' }], pullRequest: { number: 12 } });
+  });
+
+  it('BR-40: a resolved issue summarises how it was resolved', () => {
+    const vm = toIssueHistoryVM(resolvedIssue, { planItems: [doneItem], entries: [entry({ people: [grace, { id: 'p2', name: 'Ali' }] })] });
+
+    expect(vm.isResolved).toBe(true);
+    expect(vm.summary).toEqual([
+      { label: 'Resolved', value: '6 Nov 2026' },
+      { label: 'Against the deadline', value: '1 day late' },
+      { label: 'Took', value: '4 days' },
+      { label: 'Log entries', value: '1' },
+      { label: 'Worked on by', value: 'Ali, Grace' },
+      { label: 'Pull requests', value: 'app #12' },
+    ]);
+  });
+
+  it('BR-40: an open issue has a timeline but no summary; on-time and no-work cases read plainly', () => {
+    const open = toIssueHistoryVM({ ...resolvedIssue, resolvedOn: null, resolvedBy: null, deadlineState: { state: 'on_track', label: 'Due in 3 days' } }, { planItems: [], entries: [] });
+    const onTime = toIssueHistoryVM(
+      { ...resolvedIssue, resolvedOn: d('2026-11-03'), resolvedBy: null, deadlineState: { state: 'on_time', label: 'Resolved on time' } },
+      { planItems: [], entries: [] },
+    );
+
+    expect([open.isResolved, open.summary, open.events.map((e) => e.kind)]).toEqual([false, [], ['assigned']]);
+    expect(onTime.summary.map((s) => s.value)).toEqual(['3 Nov 2026', 'On time', '1 day', '0', 'Nobody logged work', 'None']);
   });
 });

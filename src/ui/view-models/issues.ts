@@ -38,3 +38,26 @@ export type IssueDetailVM = IssueVM & { readonly form: IssueFormValues };
 
 /** The Issues screen's filter and sort, as they are in the URL (BR-37). */
 export type IssueListControls = { readonly priority: IssuePriority | ''; readonly sortBy: 'deadline' | 'priority' };
+
+/** BR-40: one dated step in an issue's history. */
+export type TimelineEventVM = {
+  readonly key: string;
+  readonly date: string;
+  readonly dateLabel: string;
+  readonly kind: 'assigned' | 'planned' | 'logged' | 'resolved';
+  readonly title: string;
+  readonly detail: string | null;
+  readonly people: readonly string[];
+  readonly tags: readonly StatusVM[];
+  /** Links to the plan item page or the log entry. */
+  readonly planItemId: string | null;
+  readonly entryId: string | null;
+  readonly pullRequest: PullRequestVM | null;
+};
+
+export type IssueHistoryVM = {
+  readonly isResolved: boolean;
+  /** How it was resolved — empty while the issue is open. */
+  readonly summary: readonly { readonly label: string; readonly value: string }[];
+  readonly events: readonly TimelineEventVM[];
+};

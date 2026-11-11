@@ -17,18 +17,19 @@ test('BR-38: drag an issue onto Today’s plan, and use the button for another',
 
   if (!isMobile) {
     await openIssues.getByRole('row', { name: /Crash on save/ }).dragTo(todaysPlan.getByText(/Drag an open issue here/));
-    await expect(todaysPlan.getByRole('link', { name: 'Crash on save' })).toBeVisible();
+    await expect(todaysPlan.getByRole('link', { name: 'Crash on save' }).first()).toBeVisible();
     await expect(todaysPlan.getByRole('status')).toHaveText('Added Crash on save to today’s plan.');
   }
 
   await openIssues.getByRole('button', { name: 'Plan today: Slow export' }).click();
-  await expect(todaysPlan.getByRole('link', { name: 'Slow export' })).toBeVisible();
+  await expect(todaysPlan.getByRole('link', { name: 'Slow export' }).first()).toBeVisible();
 
   // An open issue that is planned becomes in progress; pressing again adds nothing.
   await expect(openIssues.getByRole('row', { name: /Slow export/ }).getByText('In progress')).toBeVisible();
   await openIssues.getByRole('button', { name: 'Plan today: Slow export' }).click();
   await page.reload();
-  await expect(todaysPlan.getByRole('link', { name: 'Slow export' })).toHaveCount(1);
+  // One plan item (its title link plus its issue link), not two.
+  await expect(todaysPlan.getByRole('link', { name: 'Slow export' })).toHaveCount(2);
 });
 
 test('BR-39: marking the plan item done resolves the issue', async ({ signedIn: page }) => {
@@ -38,10 +39,16 @@ test('BR-39: marking the plan item done resolves the issue', async ({ signedIn: 
 
   await page.getByRole('region', { name: 'Open issues' }).getByRole('button', { name: 'Plan today: Broken share links' }).click();
   const todaysPlan = page.getByRole('region', { name: 'Today’s plan' });
-  await expect(todaysPlan.getByRole('link', { name: 'Broken share links' })).toBeVisible();
+  await expect(todaysPlan.getByRole('link', { name: 'Broken share links' }).first()).toBeVisible();
   await todaysPlan.getByLabel('Status of Broken share links').selectOption('done');
   await expect(todaysPlan.locator('[data-tone="success"]').filter({ hasText: 'Done' })).toBeVisible();
 
   await page.goto(`/projects/${projectId}/issues/${issue.id}`);
   await expect(page.locator('[data-tone="success"]').filter({ hasText: 'Resolved' }).first()).toBeVisible();
+
+  // BR-40: the issue shows how it was resolved, linking to the plan item.
+  const history = page.getByRole('region', { name: 'How it was resolved' });
+  await expect(history.getByText('On time', { exact: true })).toBeVisible();
+  await history.getByRole('link', { name: 'Broken share links' }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Broken share links' })).toBeVisible();
 });

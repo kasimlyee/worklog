@@ -44,11 +44,11 @@ export const screens: Readonly<Record<string, Preview>> = {
   issues: { element: <IssuesScreen projectId={id} open={f.issues.slice(0, 2)} resolved={f.issues.slice(2)} /> },
   'issue-new': { element: <NewIssueScreen projectId={id} pickers={f.pickers} create={form} today={f.today} /> },
   issue: {
-    element: <IssueScreen projectId={id} issue={f.issueDetail} pickers={f.pickers} update={form} resolve={form} setStatus={plain} remove={plain} today={f.today} />,
+    element: <IssueScreen projectId={id} issue={f.issueDetail} history={f.openIssueHistory} pickers={f.pickers} update={form} resolve={form} setStatus={plain} remove={plain} today={f.today} />,
   },
   'issue-resolved': {
     element: (
-      <IssueScreen projectId={id} issue={f.resolvedIssueDetail} pickers={f.pickers} update={form} resolve={form} setStatus={plain} remove={plain} today={f.today} />
+      <IssueScreen projectId={id} issue={f.resolvedIssueDetail} history={f.resolvedIssueHistory} pickers={f.pickers} update={form} resolve={form} setStatus={plain} remove={plain} today={f.today} />
     ),
   },
   releases: { element: <ReleasesScreen projectId={id} releases={f.releases} /> },

@@ -176,8 +176,8 @@ describe('log', () => {
     render(<LogScreen projectId={f.projectId} vm={f.log} pickers={f.pickers} createEntry={formAction} today={f.today} />);
 
     expect(screen.getByText('Ali, Grace')).toBeDefined();
-    expect(screen.getByText('Plan: Ship login')).toBeDefined();
-    expect(screen.getByText('Issue: Crash on save')).toBeDefined();
+    expect(screen.getByRole('link', { name: 'Ship login' }).getAttribute('href')).toBe(`/projects/${f.projectId}/plans/items/i1`);
+    expect(screen.getByRole('link', { name: 'Crash on save' }).getAttribute('href')).toBe(`/projects/${f.projectId}/issues/s1`);
     expect(tagsIn(document.body)).toEqual(expect.arrayContaining(['success:Merged', 'danger:Closed']));
     expect(screen.getByText(f.longText)).toBeDefined();
   });
@@ -250,7 +250,7 @@ describe('issues', () => {
 
   it('BR-29: an open issue offers resolve with an editable date; BR-30 the resolving PR', () => {
     render(
-      <IssueScreen projectId={f.projectId} issue={f.issueDetail} pickers={f.pickers} update={formAction} resolve={formAction} setStatus={plainAction} remove={plainAction} today={f.today} />,
+      <IssueScreen projectId={f.projectId} issue={f.issueDetail} history={f.openIssueHistory} pickers={f.pickers} update={formAction} resolve={formAction} setStatus={plainAction} remove={plainAction} today={f.today} />,
     );
 
     expect(screen.getByLabelText<HTMLInputElement>('Resolved on').value).toBe(f.today);
@@ -261,7 +261,7 @@ describe('issues', () => {
 
   it('BR-27: an issue shows its description with line breaks, and the form is prefilled', () => {
     render(
-      <IssueScreen projectId={f.projectId} issue={f.issueDetail} pickers={f.pickers} update={formAction} resolve={formAction} setStatus={plainAction} remove={plainAction} today={f.today} />,
+      <IssueScreen projectId={f.projectId} issue={f.issueDetail} history={f.openIssueHistory} pickers={f.pickers} update={formAction} resolve={formAction} setStatus={plainAction} remove={plainAction} today={f.today} />,
     );
 
     const shown = screen.getByText(/Saving a listing with more than 10 photos/, { selector: 'p' });
@@ -271,15 +271,40 @@ describe('issues', () => {
 
   it('BR-27: no description, no empty paragraph', () => {
     render(
-      <IssueScreen projectId={f.projectId} issue={f.resolvedIssueDetail} pickers={f.pickers} update={formAction} resolve={formAction} setStatus={plainAction} remove={plainAction} today={f.today} />,
+      <IssueScreen projectId={f.projectId} issue={f.resolvedIssueDetail} history={f.resolvedIssueHistory} pickers={f.pickers} update={formAction} resolve={formAction} setStatus={plainAction} remove={plainAction} today={f.today} />,
     );
 
     expect(screen.queryByText(/Saving a listing/, { selector: 'p' })).toBeNull();
   });
 
+  it('BR-40: a resolved issue shows how it was resolved, linking to plan items, log entries and PRs', () => {
+    render(
+      <IssueScreen projectId={f.projectId} issue={f.resolvedIssueDetail} history={f.resolvedIssueHistory} pickers={f.pickers} update={formAction} resolve={formAction} setStatus={plainAction} remove={plainAction} today={f.today} />,
+    );
+
+    const section = screen.getByRole('region', { name: 'How it was resolved' });
+    expect(within(section).getByText('Against the deadline').nextSibling?.textContent).toBe('2 days late');
+    expect(within(section).getByRole('link', { name: 'Fix share links' }).getAttribute('href')).toBe(`/projects/${f.projectId}/plans/items/i9`);
+    expect(within(section).getByRole('link', { name: 'Moved go.nestlyhousing.org to the new VM' }).getAttribute('href')).toBe(`/projects/${f.projectId}/log/e8/edit`);
+    expect(within(section).getAllByRole('listitem').map((li) => li.querySelector('time')?.getAttribute('datetime'))).toEqual([
+      '2026-11-02', '2026-11-03', '2026-11-05', '2026-11-05', '2026-11-05',
+    ]);
+    expect(tagsIn(section)).toContain('danger:Resolved 2 days late');
+  });
+
+  it('BR-40: an open issue shows its history so far, without a summary', () => {
+    render(
+      <IssueScreen projectId={f.projectId} issue={f.issueDetail} history={f.openIssueHistory} pickers={f.pickers} update={formAction} resolve={formAction} setStatus={plainAction} remove={plainAction} today={f.today} />,
+    );
+
+    const section = screen.getByRole('region', { name: 'History' });
+    expect(within(section).queryByText('Against the deadline')).toBeNull();
+    expect(within(section).getByRole('link', { name: 'Crash on save' })).toBeDefined();
+  });
+
   it('BR-29: a resolved issue offers reopen and shows who resolved it', () => {
     render(
-      <IssueScreen projectId={f.projectId} issue={f.resolvedIssueDetail} pickers={f.pickers} update={formAction} resolve={formAction} setStatus={plainAction} remove={plainAction} today={f.today} />,
+      <IssueScreen projectId={f.projectId} issue={f.resolvedIssueDetail} history={f.resolvedIssueHistory} pickers={f.pickers} update={formAction} resolve={formAction} setStatus={plainAction} remove={plainAction} today={f.today} />,
     );
 
     expect(screen.getByRole('button', { name: 'Reopen issue' })).toBeDefined();

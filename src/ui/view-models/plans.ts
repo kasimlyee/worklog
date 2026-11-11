@@ -17,6 +17,7 @@ export type PlanItemVM = {
   readonly area: string | null;
   readonly assignees: readonly string[];
   readonly issue: string | null;
+  readonly issueId: string | null;
   readonly moves: readonly MoveVM[];
 };
 

@@ -36,6 +36,8 @@ export type PlanItemFilter = {
   readonly plan?: { readonly horizon: PlanHorizon; readonly periodStart: IsoDate };
   readonly openOnly?: boolean;
   readonly limit?: number;
+  /** Items working on this issue (BR-40). */
+  readonly issueId?: string;
 };
 
 /*
@@ -101,6 +103,9 @@ export async function selectPlanItems(db: Db, projectId: string, filter: PlanIte
       }
       if (filter.openOnly === true) {
         conditions.push(eb('pi.status', '<>', 'done'));
+      }
+      if (filter.issueId !== undefined) {
+        conditions.push(eb('pi.issueId', '=', filter.issueId));
       }
       return eb.and(conditions);
     })

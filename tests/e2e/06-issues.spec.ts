@@ -25,7 +25,7 @@ test('BR-31: due soon is yellow, then resolving it on time is green', async ({ s
   await expect(page.locator('[data-tone="warning"]').filter({ hasText: /Due/ })).toBeVisible();
 
   await page.getByRole('button', { name: 'Resolve issue' }).click();
-  await expect(page.locator('[data-tone="success"]').filter({ hasText: 'Resolved on time' })).toBeVisible();
+  await expect(page.locator('[data-tone="success"]').filter({ hasText: 'Resolved on time' }).first()).toBeVisible();
 });
 
 test('BR-31: resolving after the deadline is red and says how late', async ({ signedIn: page }) => {
@@ -37,7 +37,7 @@ test('BR-31: resolving after the deadline is red and says how late', async ({ si
   await expect(page.locator('[data-tone="danger"]').filter({ hasText: /overdue/ }).first()).toBeVisible();
 
   await page.getByRole('button', { name: 'Resolve issue' }).click();
-  await expect(page.locator('[data-tone="danger"]').filter({ hasText: /Resolved \d+ days? late/ })).toBeVisible();
+  await expect(page.locator('[data-tone="danger"]').filter({ hasText: /Resolved \d+ days? late/ }).first()).toBeVisible();
 
   // BR-29: reopening clears the resolution.
   await page.getByRole('button', { name: 'Reopen issue' }).click();

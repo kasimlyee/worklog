@@ -1,7 +1,8 @@
 import Link from 'next/link';
 import type { Pickers } from '#src/ui/view-models/common.ts';
 import type { FormAction, PlainAction } from '#src/ui/view-models/forms.ts';
-import type { IssueDetailVM, IssueFormValues, IssueListControls, IssueVM } from '#src/ui/view-models/issues.ts';
+import type { IssueDetailVM, IssueFormValues, IssueHistoryVM, IssueListControls, IssueVM } from '#src/ui/view-models/issues.ts';
+import { IssueHistory } from './issue-history.tsx';
 import { newItemHref, projectHref } from '#src/ui/routes.ts';
 import { ActionButton } from './action-button.tsx';
 import { ConfirmDialog } from './confirm-dialog.tsx';
@@ -150,9 +151,12 @@ export function IssueScreen({
   setStatus,
   remove,
   today,
+  history,
 }: {
   readonly projectId: string;
   readonly issue: IssueDetailVM;
+  /** BR-40 */
+  readonly history: IssueHistoryVM;
   readonly pickers: Pickers;
   readonly update: FormAction;
   readonly resolve: FormAction;
@@ -201,6 +205,7 @@ export function IssueScreen({
           )}
         </div>
       </Section>
+      <IssueHistory projectId={projectId} history={history} />
       <Section title={issue.status === 'resolved' ? 'Reopen' : 'Progress'}>
         {issue.status === 'resolved' ? (
           <ActionButton action={setStatus} label="Reopen issue" fields={{ issueId: issue.id, status: 'open' }} />

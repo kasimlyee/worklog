@@ -1,7 +1,7 @@
 import type { Pickers, PullRequestVM, StatusVM } from '#src/ui/view-models/common.ts';
 import type { DashboardVM } from '#src/ui/view-models/dashboard.ts';
 import type { EntryFormValues, EntryVM, LogVM } from '#src/ui/view-models/entries.ts';
-import type { IssueDetailVM, IssueVM } from '#src/ui/view-models/issues.ts';
+import type { IssueDetailVM, IssueHistoryVM, IssueVM, TimelineEventVM } from '#src/ui/view-models/issues.ts';
 import type { NoteFormValues, NoteVM } from '#src/ui/view-models/notes.ts';
 import type { PlanItemDetailVM, PlanItemVM, PlansVM } from '#src/ui/view-models/plans.ts';
 import type { ReleaseDetailVM, ReleaseVM } from '#src/ui/view-models/releases.ts';
@@ -73,7 +73,9 @@ const loginEntry: EntryVM = {
   people: ['Ali', 'Grace'],
   pullRequest,
   planItem: 'Ship login',
+  planItemId: 'i1',
   issue: null,
+  issueId: null,
 };
 const weekendEntry: EntryVM = {
   id: 'e2',
@@ -85,7 +87,9 @@ const weekendEntry: EntryVM = {
   people: ['Wanjiru'],
   pullRequest: null,
   planItem: null,
+  planItemId: null,
   issue: 'Crash on save',
+  issueId: 's1',
 };
 const longEntry: EntryVM = {
   id: 'e3',
@@ -97,7 +101,9 @@ const longEntry: EntryVM = {
   people: ['Grace'],
   pullRequest: { ...pullRequest, id: 'pr13', number: 13, title: 'Experiment: new cache', state: statuses.closed },
   planItem: null,
+  planItemId: null,
   issue: null,
+  issueId: null,
 };
 
 export const entries: readonly EntryVM[] = [loginEntry, weekendEntry, longEntry];
@@ -113,6 +119,7 @@ const shipLogin: PlanItemVM = {
   area: 'Frontend',
   assignees: ['Ali', 'Grace'],
   issue: null,
+  issueId: null,
   moves: [],
 };
 const billing: PlanItemVM = {
@@ -126,6 +133,7 @@ const billing: PlanItemVM = {
   area: 'Backend',
   assignees: ['Wanjiru'],
   issue: 'Crash on save',
+  issueId: 's1',
   moves: [{ fromLabel: 'Wed 4 Nov', toLabel: 'Fri 6 Nov', whenLabel: '4 Nov 2026' }],
 };
 const releaseNotes: PlanItemVM = {
@@ -139,6 +147,7 @@ const releaseNotes: PlanItemVM = {
   area: null,
   assignees: [],
   issue: null,
+  issueId: null,
   moves: [],
 };
 const onboarding: PlanItemVM = {
@@ -152,6 +161,7 @@ const onboarding: PlanItemVM = {
   area: 'Mobile',
   assignees: ['Ali'],
   issue: null,
+  issueId: null,
   moves: [],
 };
 
@@ -403,3 +413,43 @@ export const manyEntries: readonly EntryVM[] = Array.from({ length: 60 }, (_, in
   id: `many-${String(index)}`,
   description: `Entry ${String(index + 1)}`,
 }));
+
+const event = (fields: Partial<TimelineEventVM> & Pick<TimelineEventVM, 'key' | 'date' | 'dateLabel' | 'kind' | 'title'>): TimelineEventVM => ({
+  detail: null,
+  people: [],
+  tags: [],
+  planItemId: null,
+  entryId: null,
+  pullRequest: null,
+  ...fields,
+});
+
+const assignedEvent = event({ key: 'assigned', date: '2026-11-02', dateLabel: '2 Nov 2026', kind: 'assigned', title: 'Assigned', detail: 'Deadline 6 Nov 2026', people: ['Grace'] });
+
+export const openIssueHistory: IssueHistoryVM = {
+  isResolved: false,
+  summary: [],
+  events: [
+    assignedEvent,
+    event({ key: 'plan-i9', date: '2026-11-10', dateLabel: '10 Nov 2026', kind: 'planned', title: 'Crash on save', detail: 'Planned for Tue 10 Nov', people: ['Grace'], tags: [statuses.inProgress], planItemId: 'i9' }),
+  ],
+};
+
+export const resolvedIssueHistory: IssueHistoryVM = {
+  isResolved: true,
+  summary: [
+    { label: 'Resolved', value: '5 Nov 2026' },
+    { label: 'Against the deadline', value: '2 days late' },
+    { label: 'Took', value: '4 days' },
+    { label: 'Log entries', value: '2' },
+    { label: 'Worked on by', value: 'Ali, Grace' },
+    { label: 'Pull requests', value: 'app #12' },
+  ],
+  events: [
+    assignedEvent,
+    event({ key: 'entry-e7', date: '2026-11-03', dateLabel: '3 Nov 2026', kind: 'logged', title: 'Found the cause: the old API server', people: ['Ali'], entryId: 'e7' }),
+    event({ key: 'plan-i9', date: '2026-11-05', dateLabel: '5 Nov 2026', kind: 'planned', title: 'Fix share links', detail: 'Planned for Wed 4 Nov, done Thu 5 Nov · moved 1×', people: ['Grace'], tags: [statuses.done], planItemId: 'i9' }),
+    event({ key: 'entry-e8', date: '2026-11-05', dateLabel: '5 Nov 2026', kind: 'logged', title: 'Moved go.nestlyhousing.org to the new VM', detail: 'Backend', people: ['Grace'], entryId: 'e8', pullRequest }),
+    event({ key: 'resolved', date: '2026-11-05', dateLabel: '5 Nov 2026', kind: 'resolved', title: 'Resolved', tags: [statuses.late], pullRequest }),
+  ],
+};

@@ -58,7 +58,11 @@ export function PlanItemList({
             <span>{item.dueLabel}</span>
             {item.area === null ? null : <span>{item.area}</span>}
             <PersonList people={item.assignees} />
-            {item.issue === null ? null : <span>Issue: {item.issue}</span>}
+            {item.issue === null || item.issueId === null ? null : (
+              <span>
+                Issue: <Link href={projectItemHref(projectId, 'issues', item.issueId)}>{item.issue}</Link>
+              </span>
+            )}
             {item.moves.length > 0 ? <span>Moved {String(item.moves.length)}×</span> : null}
           </div>
           {setStatus === undefined ? null : <StatusForm item={item} action={setStatus} />}

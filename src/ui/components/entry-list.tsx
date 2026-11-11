@@ -39,8 +39,16 @@ export function EntryList({
                 <StatusTag status={entry.pullRequest.state} />
               </span>
             )}
-            {entry.planItem === null ? null : <span>Plan: {entry.planItem}</span>}
-            {entry.issue === null ? null : <span>Issue: {entry.issue}</span>}
+            {entry.planItem === null || entry.planItemId === null ? null : (
+              <span>
+                Plan: <Link href={projectItemHref(projectId, 'plans/items', entry.planItemId)}>{entry.planItem}</Link>
+              </span>
+            )}
+            {entry.issue === null || entry.issueId === null ? null : (
+              <span>
+                Issue: <Link href={projectItemHref(projectId, 'issues', entry.issueId)}>{entry.issue}</Link>
+              </span>
+            )}
             <Link href={projectItemHref(projectId, 'log', entry.id, 'edit')} aria-label={`Edit entry: ${entry.description}`}>
               Edit
             </Link>

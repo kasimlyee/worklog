@@ -1,5 +1,5 @@
 import 'server-only';
-import { formatDate, formatShortDate, dayLabel, isWorkingDay, today as todayIn, type IsoDate } from '#src/server/domain/calendar.ts';
+import { daysBetween, formatDate, formatShortDate, dayLabel, isWorkingDay, today as todayIn, type IsoDate } from '#src/server/domain/calendar.ts';
 import type { Dashboard, DashboardItem } from '#src/server/services/dashboard.ts';
 import type { Entry, EntryPage } from '#src/server/services/entries.ts';
 import { priorityRank, type Issue } from '#src/server/services/issues.ts';
@@ -14,7 +14,8 @@ import type { PickerOptions } from '#src/server/services/project-chrome.ts';
 import type { Pickers, PullRequestVM } from '#src/ui/view-models/common.ts';
 import type { DashboardVM, TrackedVM } from '#src/ui/view-models/dashboard.ts';
 import type { EntryFormValues, EntryVM, LogDayVM } from '#src/ui/view-models/entries.ts';
-import type { IssueDetailVM, IssueVM } from '#src/ui/view-models/issues.ts';
+import type { IssueDetailVM, IssueHistoryVM, IssueVM, TimelineEventVM } from '#src/ui/view-models/issues.ts';
+import type { IssueHistory } from '#src/server/services/issue-history.ts';
 import type { NoteFormValues, NoteVM } from '#src/ui/view-models/notes.ts';
 import type { PlanItemDetailVM, PlanItemVM, PlansVM } from '#src/ui/view-models/plans.ts';
 import type { ReleaseDetailVM, ReleaseVM } from '#src/ui/view-models/releases.ts';
@@ -49,7 +50,9 @@ export function toEntryVM(entry: Entry): EntryVM {
     people: names(entry.people),
     pullRequest: entry.pullRequest === null ? null : toPullRequestVM(entry.pullRequest),
     planItem: entry.planItem?.title ?? null,
+    planItemId: entry.planItem?.id ?? null,
     issue: entry.issue?.title ?? null,
+    issueId: entry.issue?.id ?? null,
   };
 }
 
@@ -91,6 +94,7 @@ export function toPlanItemVM(item: PlanItem, timeZone: string): PlanItemVM {
     area: item.area?.name ?? null,
     assignees: names(item.assignees),
     issue: item.issue?.title ?? null,
+    issueId: item.issue?.id ?? null,
     moves: item.moves.map((move) => ({
       fromLabel: formatShortDate(move.fromDue),
       toLabel: formatShortDate(move.toDue),
@@ -268,5 +272,93 @@ export function toPickers(options: PickerOptions): Pickers {
     issues: options.issues.map((issue) => ({ value: issue.id, label: issue.title })),
     pullRequests: options.pullRequests.map((pr) => ({ value: pr.id, label: `${pr.repo} #${String(pr.number)} ${pr.title}` })),
     releases: options.releases.map((release) => ({ value: release.id, label: release.version })),
+  };
+}
+
+const eventOrder: Readonly<Record<TimelineEventVM['kind'], number>> = { assigned: 0, planned: 1, logged: 2, resolved: 3 };
+
+function days(count: number): string {
+  return `${String(count)} ${count === 1 ? 'day' : 'days'}`;
+}
+
+/** BR-40: an issue's history as a dated timeline, and — once resolved — how it was resolved. */
+export function toIssueHistoryVM(issue: Issue, history: IssueHistory): IssueHistoryVM {
+  type EventFields = Pick<TimelineEventVM, 'key' | 'kind' | 'title'> & Partial<Omit<TimelineEventVM, 'date' | 'dateLabel'>>;
+  const event = (date: IsoDate, fields: EventFields): TimelineEventVM => ({
+    detail: null,
+    people: [],
+    tags: [],
+    planItemId: null,
+    entryId: null,
+    pullRequest: null,
+    ...fields,
+    date,
+    dateLabel: formatDate(date),
+  });
+  const events: TimelineEventVM[] = [
+    event(issue.assignedOn, { key: 'assigned', kind: 'assigned', title: 'Assigned', detail: `Deadline ${formatDate(issue.deadline)}`, people: names(issue.assignees) }),
+    ...history.planItems.map((item) =>
+      event(item.completedOn ?? item.dueDate, {
+        key: `plan-${item.id}`,
+        kind: 'planned',
+        title: item.title,
+        detail: [
+          item.completedOn === null ? `Planned for ${formatShortDate(item.dueDate)}` : `Planned for ${formatShortDate(item.dueDate)}, done ${formatShortDate(item.completedOn)}`,
+          item.moves.length > 0 ? `moved ${String(item.moves.length)}×` : null,
+        ]
+          .filter((part) => part !== null)
+          .join(' · '),
+        people: names(item.assignees),
+        tags: [planStatusTag[item.status]],
+        planItemId: item.id,
+      }),
+    ),
+    ...history.entries.map((entry) =>
+      event(entry.workDate, {
+        key: `entry-${entry.id}`,
+        kind: 'logged',
+        title: entry.description,
+        detail: entry.area?.name ?? null,
+        people: names(entry.people),
+        entryId: entry.id,
+        pullRequest: entry.pullRequest === null ? null : toPullRequestVM(entry.pullRequest),
+      }),
+    ),
+    ...(issue.resolvedOn === null
+      ? []
+      : [
+          event(issue.resolvedOn, {
+            key: 'resolved',
+            kind: 'resolved',
+            title: 'Resolved',
+            tags: [deadlineTag(issue.deadlineState)],
+            pullRequest: issue.resolvedBy === null ? null : toPullRequestVM(issue.resolvedBy),
+          }),
+        ]),
+  ];
+  events.sort((a, b) => (a.date === b.date ? eventOrder[a.kind] - eventOrder[b.kind] : a.date < b.date ? -1 : 1));
+
+  if (issue.resolvedOn === null) {
+    return { isResolved: false, summary: [], events };
+  }
+  const people = [...new Set(history.entries.flatMap((entry) => names(entry.people)))].sort();
+  const pullRequests = new Map<string, string>();
+  for (const pr of [...history.entries.map((entry) => entry.pullRequest), issue.resolvedBy]) {
+    if (pr !== null) {
+      pullRequests.set(pr.id, `${pr.repo} #${String(pr.number)}`);
+    }
+  }
+  const late = issue.deadlineState.state === 'late';
+  return {
+    isResolved: true,
+    summary: [
+      { label: 'Resolved', value: formatDate(issue.resolvedOn) },
+      { label: 'Against the deadline', value: late ? issue.deadlineState.label.replace(/^Resolved /, '') : 'On time' },
+      { label: 'Took', value: days(daysBetween(issue.assignedOn, issue.resolvedOn)) },
+      { label: 'Log entries', value: String(history.entries.length) },
+      { label: 'Worked on by', value: people.length === 0 ? 'Nobody logged work' : people.join(', ') },
+      { label: 'Pull requests', value: pullRequests.size === 0 ? 'None' : [...pullRequests.values()].join(', ') },
+    ],
+    events,
   };
 }
