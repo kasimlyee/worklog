@@ -21,7 +21,7 @@ export default defineConfig({
           name: 'unit',
           environment: 'node',
           include: ['src/**/*.test.ts', 'scripts/**/*.test.ts'],
-          exclude: [...configDefaults.exclude, '**/*.int.test.ts'],
+          exclude: [...configDefaults.exclude, '**/*.int.test.ts', '**/*.perf.test.ts'],
         },
       },
       {
