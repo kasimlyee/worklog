@@ -1,0 +1,20 @@
+# Netlify detects Next.js and deploys it with its Next.js runtime automatically.
+
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  NODE_VERSION = "24"
+  NPM_FLAGS = "--no-audit --no-fund"
+
+# Production deploys apply pending migrations first (DATABASE_URL_DIRECT).
+# Migrations must be additive/backward-compatible, so a failed build after a
+# successful migration never breaks the running version.
+[context.production]
+  command = "npm run db:migrate && npm run build"
+
+# Deploy previews: point DATABASE_URL / DATABASE_URL_DIRECT at a Neon branch
+# in the Netlify UI for the "Deploy Previews" context, never at production.
+[context.deploy-preview]
+  command = "npm run db:migrate && npm run build"

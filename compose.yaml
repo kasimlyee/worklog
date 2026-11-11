@@ -1,0 +1,21 @@
+# Local Postgres for development and integration/E2E tests.
+# Match the major version to the Neon project.
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: worklog
+      POSTGRES_PASSWORD: worklog
+      POSTGRES_DB: worklog
+    ports:
+      - "127.0.0.1:5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U worklog -d worklog"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  pgdata:

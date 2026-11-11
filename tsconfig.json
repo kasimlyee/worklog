@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "compilerOptions": {
+    /* Language and environment */
+    "target": "ES2024",
+    "lib": ["ES2024", "DOM", "DOM.Iterable"],
+    "jsx": "react-jsx",
+    "types": ["node"],
+
+    /* Modules: bundler resolution for Next.js and Vite; explicit .ts extensions
+       so Node can run scripts directly with built-in type stripping. */
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "moduleDetection": "force",
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "verbatimModuleSyntax": true,
+    "isolatedModules": true,
+    "erasableSyntaxOnly": true,
+    "noUncheckedSideEffectImports": true,
+    "esModuleInterop": true,
+    "noEmit": true,
+    "incremental": true,
+
+    /* Strictness: everything on */
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "useUnknownInCatchVariables": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "noImplicitOverride": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "allowUnreachableCode": false,
+    "allowUnusedLabels": false,
+    "forceConsistentCasingInFileNames": true,
+
+    /* JavaScript files are not part of this project */
+    "allowJs": false,
+
+    /* Library .d.ts files are not ours to fix; our own code is fully checked */
+    "skipLibCheck": true,
+
+    "plugins": [{ "name": "next" }]
+  },
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts"
+  ],
+  "exclude": ["node_modules", ".next", "coverage", "playwright-report", "test-results"]
+}

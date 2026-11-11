@@ -1,0 +1,61 @@
+# docs/03-engineering-standards.md §8 — every step blocks the next.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: worklog
+          POSTGRES_PASSWORD: worklog
+          POSTGRES_DB: worklog
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U worklog -d worklog"
+          --health-interval 2s --health-timeout 3s --health-retries 20
+    env:
+      TEST_DATABASE_URL: postgres://worklog:worklog@localhost:5432/worklog
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run test:unit
+      - run: npm run test:integration
+      - run: npm run test:ui
+      - run: npm run test:coverage
+      - run: npm run test:rules
+      - run: npm run build
+        env:
+          # The build never connects to anything; env() is read lazily at request time.
+          NEXT_TELEMETRY_DISABLED: '1'
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+        env:
+          E2E_DATABASE_URL: postgres://worklog:worklog@localhost:5432/worklog_e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
