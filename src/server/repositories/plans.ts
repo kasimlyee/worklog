@@ -33,6 +33,8 @@ export type PlanItemFilter = {
   readonly itemId?: string;
   /** Unfinished items due on or before this date. */
   readonly openDueOnOrBefore?: IsoDate;
+  /** Items of the plan with this horizon and period start. */
+  readonly plan?: { readonly horizon: PlanHorizon; readonly periodStart: IsoDate };
 };
 
 /*
@@ -91,6 +93,9 @@ export async function selectPlanItems(db: Db, projectId: string, filter: PlanIte
       }
       if (filter.openDueOnOrBefore !== undefined) {
         conditions.push(eb('pi.status', '<>', 'done'), eb('pi.dueDate', '<=', filter.openDueOnOrBefore));
+      }
+      if (filter.plan !== undefined) {
+        conditions.push(eb('p.horizon', '=', filter.plan.horizon), eb('p.periodStart', '=', filter.plan.periodStart));
       }
       return eb.and(conditions);
     })

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { isoDate as d } from './calendar.ts';
-import { isDueSoon, isOverdue, issueDeadline, openDeadline, overdueFrom, planItemDeadline } from './deadlines.ts';
+import { addDays, datesBetween } from './calendar.ts';
+import { isDueSoon, isOverdue, issueDeadline, openDeadline, overdueCutoff, overdueFrom, planItemDeadline } from './deadlines.ts';
 
 describe('BR-13: overdue', () => {
   it('BR-13: item due Friday is overdue from the following Monday', () => {
@@ -88,5 +89,15 @@ describe('BR-31: issue deadline states', () => {
     expect(issueDeadline({ deadline: d('2026-11-06'), resolvedOn: d('2026-11-07') }, today).label).toBe(
       'Resolved 1 day late',
     );
+  });
+});
+
+describe('overdueCutoff', () => {
+  it('BR-13: due < cutoff agrees with isOverdue for every pair of dates over three weeks', () => {
+    for (const today of datesBetween(d('2026-11-01'), d('2026-11-21'))) {
+      for (const due of datesBetween(addDays(today, -10), addDays(today, 5))) {
+        expect(due < overdueCutoff(today), `${due} on ${today}`).toBe(isOverdue(due, today));
+      }
+    }
   });
 });

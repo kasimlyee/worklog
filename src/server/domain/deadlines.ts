@@ -1,4 +1,4 @@
-import { daysBetween, nextWorkingDay, type IsoDate } from './calendar.ts';
+import { addDays, daysBetween, isWorkingDay, nextWorkingDay, type IsoDate } from './calendar.ts';
 
 export type DeadlineState = 'overdue' | 'due_soon' | 'on_track';
 export type IssueDeadlineState = DeadlineState | 'on_time' | 'late';
@@ -70,4 +70,16 @@ export function issueDeadline(
 /** The date an unfinished item with this due date first counts as overdue (BR-13). */
 export function overdueFrom(due: IsoDate): IsoDate {
   return nextWorkingDay(due);
+}
+
+/**
+ * BR-13 as a query bound: unfinished work is overdue exactly when its due date is before
+ * this date (the last working day on or before today). Lets SQL filter with an index.
+ */
+export function overdueCutoff(today: IsoDate): IsoDate {
+  let date = today;
+  while (!isWorkingDay(date)) {
+    date = addDays(date, -1);
+  }
+  return date;
 }
