@@ -9,7 +9,7 @@ import { EntryForm } from './entry-form.tsx';
 import { EntryList } from './entry-list.tsx';
 import { PageHeader, Section } from './page-header.tsx';
 import { StatusTag } from './status-tag.tsx';
-import styles from './lists.module.css';
+import { lists as styles } from './lists.ts';
 
 function FilterSelect({ name, label, options, value }: { readonly name: string; readonly label: string; readonly options: Pickers['areas']; readonly value: string }): React.JSX.Element {
   return (

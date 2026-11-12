@@ -5,7 +5,7 @@ import { projectHref } from '#src/ui/routes.ts';
 import { ActionForm, HiddenField, TextAreaField } from './form.tsx';
 import { PageHeader, Section } from './page-header.tsx';
 import { ReportPreview } from './report-preview.tsx';
-import styles from './lists.module.css';
+import { lists as styles } from './lists.ts';
 
 const kinds: readonly { readonly value: ReportKind; readonly label: string }[] = [
   { value: 'daily', label: 'Daily' },
@@ -34,7 +34,7 @@ export function ReportsScreen({ projectId, vm, saveNote }: { readonly projectId:
       <div className={styles.toolbar}>
         <nav aria-label="Report type" className={styles.tabs}>
           {kinds.map((kind) => (
-            <Link key={kind.value} href={projectHref(projectId, 'reports', `kind=${kind.value}&date=${vm.start}`)} aria-current={vm.kind === kind.value ? 'page' : undefined}>
+            <Link key={kind.value} className={styles.tab} href={projectHref(projectId, 'reports', `kind=${kind.value}&date=${vm.start}`)} aria-current={vm.kind === kind.value ? 'page' : undefined}>
               {kind.label}
             </Link>
           ))}

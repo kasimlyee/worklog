@@ -7,7 +7,7 @@ import { EmptyState } from './empty-state.tsx';
 import { ActionForm, CheckboxGroupField, HiddenField, SelectField, TextField } from './form.tsx';
 import { PageHeader, Section } from './page-header.tsx';
 import { PlanItemList } from './plan-item-list.tsx';
-import styles from './lists.module.css';
+import { lists as styles } from './lists.ts';
 
 const horizons: readonly { readonly value: Horizon; readonly label: string }[] = [
   { value: 'day', label: 'Day' },
@@ -37,6 +37,7 @@ export function PlansScreen({
           {horizons.map((horizon) => (
             <Link
               key={horizon.value}
+              className={styles.tab}
               href={projectHref(projectId, 'plans', `horizon=${horizon.value}&date=${vm.periodStart}`)}
               aria-current={vm.horizon === horizon.value ? 'page' : undefined}
             >

@@ -9,7 +9,7 @@ import { PageHeader, Section } from './page-header.tsx';
 import { PersonList } from './person-list.tsx';
 import { StatusForm } from './plan-item-list.tsx';
 import { DeadlineLabel, StatusTag } from './status-tag.tsx';
-import styles from './lists.module.css';
+import { lists as styles } from './lists.ts';
 
 /** One plan item: details, status, carry-over (BR-15) with its history, edit and delete. */
 export function PlanItemScreen({

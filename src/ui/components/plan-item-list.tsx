@@ -6,7 +6,7 @@ import { EmptyState } from './empty-state.tsx';
 import { PersonList } from './person-list.tsx';
 import { DeadlineLabel, StatusTag } from './status-tag.tsx';
 import { AutoSubmitSelect, PendingSubmit } from './pending.tsx';
-import styles from './lists.module.css';
+import { lists as styles } from './lists.ts';
 
 const statusOptions = [
   { value: 'planned', label: 'Planned' },
@@ -46,24 +46,26 @@ export function PlanItemList({
   return (
     <ul className={styles.list}>
       {items.map((item) => (
-        <li key={item.id} className={styles.item}>
-          <div className={styles.row}>
-            <Link className={styles.title} href={projectItemHref(projectId, 'plans/items', item.id)}>
-              {item.title}
-            </Link>
-            <StatusTag status={item.statusTag} />
-            {item.deadline === null ? null : <DeadlineLabel status={item.deadline} />}
-          </div>
-          <div className={styles.meta}>
-            <span>{item.dueLabel}</span>
-            {item.area === null ? null : <span>{item.area}</span>}
-            <PersonList people={item.assignees} />
-            {item.issue === null || item.issueId === null ? null : (
-              <span>
-                Issue: <Link href={projectItemHref(projectId, 'issues', item.issueId)}>{item.issue}</Link>
-              </span>
-            )}
-            {item.moves.length > 0 ? <span>Moved {String(item.moves.length)}×</span> : null}
+        <li key={item.id} className={styles.itemWithAction}>
+          <div className={styles.itemBody}>
+            <div className={styles.row}>
+              <Link className={styles.title} href={projectItemHref(projectId, 'plans/items', item.id)}>
+                {item.title}
+              </Link>
+              <StatusTag status={item.statusTag} />
+              {item.deadline === null ? null : <DeadlineLabel status={item.deadline} />}
+            </div>
+            <div className={styles.meta}>
+              <span>{item.dueLabel}</span>
+              {item.area === null ? null : <span>{item.area}</span>}
+              <PersonList people={item.assignees} />
+              {item.issue === null || item.issueId === null ? null : (
+                <span>
+                  Issue: <Link href={projectItemHref(projectId, 'issues', item.issueId)}>{item.issue}</Link>
+                </span>
+              )}
+              {item.moves.length > 0 ? <span>Moved {String(item.moves.length)}×</span> : null}
+            </div>
           </div>
           {setStatus === undefined ? null : <StatusForm item={item} action={setStatus} />}
         </li>

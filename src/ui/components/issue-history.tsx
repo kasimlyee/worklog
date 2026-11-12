@@ -5,7 +5,16 @@ import { ExternalLink } from './external-link.tsx';
 import { PersonList } from './person-list.tsx';
 import { Section } from './page-header.tsx';
 import { StatusTag } from './status-tag.tsx';
-import styles from './issue-history.module.css';
+
+const smallLabel = 'font-mono text-xs font-medium tracking-wide text-muted uppercase';
+
+/* The dot on the timeline's line says what kind of step it is. */
+const dots: Readonly<Record<TimelineEventVM['kind'], string>> = {
+  assigned: 'before:border-line-strong before:bg-surface',
+  planned: 'before:border-line-strong before:bg-surface',
+  logged: 'before:border-accent before:bg-surface',
+  resolved: 'before:border-success-fg before:bg-success-fg',
+};
 
 const kindLabels: Readonly<Record<TimelineEventVM['kind'], string>> = {
   assigned: 'Assigned',
@@ -29,34 +38,39 @@ export function IssueHistory({ projectId, history }: { readonly projectId: strin
   return (
     <Section title={history.isResolved ? 'How it was resolved' : 'History'} id="history">
       {history.summary.length === 0 ? null : (
-        <dl className={styles.summary}>
+        <dl className="mb-6 grid grid-cols-[repeat(auto-fill,minmax(12rem,1fr))] gap-x-6 gap-y-3 rounded-md bg-sunken p-4">
           {history.summary.map((item) => (
             <div key={item.label}>
-              <dt>{item.label}</dt>
-              <dd>{item.value}</dd>
+              <dt className={smallLabel}>{item.label}</dt>
+              <dd className="mt-1 font-semibold wrap-anywhere">{item.value}</dd>
             </div>
           ))}
         </dl>
       )}
-      <ol className={styles.timeline}>
+      <ol className="list-none">
         {history.events.map((event) => (
-          <li key={event.key} className={styles.event} data-kind={event.kind}>
-            <time dateTime={event.date} className={styles.date}>
+          <li
+            key={event.key}
+            // The ::before is the line joining this step to the next one.
+            className="relative grid pb-5 before:absolute before:top-7 before:bottom-0 before:left-[5px] before:border-l-2 before:border-line last:pb-0 last:before:hidden sm:grid-cols-[7.5rem_1fr] sm:gap-3 sm:before:top-2 sm:before:left-[calc(7.5rem+0.75rem+5px)]"
+            data-kind={event.kind}
+          >
+            <time dateTime={event.date} className="pl-6 text-sm text-muted sm:pt-px sm:pl-0 sm:text-right">
               {event.dateLabel}
             </time>
-            <div className={styles.body}>
-              {kindLabels[event.kind] === event.title ? null : <p className={styles.kind}>{kindLabels[event.kind]}</p>}
-              <p className={styles.title}>
+            <div className={`relative grid gap-1 pl-6 before:absolute before:top-1.5 before:left-0 before:size-3 before:rounded-full before:border-2 ${dots[event.kind]}`}>
+              {kindLabels[event.kind] === event.title ? null : <p className={smallLabel}>{kindLabels[event.kind]}</p>}
+              <p className="flex flex-wrap items-center gap-2 font-semibold wrap-anywhere">
                 <EventTitle event={event} projectId={projectId} />
                 {event.tags.map((tag) => (
                   <StatusTag key={tag.label} status={tag} />
                 ))}
               </p>
-              <div className={styles.meta}>
+              <div className="flex flex-wrap gap-x-3 gap-y-1 text-sm text-muted">
                 {event.detail === null ? null : <span>{event.detail}</span>}
                 {event.people.length === 0 ? null : <PersonList people={event.people} />}
                 {event.pullRequest === null ? null : (
-                  <span className={styles.pr}>
+                  <span className="inline-flex items-center gap-2">
                     <ExternalLink href={event.pullRequest.url}>
                       #{event.pullRequest.number} {event.pullRequest.title}
                     </ExternalLink>

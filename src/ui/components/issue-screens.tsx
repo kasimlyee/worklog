@@ -12,7 +12,7 @@ import { IssueTable } from './issue-table.tsx';
 import { PageHeader, Section } from './page-header.tsx';
 import { PersonList } from './person-list.tsx';
 import { DeadlineLabel, StatusTag } from './status-tag.tsx';
-import styles from './lists.module.css';
+import { lists as styles } from './lists.ts';
 
 /** Product spec §6: issues with assignees, deadline state and a link out. */
 const priorityOptions = [

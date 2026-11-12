@@ -10,7 +10,10 @@ import { createContext, use, useActionState, useEffect, useId, useRef } from 're
 import { useFormStatus } from 'react-dom';
 import { idleForm, type FormAction, type FormState, type FormValues } from '#src/ui/view-models/forms.ts';
 import type { Option } from '#src/ui/view-models/common.ts';
-import styles from './form.module.css';
+
+const fieldBox = 'grid content-start gap-1.5 data-[wide=true]:col-span-full';
+const hintText = 'text-xs text-muted';
+const errorText = 'text-sm font-semibold text-danger-fg';
 
 type FieldContext = {
   readonly formId: string;
@@ -60,10 +63,10 @@ export function ErrorSummary({ formId, state }: { readonly formId: string; reado
   }
   const fields = Object.entries(state.fieldErrors).filter(([name]) => name !== 'form');
   return (
-    <div ref={ref} className={styles.summary} role="alert" tabIndex={-1}>
-      <p className={styles.summaryTitle}>{state.message}</p>
+    <div ref={ref} className="rounded-md border-2 border-danger-line bg-danger-bg px-4 py-3 text-danger-fg" role="alert" tabIndex={-1}>
+      <p className="font-bold">{state.message}</p>
       {fields.length > 0 ? (
-        <ul>
+        <ul className="mt-2 list-disc pl-6 [&_a]:text-inherit">
           {fields.map(([name, message]) => (
             <li key={name}>
               <a href={`#${fieldId(formId, name)}`}>{message}</a>
@@ -115,17 +118,19 @@ export function ActionForm({
     version,
   };
   return (
-    <form action={formAction} aria-label={label} className={styles.form} data-layout={layout} noValidate onKeyDown={onKeyDown}>
+    <form action={formAction} aria-label={label} className="group grid gap-5" data-layout={layout} noValidate onKeyDown={onKeyDown}>
       <ErrorSummary formId={formId} state={state} />
       {state.status === 'success' && state.message !== null ? (
-        <p className={styles.success} role="status">
+        <p className="rounded-md border border-success-line bg-success-bg px-3 py-2 font-semibold text-success-fg" role="status">
           {state.message}
         </p>
       ) : null}
       <FormContext value={context}>
-        <div className={styles.fields}>{children}</div>
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(14rem,1fr))] gap-x-4 gap-y-5 group-data-[layout=inline]:grid-cols-[repeat(auto-fill,minmax(10rem,1fr))]">
+          {children}
+        </div>
       </FormContext>
-      <div className={styles.actions}>
+      <div className="flex flex-wrap gap-2">
         <SubmitButton label={submitLabel} pendingLabel={pendingLabel} />
         {extraActions}
       </div>
@@ -151,16 +156,16 @@ function FieldShell({
   readonly wide: boolean | undefined;
 }): React.JSX.Element {
   return (
-    <div className={styles.field} data-wide={wide === true ? 'true' : undefined}>
+    <div className={fieldBox} data-wide={wide === true ? 'true' : undefined}>
       <label htmlFor={id}>{label}</label>
       {hint === undefined ? null : (
-        <p id={`${id}-hint`} className={styles.hint}>
+        <p id={`${id}-hint`} className={hintText}>
           {hint}
         </p>
       )}
       {children}
       {error === undefined ? null : (
-        <p id={errorId} className={styles.error}>
+        <p id={errorId} className={errorText}>
           {error}
         </p>
       )}
@@ -289,28 +294,32 @@ export function CheckboxGroupField({ name, legend, options, defaultValues = [], 
   return (
     <fieldset
       id={field.id}
-      className={styles.field}
+      className={fieldBox}
       data-wide="true"
       aria-invalid={field.error === undefined ? undefined : true}
       aria-describedby={describedBy(field.id, hint, field.error)}
     >
       <legend>{legend}</legend>
       {hint === undefined ? null : (
-        <p id={`${field.id}-hint`} className={styles.hint}>
+        <p id={`${field.id}-hint`} className={hintText}>
           {hint}
         </p>
       )}
       {options.length === 0 ? <p className="muted">Nothing to choose yet.</p> : null}
-      <div className={styles.checkboxes} data-scrollable={scrollable ? 'true' : undefined} key={field.key}>
+      <div
+        className="flex flex-wrap gap-x-5 gap-y-2 data-[scrollable=true]:max-h-44 data-[scrollable=true]:flex-col data-[scrollable=true]:flex-nowrap data-[scrollable=true]:gap-1 data-[scrollable=true]:overflow-y-auto data-[scrollable=true]:rounded-sm data-[scrollable=true]:border data-[scrollable=true]:border-line data-[scrollable=true]:bg-surface data-[scrollable=true]:px-3 data-[scrollable=true]:py-2"
+        data-scrollable={scrollable ? 'true' : undefined}
+        key={field.key}
+      >
         {options.map((option) => (
-          <label key={option.value} className={styles.checkbox}>
+          <label key={option.value} className="inline-flex min-h-8 items-center gap-2 text-base font-normal">
             <input type="checkbox" name={name} value={option.value} defaultChecked={checked.has(option.value)} />
             <span>{option.label}</span>
           </label>
         ))}
       </div>
       {field.error === undefined ? null : (
-        <p id={field.errorId} className={styles.error}>
+        <p id={field.errorId} className={errorText}>
           {field.error}
         </p>
       )}

@@ -28,6 +28,7 @@ It is **not** a team tool and does not replace Jira, GitHub or Slack. The detail
 |---|---|
 | Framework | Next.js 16 (App Router), React 19 |
 | Language | TypeScript 6, strictest settings, no `any` |
+| Styling | Tailwind CSS 4, colours from our own tokens (light and dark) |
 | Database | Neon Postgres via Kysely (query builder, not an ORM) |
 | Auth | GitHub OAuth, single allowed GitHub user |
 | GitHub data | Fine-grained token, read-only pull requests |
@@ -71,7 +72,7 @@ Deploying: see [`docs/06-deployment.md`](docs/06-deployment.md).
 |---|---|
 | `dev` | Run the app locally |
 | `build` | Production build |
-| `typecheck` | CSS module types up to date, `next typegen`, `tsc --noEmit` |
+| `typecheck` | `next typegen`, `tsc --noEmit` |
 | `lint` | ESLint with type-aware rules, zero warnings allowed |
 | `test` | Unit, integration and component tests |
 | `test:unit` | Pure logic only, no database |
@@ -84,7 +85,6 @@ Deploying: see [`docs/06-deployment.md`](docs/06-deployment.md).
 | `test:tz` | Unit + integration suites under four server time zones |
 | `test:perf` | Performance suite: 10,000 entries, NF-01…NF-03, index use (nightly) |
 | `test:bundle` | After `build`: fails if any secret could reach the browser (NF-06) |
-| `css:types` | Regenerate the `*.module.d.css.ts` files after editing a CSS module |
 | `check` | `typecheck` + `lint` + `test` — must pass before every commit |
 | `db:migrate` | Apply pending migrations |
 

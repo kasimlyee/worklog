@@ -10,7 +10,7 @@ import { ActionForm, HiddenField, TextAreaField, TextField } from './form.tsx';
 import { PageHeader, Section } from './page-header.tsx';
 import { StatusTag } from './status-tag.tsx';
 import { projectHref } from '#src/ui/routes.ts';
-import styles from './lists.module.css';
+import { lists as styles } from './lists.ts';
 
 /** Product spec §6: name, description, areas (add, rename, reorder, archive), archive project. */
 export function SettingsScreen({

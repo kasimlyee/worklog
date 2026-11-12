@@ -50,7 +50,7 @@ A dependency is added only when **all** of these hold:
 | `pdf-lib` | PDF generation in pure JavaScript; no native binaries, no headless browser. Works inside Netlify functions. We only *write* PDFs from our own data, never parse untrusted ones. | Puppeteer/Chromium (too heavy for functions), `pdfkit` (font-file bundling issues on serverless) |
 | `server-only` | Build-time guarantee that server modules (secrets, DB) can never be bundled for the browser. | — |
 
-Not dependencies, on purpose: date libraries (use `Intl` + our own small calendar module), OAuth libraries (one small, well-tested flow), GitHub SDK (one `fetch` call), CSS frameworks (CSS Modules + tokens), UI component libraries, lodash-style utilities, state managers.
+Not dependencies, on purpose: date libraries (use `Intl` + our own small calendar module), OAuth libraries (one small, well-tested flow), GitHub SDK (one `fetch` call), UI component libraries, lodash-style utilities, state managers.
 
 ### 2.2 Development dependencies (complete list)
 
@@ -114,7 +114,7 @@ TypeScript scripts (migrations, seeding) run with **Node's built-in type strippi
 │   │   ├── components/           Presentational, props-only; no data fetching
 │   │   ├── view-models/          Types the components accept — the Phase 2/3 contract
 │   │   ├── fixtures/             Example view-models for tests and development
-│   │   └── styles/tokens.css     Colour, spacing, type tokens
+│   │   └── styles/               tokens.css (colour tokens) and global.css (Tailwind theme, base elements)
 │   └── lib/                      Tiny shared pure helpers (Result, brand) — safe on both sides
 └── tests/
     ├── setup/                    Test database lifecycle
@@ -483,7 +483,7 @@ ReportRequest ──▶ load (repositories, fixed queries) ──▶ ReportData
 - **Server Components by default.** A component becomes a Client Component only for interaction that needs browser JavaScript (quick-log keyboard handling, reorder, confirmation dialogs). Target: the dashboard ships no page-specific client JavaScript.
 - **Forms** are plain `<form action={serverAction}>` with `useActionState` for errors, so they work before hydration.
 - **Presentational components** in `ui/components` take **view-model props only** and never fetch. View-model types in `ui/view-models` are the contract between Phase 2 (built against fixtures) and Phase 3 (mapped from services).
-- **Styling:** CSS Modules plus one `tokens.css` defining colour (including the four status tokens), spacing, type and radius. No CSS framework. Respect `prefers-color-scheme` and `prefers-reduced-motion`.
+- **Styling:** Tailwind CSS v4 (a build-time PostCSS plugin; it ships one static stylesheet, so the CSP is unchanged). `tokens.css` defines the colours, light and dark (including the four status tokens); `global.css` maps them onto Tailwind's theme — the default palette is switched off, so components can only use token colours (`bg-surface`, `text-muted`, `border-line`) — and styles the base elements (buttons, inputs, tables). Components use utility classes; class lists shared by several screens live in `ui/components/lists.ts`. No UI component library. Respect `prefers-color-scheme` and `prefers-reduced-motion`.
 - **Status display:** one `StatusTag` component used everywhere, always colour + text (product spec §5).
 
 ## 11. Security model
@@ -549,7 +549,7 @@ Recorded during the build. Each one either fills a gap in the specs or adjusts a
 | D-7 | **Branded ids:** only `IsoDate` is branded. Entity ids are plain UUID strings, validated at every service boundary (`isUuid`) and always queried together with the project id. | Brands on every id added casts in every repository without catching anything the project-scoped queries and composite foreign keys do not already catch. |
 | D-8 | **Extra folders:** `server/http/` (framework-free Request→Response handlers: report export), `server/mappers/` (service output → view-models), `server/app-context.ts` (today, GitHub client, database handle for adapters), `app/_lib/loaders.ts` (project check and pickers, cached per request). Lint layer rules cover `server/http`. Server Actions may import `ui/view-models` types (their `FormState` contract) but not UI components. | Keeps `app/` and actions thin, as §3 intends. |
 | D-9 | **Pull requests screen** at `/projects/{id}/pull-requests` (add by link, refresh, delete when unused). | BR-24 (refresh) and BR-36 (delete PR) need a place in the UI that §6 did not name. |
-| D-10 | **CSS module types are generated** (`scripts/css-module-types.ts`, `allowArbitraryExtensions`) and checked in `typecheck`. | `noPropertyAccessFromIndexSignature` rejects `styles.x` on Next's loose typings; exact types also catch misspelt class names. No new dependency. |
+| D-10 | **Tailwind CSS replaces CSS Modules** (supersedes the generated CSS-module types). | One design language in the markup, colours limited to the tokens by the theme, and no generated `*.d.css.ts` files to keep in step. Costs two build-time dependencies (`tailwindcss`, `@tailwindcss/postcss`); nothing is added to the browser bundle. |
 | D-11 | **The weekly report loads Monday–Sunday**; weekend entries appear only if they exist and are labelled "weekend work". Releases and resolved issues use the same range. | Product spec §7.3. |
 | D-16 | **Entry links are many-to-many (BR-17)**: migration `0005` adds `entry_issues` and `entry_plan_items` (composite FKs on `(id, project_id)`, cascading when the issue, plan item or entry is deleted) and copies existing links. The old `entries.plan_item_id` / `issue_id` columns are kept for rollback, written as NULL, and can be dropped by a later migration. | A PR often carries several fixes. |
 | D-15 | **Perceived speed.** (a) Every project page's frame (form options + overdue count) is one query (`loadProjectChrome`); session, project and frame load in parallel, so a page waits ~2 round trips, not 6–7. (b) The pool keeps up to 8 connections for 5 minutes (`keepAlive`), so clicks reuse a warm TLS connection. (c) `staleTimes.dynamic = 30`: revisited pages show instantly; every write's `revalidatePath` clears it. (d) A progress bar shows the instant a link is clicked; one-click buttons say "Saving…"; status menus save on change. Loading skeletons (`loading.tsx`) were rejected: they hide content when JavaScript is off (NF-04). | Users found clicks slow. Measured on production: one query adds ~250 ms because Netlify functions and Neon were in different regions — see docs/06 §1. |

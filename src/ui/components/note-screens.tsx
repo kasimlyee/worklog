@@ -9,7 +9,7 @@ import { ExternalLink } from './external-link.tsx';
 import { ActionForm, SelectField, TextAreaField, TextField } from './form.tsx';
 import { MarkdownView } from './markdown-view.tsx';
 import { PageHeader, Section } from './page-header.tsx';
-import styles from './lists.module.css';
+import { lists as styles } from './lists.ts';
 
 export function NotesScreen({ projectId, notes }: { readonly projectId: string; readonly notes: readonly NoteVM[] }): React.JSX.Element {
   return (
@@ -74,7 +74,7 @@ export function NoteScreen({ projectId, note, remove }: { readonly projectId: st
       </Section>
       {note.links.length > 0 || note.release !== null || note.pullRequest !== null ? (
         <Section title="Links">
-          <ul>
+          <ul className="list-disc pl-6">
             {note.release === null ? null : (
               <li>
                 Release <Link href={projectItemHref(projectId, 'releases', note.release.id)}>{note.release.version}</Link>

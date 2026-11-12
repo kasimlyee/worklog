@@ -11,7 +11,7 @@ import { PlanItemList } from './plan-item-list.tsx';
 import { DeadlineLabel, StatusTag } from './status-tag.tsx';
 import { TodayDropZone } from './plan-today.tsx';
 import { OpenQuickLog } from './entry-form.tsx';
-import styles from './lists.module.css';
+import { lists as styles } from './lists.ts';
 
 function TrackedList({ items, projectId, empty }: { readonly items: readonly TrackedVM[]; readonly projectId: string; readonly empty: string }): React.JSX.Element {
   if (items.length === 0) {
@@ -52,11 +52,19 @@ function Pulse({ pulse }: { readonly pulse: PulseVM }): React.JSX.Element {
     { label: 'Logged this week', value: String(pulse.loggedThisWeek) },
   ];
   return (
-    <dl className={styles.pulse} aria-label="At a glance">
+    <dl className="mb-6 grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-line bg-line sm:grid-cols-4" aria-label="At a glance">
       {tiles.map((tile) => (
-        <div key={tile.label} className={styles.pulseTile} data-pulse-tone={tile.tone}>
-          <dt>{tile.label}</dt>
-          <dd>{tile.value}</dd>
+        <div
+          key={tile.label}
+          className="group bg-surface px-5 py-4 data-[pulse-tone=danger]:bg-danger-bg data-[pulse-tone=warning]:bg-warning-bg"
+          data-pulse-tone={tile.tone}
+        >
+          <dt className="font-mono text-xs font-medium tracking-wide text-muted uppercase group-data-[pulse-tone=danger]:text-danger-fg group-data-[pulse-tone=warning]:text-warning-fg">
+            {tile.label}
+          </dt>
+          <dd className="mt-1 text-xl font-bold tracking-tight tabular-nums group-data-[pulse-tone=danger]:text-danger-fg group-data-[pulse-tone=warning]:text-warning-fg">
+            {tile.value}
+          </dd>
         </div>
       ))}
     </dl>
@@ -80,8 +88,8 @@ export function DashboardScreen({
     <div>
       <PageHeader title="Dashboard" description={vm.todayLabel} />
       <Pulse pulse={vm.pulse} />
-      <div className={styles.dashboardLayout}>
-        <div className={styles.column}>
+      <div className="mb-6 grid items-start gap-6 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+        <div className="grid min-w-0 gap-6 [&>section+section]:mt-0">
           <Section title="Urgent" id="urgent">
             <TrackedList items={vm.urgent} projectId={projectId} empty="Nothing overdue." />
           </Section>
@@ -99,8 +107,8 @@ export function DashboardScreen({
             ) : (
               <>
                 {today.total === 0 ? null : (
-                  <p className={styles.progress}>
-                    <progress value={today.done} max={today.total} aria-label="Today’s plan done" />
+                  <p className="mb-3 flex items-center gap-3 text-sm text-muted">
+                    <progress className="max-w-56 flex-1" value={today.done} max={today.total} aria-label="Today’s plan done" />
                     <span>
                       {today.done} of {today.total} done
                     </span>
@@ -113,7 +121,7 @@ export function DashboardScreen({
             )}
           </Section>
         </div>
-        <div className={styles.column}>
+        <div className="grid min-w-0 gap-6 [&>section+section]:mt-0">
           <Section title="Due soon">
             <TrackedList items={vm.dueSoon} projectId={projectId} empty="Nothing due today or on the next working day." />
           </Section>

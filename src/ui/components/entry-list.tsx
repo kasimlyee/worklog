@@ -5,7 +5,7 @@ import { EmptyState } from './empty-state.tsx';
 import { ExternalLink } from './external-link.tsx';
 import { PersonList } from './person-list.tsx';
 import { StatusTag } from './status-tag.tsx';
-import styles from './lists.module.css';
+import { lists as styles } from './lists.ts';
 
 /** "Issues: A, B" — each a link; nothing when empty. */
 function LinkedList({
@@ -51,7 +51,7 @@ export function EntryList({
     <ul className={styles.list}>
       {entries.map((entry) => (
         <li key={entry.id} className={styles.item}>
-          <p className={styles.title}>{entry.description}</p>
+          <p className={styles.text}>{entry.description}</p>
           <div className={styles.meta}>
             {showDate ? <span>{entry.dateLabel}</span> : null}
             {entry.isWeekend ? <StatusTag status={{ tone: 'neutral', label: 'Weekend' }} /> : null}

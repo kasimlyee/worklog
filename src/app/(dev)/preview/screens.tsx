@@ -6,7 +6,6 @@ import { EntryEditScreen, LogScreen } from '#src/ui/components/log-screen.tsx';
 import { NoteEditScreen, NoteScreen, NotesScreen } from '#src/ui/components/note-screens.tsx';
 import { PlanItemScreen } from '#src/ui/components/plan-item-screen.tsx';
 import { PlansScreen } from '#src/ui/components/plans-screen.tsx';
-import { ProjectHeader } from '#src/ui/components/project-header.tsx';
 import { ProjectsScreen } from '#src/ui/components/projects-screen.tsx';
 import { NewReleaseScreen, ReleaseScreen, ReleasesScreen } from '#src/ui/components/release-screens.tsx';
 import { ReportsScreen } from '#src/ui/components/reports-screen.tsx';
@@ -14,19 +13,19 @@ import { PeopleScreen, PullRequestsScreen, SettingsScreen } from '#src/ui/compon
 import { SignInScreen } from '#src/ui/components/sign-in-screen.tsx';
 import { previewFormAction as form, previewPlainAction as plain } from './actions.ts';
 
-type Preview = { readonly element: React.JSX.Element; readonly bare?: boolean };
+/** `bare`: no app shell. `global`: not inside a project, so no project navigation. */
+type Preview = { readonly element: React.JSX.Element; readonly bare?: boolean; readonly global?: boolean };
 
 const id = f.projectId;
 
 /** Every screen of product spec §6, in its main fixture states (docs/04 §2.4). */
 export const screens: Readonly<Record<string, Preview>> = {
   'sign-in': { element: <SignInScreen notice="expired" />, bare: true },
-  projects: { element: <ProjectsScreen projects={f.projects} createProject={form} /> },
-  'projects-empty': { element: <ProjectsScreen projects={[]} createProject={form} /> },
+  projects: { element: <ProjectsScreen projects={f.projects} createProject={form} />, global: true },
+  'projects-empty': { element: <ProjectsScreen projects={[]} createProject={form} />, global: true },
   dashboard: {
     element: (
       <>
-        <ProjectHeader project={f.projectHeader} />
         <QuickLog action={form} pickers={f.pickers} today={f.today} />
         <DashboardScreen projectId={id} vm={f.dashboard} setStatus={plain} planToday={plain} />
       </>
@@ -72,7 +71,7 @@ export const screens: Readonly<Record<string, Preview>> = {
       />
     ),
   },
-  people: { element: <PeopleScreen people={f.people} create={form} rename={form} setArchived={plain} /> },
+  people: { element: <PeopleScreen people={f.people} create={form} rename={form} setArchived={plain} />, global: true },
   'pull-requests': {
     element: <PullRequestsScreen projectId={id} pullRequests={f.pullRequestRows} notice="That pull request is in use." add={form} refresh={plain} remove={plain} />,
   },

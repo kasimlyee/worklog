@@ -8,7 +8,7 @@ import { EmptyState } from './empty-state.tsx';
 import { ExternalLink } from './external-link.tsx';
 import { PersonList } from './person-list.tsx';
 import { DeadlineLabel, StatusTag } from './status-tag.tsx';
-import styles from './lists.module.css';
+import { lists as styles } from './lists.ts';
 
 type IssueTableProps = {
   readonly issues: readonly IssueVM[];
