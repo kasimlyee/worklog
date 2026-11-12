@@ -29,7 +29,7 @@ export type LogDayVM = { readonly date: string; readonly label: string; readonly
 
 export type LogVM = {
   readonly days: readonly LogDayVM[];
-  readonly filters: { readonly areaId: string; readonly personId: string; readonly pullRequestId: string };
+  readonly filters: { readonly areaId: string; readonly personId: string; readonly pullRequestId: string; readonly issueId: string; readonly planItemId: string };
   readonly isFiltered: boolean;
   /** Query string for the next page, or null at the end. */
   readonly nextPageQuery: string | null;

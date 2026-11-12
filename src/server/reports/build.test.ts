@@ -310,7 +310,116 @@ describe('monthly sections', () => {
     });
 
     expect(buildReportModel(data, today).sections.map((s) => s.title)).toEqual([
-      'Summary', 'Releases', 'Merged pull requests', 'Completed plan items', 'Issues', 'Per developer', 'Plan vs. actual',
+      'Summary', 'Work done', 'Week by week', 'Releases', 'Merged pull requests', 'Completed plan items', 'Issues', 'Per developer', 'Plan vs. actual',
+    ]);
+  });
+
+  it('§7.4: work done keeps every entry — each PR with its count and people, then its entries with their dates', () => {
+    const grace = person('Grace');
+    const ali = person('Ali');
+    const data = reportData({
+      kind: 'monthly',
+      entries: [
+        entry('first pass', { area: areas.backend, pr: pr(8, 'merged', 'API v2'), date: '2026-11-03', people: [grace] }),
+        entry('review fixes', { area: areas.backend, pr: pr(8, 'merged', 'API v2'), date: '2026-11-05', people: [ali] }),
+        entry('server upgrade', { area: areas.backend, date: '2026-11-14', people: [ali] }),
+      ],
+    });
+
+    const [backend] = sectionOf(buildReportModel(data, today), 'Work done').groups;
+
+    expect(backend?.lines.map((l) => [l.text, l.detail, l.people])).toEqual([
+      ['#8 API v2', '2 entries', ['Ali', 'Grace']],
+      ['server upgrade', 'Sat 14 Nov · weekend work', ['Ali']],
+    ]);
+    expect(backend?.lines[0]?.children.map((l) => [l.text, l.detail, l.people])).toEqual([
+      ['first pass', 'Tue 3 Nov', ['Grace']],
+      ['review fixes', 'Thu 5 Nov', ['Ali']],
+    ]);
+  });
+
+  it('BR-17: an entry carries the issues and plan items it is linked to into the report', () => {
+    const linked = {
+      ...entry('fixed the crash', { date: '2026-11-03' }),
+      issues: [{ id: 'i1', title: 'Crash on save' }, { id: 'i2', title: 'Slow query' }],
+      planItems: [{ id: 'p1', title: 'Ship login' }],
+    };
+
+    const monthly = buildReportModel(reportData({ kind: 'monthly', entries: [linked] }), today);
+    const daily = buildReportModel(reportData({ kind: 'daily', start: d('2026-11-03'), entries: [linked] }), today);
+
+    expect(sectionOf(monthly, 'Work done').groups[0]?.lines[0]?.detail).toBe('Tue 3 Nov · Issues: Crash on save, Slow query · Plan: Ship login');
+    expect(sectionOf(daily, 'Work done').groups[0]?.lines[0]?.detail).toBe('Issues: Crash on save, Slow query · Plan: Ship login');
+  });
+
+  it('§7.4: week by week — what was logged, shipped and resolved in each week of the month', () => {
+    const data = reportData({
+      kind: 'monthly',
+      entries: [
+        entry('a', { date: '2026-11-03', pr: pr(1, 'merged') }),
+        entry('b', { date: '2026-11-04', pr: pr(1, 'merged') }),
+        entry('c', { date: '2026-11-12', people: [person('Grace')] }),
+      ],
+      releases: [release('2.0', '2026-11-12')],
+      issues: [issue('fixed', '2026-11-13', '2026-11-12')],
+    });
+
+    const [weeks] = sectionOf(buildReportModel(data, today), 'Week by week').groups;
+
+    expect(weeks?.lines.map((l) => [l.text, l.detail])).toEqual([
+      ['1 Nov 2026', 'Nothing logged'],
+      ['2–8 Nov 2026', '2 entries · 1 PR'],
+      ['9–15 Nov 2026', '1 entry · 1 release · 1 issue resolved'],
+      ['16–22 Nov 2026', 'Nothing logged'],
+      ['23–29 Nov 2026', 'Nothing logged'],
+      ['30 Nov 2026', 'Nothing logged'],
+    ]);
+    expect(weeks?.lines[2]?.people).toEqual(['Grace']);
+  });
+
+  it('§7.4: issues opened, resolved, overdue and still open — each with its dates and the PR that resolved it', () => {
+    const data = reportData({
+      kind: 'monthly',
+      asOf: d('2026-11-30'),
+      issues: [
+        issue('new and fixed', '2026-11-13', '2026-11-12', undefined, 'medium', { assignedOn: '2026-11-09', resolvedBy: pr(12, 'merged', 'Add login') }),
+        issue('new and open', '2026-12-15', null, undefined, 'medium', { assignedOn: '2026-11-20' }),
+        issue('old and overdue', '2026-11-11'),
+        issue('old and open', '2026-12-20'),
+      ],
+    });
+
+    const issues = sectionOf(buildReportModel(data, today), 'Issues');
+
+    expect(texts(issues)).toEqual([
+      ['Opened', ['new and fixed', 'new and open']],
+      ['Resolved', ['new and fixed']],
+      ['Still open and overdue', ['old and overdue']],
+      ['Still open', ['new and open', 'old and open']],
+    ]);
+    expect(issues.groups[1]?.lines[0]?.detail).toBe('Assigned Mon 9 Nov · deadline Fri 13 Nov · resolved Thu 12 Nov · by #12 Add login');
+    expect(issues.groups[0]?.lines.map((l) => l.tags.map((t) => t.label))).toEqual([['Resolved on time'], ['Open']]);
+  });
+
+  it('§7.4: the month summary also counts days worked, issues opened and still open, and completed plan items', () => {
+    const data = reportData({
+      kind: 'monthly',
+      asOf: d('2026-11-30'),
+      entries: [entry('a', { date: '2026-11-03' }), entry('b', { date: '2026-11-03' }), entry('c', { date: '2026-11-04' })],
+      issues: [issue('new', '2026-12-15', null, undefined, 'medium', { assignedOn: '2026-11-20' })],
+      completedItems: [planItem('Launch', { horizon: 'month', completedOn: '2026-11-25' })],
+    });
+
+    expect(sectionOf(buildReportModel(data, today), 'Summary').summary).toEqual([
+      { label: 'Entries', value: 3 },
+      { label: 'Days with work logged', value: 2 },
+      { label: 'PRs touched', value: 0 },
+      { label: 'PRs merged', value: 0 },
+      { label: 'Releases', value: 0 },
+      { label: 'Issues opened', value: 1 },
+      { label: 'Issues resolved', value: 0 },
+      { label: 'Issues still open', value: 1 },
+      { label: 'Plan items completed', value: 1 },
     ]);
   });
 });

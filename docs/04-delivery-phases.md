@@ -87,7 +87,7 @@ The build runs in four phases. Each phase ends with explicit exit criteria; the 
 - `ui/fixtures/*` with realistic data for every state: empty, normal, long text, many items, every status and deadline state.
 
 ### 2.2 Foundations
-- `tokens.css`: colours (including `success`, `warning`, `danger`, `neutral`), spacing, type scale, radius; light and dark.
+- `tokens.css`: colours (including `success`, `warning`, `danger`, `neutral`), light and dark; `global.css`: the Tailwind theme (type scale, radius, shadows) built on them.
 - App shell: header, project switcher with overdue counts, project navigation.
 - Shared components: `StatusTag`, `DeadlineLabel`, `PersonList`, `EmptyState`, `ConfirmDialog`, `FormField`, `ErrorSummary`.
 

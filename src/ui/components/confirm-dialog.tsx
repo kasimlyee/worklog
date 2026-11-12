@@ -7,7 +7,6 @@
 
 import { useId, useRef } from 'react';
 import type { PlainAction } from '#src/ui/view-models/forms.ts';
-import styles from './confirm-dialog.module.css';
 
 type ConfirmDialogProps = {
   readonly action: PlainAction;
@@ -47,14 +46,19 @@ export function ConfirmDialog({ action, triggerLabel, title, message, confirmLab
       >
         {triggerLabel}
       </button>
-      <dialog ref={dialog} className={styles.dialog} aria-labelledby={`${id}-title`} aria-describedby={`${id}-message`}>
-        <form action={action} className={styles.body}>
-          <h2 id={`${id}-title`}>{title}</h2>
+      <dialog
+        ref={dialog}
+        className="m-auto max-w-[min(28rem,calc(100vw-2rem))] rounded-lg border border-line bg-surface text-fg shadow-md backdrop:bg-black/45"
+        aria-labelledby={`${id}-title`} aria-describedby={`${id}-message`}>
+        <form action={action} className="grid gap-3 p-6">
+          <h2 id={`${id}-title`} className="text-lg">
+            {title}
+          </h2>
           <p id={`${id}-message`}>{message}</p>
           {Object.entries(fields).map(([name, value]) => (
             <input key={name} type="hidden" name={name} value={value} />
           ))}
-          <div className={styles.actions}>
+          <div className="mt-2 flex justify-end gap-2">
             <button ref={cancel} type="button" onClick={close}>
               Cancel
             </button>

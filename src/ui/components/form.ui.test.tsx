@@ -4,7 +4,8 @@ import { describe, expect, it, vi } from 'vitest';
 import type { FormAction, FormState, PlainAction } from '#src/ui/view-models/forms.ts';
 import { pickers, settings, today } from '#src/ui/fixtures/fixtures.ts';
 import { ActionForm, CheckboxGroupField, SelectField, TextField } from './form.tsx';
-import { QuickLog } from './entry-form.tsx';
+import { OpenQuickLog, QuickLog } from './entry-form.tsx';
+import { AppLink } from './app-link.tsx';
 import { ConfirmDialog } from './confirm-dialog.tsx';
 import { AreaReorder } from './area-reorder.tsx';
 
@@ -88,6 +89,40 @@ describe('QuickLog', () => {
     expect(formData instanceof FormData ? [formData.get('description'), formData.get('workDate')] : null).toEqual(['Fixed the login bug', today]);
   });
 
+  it('BR-41: offers to resolve the linked issues, and sends the choice with the entry', async () => {
+    const action = returning({ status: 'success', message: 'Logged.' });
+    render(<QuickLog action={action} pickers={pickers} today={today} />);
+
+    await userEvent.click(screen.getByText('Quick log'));
+    await userEvent.keyboard('Fixed the crash');
+    await userEvent.click(screen.getByLabelText('Crash on save'));
+    await userEvent.click(screen.getByLabelText('Resolve the linked issues'));
+    await userEvent.click(screen.getByRole('button', { name: 'Log work' }));
+
+    await waitFor(() => {
+      expect(action).toHaveBeenCalledTimes(1);
+    });
+    const formData = action.mock.calls[0]?.[1];
+    expect(formData instanceof FormData ? [formData.getAll('issueIds'), formData.get('resolveIssues')] : null).toEqual([['s1'], 'on']);
+  });
+
+  it('BR-17: “Log work on this” opens the quick log already linked to that issue', async () => {
+    render(
+      <>
+        <QuickLog action={returning({ status: 'idle' })} pickers={pickers} today={today} />
+        <OpenQuickLog link={{ field: 'issueIds', id: 's1' }} label="Log work on this" />
+      </>,
+    );
+    // jsdom has no layout, so it has no scrollIntoView.
+    Element.prototype.scrollIntoView = vi.fn();
+
+    await userEvent.click(screen.getByRole('link', { name: 'Log work on this' }));
+
+    expect(document.querySelector<HTMLDetailsElement>('#quick-log')?.open).toBe(true);
+    expect(screen.getByLabelText<HTMLInputElement>('Crash on save').checked).toBe(true);
+    expect(screen.getByLabelText<HTMLInputElement>('Ship login (due Thu 12 Nov)').checked).toBe(false);
+  });
+
   it('has every field of product spec §6 with a label', () => {
     render(<QuickLog action={returning({ status: 'idle' })} pickers={pickers} today={today} />);
 
@@ -152,5 +187,23 @@ describe('AreaReorder', () => {
 
     expect(screen.getByRole<HTMLButtonElement>('button', { name: 'Move Frontend up' }).disabled).toBe(true);
     expect(screen.getByRole<HTMLButtonElement>('button', { name: 'Move Backend down' }).disabled).toBe(true);
+  });
+});
+
+describe('AppLink', () => {
+  it('is a plain link to its page, and keeps the handlers it was given', async () => {
+    const onFocus = vi.fn();
+    render(
+      <AppLink href="/projects" onFocus={onFocus}>
+        Projects
+      </AppLink>,
+    );
+    const link = screen.getByRole('link', { name: 'Projects' });
+
+    await userEvent.hover(link);
+    await userEvent.tab();
+
+    expect(link.getAttribute('href')).toBe('/projects');
+    expect(onFocus).toHaveBeenCalledTimes(1);
   });
 });

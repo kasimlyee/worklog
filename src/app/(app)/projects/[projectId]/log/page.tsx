@@ -13,7 +13,14 @@ export default async function LogPage({ params, searchParams }: PageProps<'/proj
   await requireSession();
   const project = await requireProject((await params).projectId);
   const query = await searchParams;
-  const filters = { areaId: param(query, 'areaId'), personId: param(query, 'personId'), pullRequestId: param(query, 'pullRequestId') };
+  const filters = {
+    areaId: param(query, 'areaId'),
+    personId: param(query, 'personId'),
+    pullRequestId: param(query, 'pullRequestId'),
+    // Set by the "Work logged" links on an issue or a plan item.
+    issueId: param(query, 'issueId'),
+    planItemId: param(query, 'planItemId'),
+  };
   const active = Object.fromEntries(Object.entries(filters).filter(([, value]) => value !== ''));
   const cursor = param(query, 'cursor');
   const [page, pickers] = await Promise.all([

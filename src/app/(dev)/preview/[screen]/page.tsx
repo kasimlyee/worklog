@@ -1,5 +1,9 @@
 import { notFound } from 'next/navigation';
+import * as f from '#src/ui/fixtures/fixtures.ts';
 import { AppShell } from '#src/ui/components/app-shell.tsx';
+import { ProjectFrame } from '#src/ui/components/project-frame.tsx';
+import { ProjectHeader } from '#src/ui/components/project-header.tsx';
+import { ProjectNav } from '#src/ui/components/project-nav.tsx';
 import { isPreviewEnabled } from '#src/app/(dev)/preview/enabled.ts';
 import { previewPlainAction } from '#src/app/(dev)/preview/actions.ts';
 import { screens } from '#src/app/(dev)/preview/screens.tsx';
@@ -12,5 +16,26 @@ export default async function PreviewScreen({ params }: PageProps<'/preview/[scr
   if (screen === undefined) {
     notFound();
   }
-  return screen.bare === true ? screen.element : <AppShell signOut={previewPlainAction}>{screen.element}</AppShell>;
+  if (screen.bare === true) {
+    return screen.element;
+  }
+  return (
+    <AppShell signOut={previewPlainAction}>
+      {screen.global === true ? (
+        screen.element
+      ) : (
+        // The same frame as the real project layout, so previews show the navigation too.
+        <ProjectFrame
+          side={
+            <>
+              <ProjectHeader project={f.projectHeader} />
+              <ProjectNav projectId={f.projectId} />
+            </>
+          }
+        >
+          {screen.element}
+        </ProjectFrame>
+      )}
+    </AppShell>
+  );
 }

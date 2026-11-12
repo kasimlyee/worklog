@@ -23,8 +23,12 @@ export type ReportIssueRow = {
   readonly id: string;
   readonly title: string;
   readonly priority: IssuePriority;
+  readonly assignedOn: IsoDate;
   readonly deadline: IsoDate;
   readonly resolvedOn: IsoDate | null;
+  /** BR-30: the pull request that resolved it, when one was named. */
+  readonly resolvedByNumber: number | null;
+  readonly resolvedByTitle: string | null;
   readonly assignees: readonly NamedRef[];
 };
 
@@ -109,17 +113,20 @@ export async function selectReportMoves(db: Db, projectId: string, scopes: reado
 
 /**
  * Issues a report can mention, in ONE query: resolved within the range, or still open at
- * `asOf` with a deadline before the overdue cutoff.
+ * `asOf` with a deadline before the overdue cutoff. With `everything` (the monthly report,
+ * §7.4) also every issue assigned within the range and every issue still open at `asOf`.
  */
 export async function selectReportIssues(
   db: Db,
   projectId: string,
   range: { readonly from: IsoDate; readonly to: IsoDate },
   overdue: { readonly deadlineBefore: IsoDate; readonly asOf: IsoDate },
+  everything = false,
 ): Promise<readonly ReportIssueRow[]> {
   return await db
     .selectFrom('issues as i')
-    .select(['i.id', 'i.title', 'i.priority', 'i.deadline', 'i.resolvedOn'])
+    .leftJoin('pullRequests as pr', 'pr.id', 'i.resolvedByPrId')
+    .select(['i.id', 'i.title', 'i.priority', 'i.assignedOn', 'i.deadline', 'i.resolvedOn', 'pr.number as resolvedByNumber', 'pr.title as resolvedByTitle'])
     .select((eb) =>
       jsonArrayFrom(
         eb
@@ -138,6 +145,12 @@ export async function selectReportIssues(
         // the partial index issues_open_deadline_idx.
         eb.and([eb('i.status', '<>', 'resolved'), eb('i.deadline', '<', overdue.deadlineBefore)]),
         eb.and([eb('i.resolvedOn', '>', overdue.asOf), eb('i.deadline', '<', overdue.deadlineBefore)]),
+        ...(everything
+          ? [
+              eb.and([eb('i.assignedOn', '>=', range.from), eb('i.assignedOn', '<=', range.to)]),
+              eb.and([eb('i.assignedOn', '<=', overdue.asOf), eb.or([eb('i.status', '<>', 'resolved'), eb('i.resolvedOn', '>', overdue.asOf)])]),
+            ]
+          : []),
       ]),
     )
     .orderBy('i.deadline')

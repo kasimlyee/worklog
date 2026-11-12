@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import { AppLink as Link } from './app-link.tsx';
 import type { Pickers } from '#src/ui/view-models/common.ts';
 import type { FormAction, PlainAction } from '#src/ui/view-models/forms.ts';
 import type { ReleaseDetailVM, ReleaseFormValues, ReleaseVM } from '#src/ui/view-models/releases.ts';
@@ -10,7 +10,7 @@ import { ActionForm, CheckboxGroupField, SelectField, TextAreaField, TextField }
 import { MarkdownView } from './markdown-view.tsx';
 import { PageHeader, Section } from './page-header.tsx';
 import { StatusTag } from './status-tag.tsx';
-import styles from './lists.module.css';
+import { lists as styles } from './lists.ts';
 
 function dates(release: ReleaseVM): string {
   return [release.releasedLabel === null ? null : `Released ${release.releasedLabel}`, release.targetLabel === null ? null : `Target ${release.targetLabel}`]
@@ -150,7 +150,7 @@ export function ReleaseScreen({
         {release.attachedNotes.length === 0 ? null : (
           <>
             <h3 className={styles.dayHeading}>Attached notes</h3>
-            <ul>
+            <ul className="list-disc pl-6">
               {release.attachedNotes.map((note) => (
                 <li key={note.id}>
                   <Link href={projectItemHref(projectId, 'notes', note.id)}>{note.title}</Link>

@@ -8,7 +8,6 @@
 
 import { useState, useTransition } from 'react';
 import type { PlainAction } from '#src/ui/view-models/forms.ts';
-import styles from './plan-today.module.css';
 
 export const issueDragType = 'application/x-worklog-issue';
 
@@ -24,7 +23,7 @@ export function DraggableIssueRow({
   return (
     <tr
       draggable
-      className={styles.draggable}
+      className="cursor-grab active:cursor-grabbing"
       title="Drag onto Today’s plan"
       onDragStart={(event) => {
         event.dataTransfer.setData(issueDragType, issueId);
@@ -53,7 +52,7 @@ export function TodayDropZone({ action, children }: { readonly action: PlainActi
 
   return (
     <div
-      className={styles.zone}
+      className="-m-1 rounded-md border-2 border-dashed border-transparent p-1 transition-colors data-[over=true]:border-accent data-[over=true]:bg-accent-soft data-[pending=true]:opacity-70"
       data-over={isOver ? 'true' : undefined}
       data-pending={isPending ? 'true' : undefined}
       onDragEnter={accept}
@@ -81,9 +80,9 @@ export function TodayDropZone({ action, children }: { readonly action: PlainActi
         });
       }}
     >
-      <p className={styles.hint}>Drag an open issue here to work on it today, or use “Plan today” next to it.</p>
+      <p className="mb-3 text-xs text-muted">Drag an open issue here to work on it today, or use “Plan today” next to it.</p>
       {children}
-      <p className={styles.status} role="status">
+      <p className="mt-2 min-h-5 text-sm text-muted empty:mt-0 empty:min-h-0" role="status">
         {announcement}
       </p>
     </div>

@@ -287,12 +287,12 @@ export const log: LogVM = {
     { date: '2026-11-08', label: 'Sunday 8 Nov 2026', isWeekend: true, entries: [weekendEntry] },
     { date: '2026-11-06', label: 'Friday 6 Nov 2026', isWeekend: false, entries: [longEntry] },
   ],
-  filters: { areaId: '', personId: '', pullRequestId: '' },
+  filters: { areaId: '', personId: '', pullRequestId: '', issueId: '', planItemId: '' },
   isFiltered: false,
   nextPageQuery: 'cursor=abc',
 };
 
-export const emptyLog: LogVM = { days: [], filters: { areaId: 'a1', personId: '', pullRequestId: '' }, isFiltered: true, nextPageQuery: null };
+export const emptyLog: LogVM = { days: [], filters: { areaId: 'a1', personId: '', pullRequestId: '', issueId: '', planItemId: '' }, isFiltered: true, nextPageQuery: null };
 
 export const entryValues: EntryFormValues = {
   workDate: '2026-11-10',
@@ -392,6 +392,107 @@ export const reports: ReportsVM = {
   markdownHref: `/projects/${projectId}/reports/export?kind=weekly&start=2026-11-09&format=md`,
   note: 'Short week: public holiday on Friday.',
   model: reportModel,
+};
+
+const reportLine = (text: string, detail: string | null = null, people: readonly string[] = [], tags: ReportModelVM['sections'][number]['groups'][number]['lines'][number]['tags'] = []) => ({
+  text,
+  tags,
+  detail,
+  people,
+  children: [],
+});
+
+/** A month in full (product spec §7.4): every entry, week by week, and each issue's story. */
+export const monthlyReports: ReportsVM = {
+  ...reports,
+  kind: 'monthly',
+  start: '2026-11-01',
+  note: '',
+  model: {
+    ...reportModel,
+    typeLabel: 'Monthly report',
+    periodLabel: 'November 2026',
+    note: null,
+    sections: [
+      {
+        title: 'Summary',
+        summary: [
+          { label: 'Entries', value: 4 },
+          { label: 'Days with work logged', value: 4 },
+          { label: 'PRs touched', value: 1 },
+          { label: 'PRs merged', value: 1 },
+          { label: 'Releases', value: 1 },
+          { label: 'Issues opened', value: 2 },
+          { label: 'Issues resolved', value: 1 },
+          { label: 'Issues still open', value: 1 },
+          { label: 'Plan items completed', value: 1 },
+        ],
+        groups: [],
+      },
+      {
+        title: 'Work done',
+        summary: [],
+        groups: [
+          {
+            title: 'Frontend',
+            lines: [
+              {
+                ...reportLine('#12 Add login', '2 entries', ['Ali', 'Grace'], [statuses.merged]),
+                children: [
+                  reportLine('Wired the login form to the session API', 'Tue 10 Nov · Plan: Ship login', ['Ali', 'Grace']),
+                  reportLine('Review fixes and tests', 'Thu 12 Nov', ['Grace']),
+                ],
+              },
+            ],
+          },
+          {
+            title: 'General',
+            lines: [
+              reportLine('Hotfix for the payment webhook', 'Sun 8 Nov · weekend work · Issue: Crash on save', ['Wanjiru']),
+              reportLine('Server upgrade', 'Mon 23 Nov', ['Ali']),
+            ],
+          },
+        ],
+      },
+      {
+        title: 'Week by week',
+        summary: [],
+        groups: [
+          {
+            title: null,
+            lines: [
+              reportLine('1 Nov 2026', 'Nothing logged'),
+              reportLine('2–8 Nov 2026', '1 entry', ['Wanjiru']),
+              reportLine('9–15 Nov 2026', '2 entries · 1 PR · 1 release · 1 issue resolved', ['Ali', 'Grace']),
+              reportLine('16–22 Nov 2026', 'Nothing logged'),
+              reportLine('23–29 Nov 2026', '1 entry', ['Ali']),
+              reportLine('30 Nov 2026', 'Nothing logged'),
+            ],
+          },
+        ],
+      },
+      {
+        title: 'Issues',
+        summary: [],
+        groups: [
+          {
+            title: 'Opened',
+            lines: [
+              reportLine('Crash on save', 'Assigned Mon 2 Nov · deadline Fri 6 Nov · resolved Thu 12 Nov · by #12 Add login', ['Grace'], [
+                { tone: 'danger', label: 'Urgent' },
+                { tone: 'danger', label: 'Resolved 4 days late' },
+              ]),
+              reportLine('Slow dashboard query', 'Assigned Mon 9 Nov · deadline Fri 11 Dec', ['Ali', 'Wanjiru'], [{ tone: 'warning', label: 'High' }, statuses.open]),
+            ],
+          },
+          {
+            title: 'Still open',
+            lines: [reportLine('Slow dashboard query', 'Assigned Mon 9 Nov · deadline Fri 11 Dec', ['Ali', 'Wanjiru'], [{ tone: 'warning', label: 'High' }, statuses.open])],
+          },
+        ],
+      },
+    ],
+  },
 };
 
 export const emptyReports: ReportsVM = { ...reports, note: '', model: { ...reportModel, note: null, sections: [] } };

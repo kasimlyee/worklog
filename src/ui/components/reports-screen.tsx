@@ -1,11 +1,11 @@
-import Link from 'next/link';
+import { AppLink as Link } from './app-link.tsx';
 import type { FormAction } from '#src/ui/view-models/forms.ts';
 import type { ReportKind, ReportsVM } from '#src/ui/view-models/reports.ts';
 import { projectHref } from '#src/ui/routes.ts';
 import { ActionForm, HiddenField, TextAreaField } from './form.tsx';
 import { PageHeader, Section } from './page-header.tsx';
 import { ReportPreview } from './report-preview.tsx';
-import styles from './lists.module.css';
+import { lists as styles } from './lists.ts';
 
 const kinds: readonly { readonly value: ReportKind; readonly label: string }[] = [
   { value: 'daily', label: 'Daily' },
@@ -34,7 +34,7 @@ export function ReportsScreen({ projectId, vm, saveNote }: { readonly projectId:
       <div className={styles.toolbar}>
         <nav aria-label="Report type" className={styles.tabs}>
           {kinds.map((kind) => (
-            <Link key={kind.value} href={projectHref(projectId, 'reports', `kind=${kind.value}&date=${vm.start}`)} aria-current={vm.kind === kind.value ? 'page' : undefined}>
+            <Link key={kind.value} className={styles.tab} href={projectHref(projectId, 'reports', `kind=${kind.value}&date=${vm.start}`)} aria-current={vm.kind === kind.value ? 'page' : undefined}>
               {kind.label}
             </Link>
           ))}
@@ -49,6 +49,8 @@ export function ReportsScreen({ projectId, vm, saveNote }: { readonly projectId:
           </Link>
         </nav>
       </div>
+      {/* The report first; its note is edited underneath. */}
+      <ReportPreview model={vm.model} />
       <Section title="Report note">
         <ActionForm action={saveNote} submitLabel="Save note" label="Report note">
           <HiddenField name="kind" value={vm.kind} />
@@ -56,7 +58,6 @@ export function ReportsScreen({ projectId, vm, saveNote }: { readonly projectId:
           <TextAreaField name="body" label="Note shown under the header" defaultValue={vm.note} maxLength={5000} rows={3} hint="Leave empty for no note." />
         </ActionForm>
       </Section>
-      <ReportPreview model={vm.model} />
     </div>
   );
 }

@@ -7,7 +7,6 @@
 
 import { usePathname, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import styles from './navigation-progress.module.css';
 
 function isInAppNavigation(event: MouseEvent): boolean {
   if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
@@ -41,5 +40,5 @@ export function NavigationProgress(): React.JSX.Element | null {
     };
   }, []);
 
-  return leaving === here ? <div className={styles.bar} role="progressbar" aria-label="Loading page" /> : null;
+  return leaving === here ? <div className="fixed inset-x-0 top-0 z-50 h-[3px] origin-left animate-page-load bg-accent motion-reduce:scale-x-60 motion-reduce:animate-none" role="progressbar" aria-label="Loading page" /> : null;
 }

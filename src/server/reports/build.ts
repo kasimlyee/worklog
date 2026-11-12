@@ -1,5 +1,5 @@
 import type { PlanItemStatus, PrState } from '#src/server/db/types.ts';
-import { formatDate, formatShortDate, isWorkingDay, type IsoDate } from '#src/server/domain/calendar.ts';
+import { addDays, formatDate, formatShortDate, isWorkingDay, rangeLabel, weekStart, type IsoDate } from '#src/server/domain/calendar.ts';
 import { issueDeadline, openDeadline, overdueCutoff, overdueFrom } from '#src/server/domain/deadlines.ts';
 import { reportPeriodLabel } from '#src/server/domain/report-periods.ts';
 import type { EntryRow } from '#src/server/repositories/entries.ts';
@@ -34,6 +34,7 @@ const prStateTags: Readonly<Record<PrState, StatusTag>> = {
 
 const doneTag: StatusTag = { tone: 'success', label: 'Done' };
 const notDoneTag: StatusTag = { tone: 'danger', label: 'Not done' };
+const openTag: StatusTag = { tone: 'neutral', label: 'Open' };
 const releasedTag: StatusTag = { tone: 'success', label: 'Released' };
 
 function resolvedTag(issue: ReportIssueRow): StatusTag {
@@ -109,29 +110,48 @@ function splitByPr(entries: readonly EntryRow[]): { readonly prs: readonly PrBuc
   return { prs: sorted, loose };
 }
 
+const titles = (items: readonly { readonly title: string }[]): string => items.map((item) => item.title).join(', ');
+
+/** BR-17: what an entry is linked to travels with it — the issues it worked on and the plan items it fulfils. */
+function entryLinks(entry: EntryRow): readonly string[] {
+  return [
+    ...(entry.issues.length > 0 ? [`${entry.issues.length === 1 ? 'Issue' : 'Issues'}: ${titles(entry.issues)}`] : []),
+    ...(entry.planItems.length > 0 ? [`Plan: ${titles(entry.planItems)}`] : []),
+  ];
+}
+
 function entryLine(entry: EntryRow, withDate: boolean): ReportLine {
   const weekend = !isWorkingDay(entry.workDate);
-  const detail = withDate ? `${formatShortDate(entry.workDate)}${weekend ? ' · weekend work' : ''}` : null;
-  return line(entry.description, { detail, people: names(entry.people) });
+  const parts = [...(withDate ? [`${formatShortDate(entry.workDate)}${weekend ? ' · weekend work' : ''}`] : []), ...entryLinks(entry)];
+  return line(entry.description, { detail: parts.length === 0 ? null : parts.join(' · '), people: names(entry.people) });
 }
 
-function entryCount(count: number): string {
-  return `${String(count)} ${count === 1 ? 'entry' : 'entries'}`;
+function count(value: number, one: string, many = `${one}s`): string {
+  return `${String(value)} ${value === 1 ? one : many}`;
 }
 
-/** Daily: area → PR → every entry. Weekly: area → one line per PR → loose entries. */
-function workDone(data: ReportData, style: 'every_entry' | 'one_line_per_pr'): ReportSection {
+function entryCount(value: number): string {
+  return count(value, 'entry', 'entries');
+}
+
+/**
+ * Daily: area → PR → every entry. Weekly: area → one line per PR → loose entries.
+ * Monthly (`in_full`): both — each PR with its entry count and people, then every entry
+ * under it with its date, so nothing done in the month is left out.
+ */
+function workDone(data: ReportData, style: 'every_entry' | 'one_line_per_pr' | 'in_full'): ReportSection {
   const groups = byArea(data).map((bucket): ReportGroup => {
     const { prs, loose } = splitByPr(bucket.entries);
-    const withDate = style === 'one_line_per_pr';
+    const withDate = style !== 'every_entry';
     const prLines = prs.map((pr) => {
-      return style === 'every_entry'
-        ? { ...pr.line, children: pr.entries.map((entry) => entryLine(entry, false)) }
-        : {
-            ...pr.line,
-            detail: entryCount(pr.entries.length),
-            people: [...new Set(pr.entries.flatMap((entry) => names(entry.people)))].sort(),
-          };
+      const rollUp = {
+        detail: entryCount(pr.entries.length),
+        people: [...new Set(pr.entries.flatMap((entry) => names(entry.people)))].sort(),
+      };
+      if (style === 'in_full') {
+        return { ...pr.line, ...rollUp, children: pr.entries.map((entry) => entryLine(entry, true)) };
+      }
+      return style === 'every_entry' ? { ...pr.line, children: pr.entries.map((entry) => entryLine(entry, false)) } : { ...pr.line, ...rollUp };
     });
     return { title: bucket.title, lines: [...prLines, ...loose.map((entry) => entryLine(entry, withDate))] };
   });
@@ -164,24 +184,64 @@ function openOverdueIssues(data: ReportData): readonly ReportIssueRow[] {
   return data.issues.filter((issue) => isOpenAt(issue.resolvedOn, data.asOf) && issue.deadline < cutoff);
 }
 
+/** Assigned in the period (monthly, §7.4). */
+function openedIssues(data: ReportData): readonly ReportIssueRow[] {
+  return data.issues.filter((issue) => issue.assignedOn >= data.range.from && issue.assignedOn <= data.range.to);
+}
+
+/** Open at the reference date, whatever the deadline (monthly, §7.4). */
+function openIssues(data: ReportData): readonly ReportIssueRow[] {
+  return data.issues.filter((issue) => issue.assignedOn <= data.asOf && isOpenAt(issue.resolvedOn, data.asOf));
+}
+
+/** The dates that tell an issue's story, and the pull request that resolved it (BR-30). */
+function issueDetail(issue: ReportIssueRow, asOf: IsoDate): string {
+  const resolvedOn = issue.resolvedOn !== null && issue.resolvedOn <= asOf ? issue.resolvedOn : null;
+  return [
+    `Assigned ${formatShortDate(issue.assignedOn)}`,
+    `deadline ${formatShortDate(issue.deadline)}`,
+    ...(resolvedOn === null ? [] : [`resolved ${formatShortDate(resolvedOn)}`]),
+    ...(resolvedOn !== null && issue.resolvedByNumber !== null && issue.resolvedByTitle !== null
+      ? [`by #${String(issue.resolvedByNumber)} ${issue.resolvedByTitle}`]
+      : []),
+  ].join(' · ');
+}
+
+function issueLine(issue: ReportIssueRow, state: StatusTag, asOf: IsoDate): ReportLine {
+  return line(issue.title, { tags: [...priorityTags(issue), state], detail: issueDetail(issue, asOf), people: names(issue.assignees) });
+}
+
+/** How an issue stood at the reference date: resolved (on time or late), overdue, or simply open. */
+function stateAt(issue: ReportIssueRow, asOf: IsoDate): StatusTag {
+  if (!isOpenAt(issue.resolvedOn, asOf)) {
+    return resolvedTag(issue);
+  }
+  return issue.deadline < overdueCutoff(asOf) ? overdueTag(issue.deadline, asOf) : openTag;
+}
+
 function issuesSection(data: ReportData): ReportSection {
-  const resolved = resolvedIssues(data).map((issue) => line(issue.title, { tags: [...priorityTags(issue), resolvedTag(issue)], people: names(issue.assignees) }));
+  const resolved = resolvedIssues(data).map((issue) => issueLine(issue, resolvedTag(issue), data.range.to));
   if (data.kind === 'daily') {
     // §7.2: issues that became overdue on this very day.
     const became = data.issues
       .filter((issue) => isOpenAt(issue.resolvedOn, data.start) && overdueFrom(issue.deadline) === data.start)
-      .map((issue) => line(issue.title, { tags: [...priorityTags(issue), overdueTag(issue.deadline, data.start)], people: names(issue.assignees) }));
+      .map((issue) => issueLine(issue, overdueTag(issue.deadline, data.start), data.start));
     return section('Issues', [
       { title: 'Resolved', lines: resolved },
       { title: 'Became overdue', lines: became },
     ]);
   }
-  const overdue = openOverdueIssues(data).map((issue) =>
-    line(issue.title, { tags: [...priorityTags(issue), overdueTag(issue.deadline, data.asOf)], people: names(issue.assignees) }),
-  );
+  const overdue = openOverdueIssues(data);
+  const overdueIds = new Set(overdue.map((issue) => issue.id));
+  const monthly = data.kind === 'monthly';
   return section('Issues', [
+    { title: 'Opened', lines: monthly ? openedIssues(data).map((issue) => issueLine(issue, stateAt(issue, data.asOf), data.asOf)) : [] },
     { title: 'Resolved', lines: resolved },
-    { title: 'Still open and overdue', lines: overdue },
+    { title: 'Still open and overdue', lines: overdue.map((issue) => issueLine(issue, overdueTag(issue.deadline, data.asOf), data.asOf)) },
+    {
+      title: 'Still open',
+      lines: monthly ? openIssues(data).filter((issue) => !overdueIds.has(issue.id)).map((issue) => issueLine(issue, openTag, data.asOf)) : [],
+    },
   ]);
 }
 
@@ -197,31 +257,83 @@ function touchedPullRequests(data: ReportData): ReadonlyMap<string, PrState> {
 
 function summarySection(data: ReportData): ReportSection {
   const prs = touchedPullRequests(data);
+  const monthly = data.kind === 'monthly';
   return section(
     'Summary',
     [],
     [
       { label: 'Entries', value: data.entries.length },
+      ...(monthly ? [{ label: 'Days with work logged', value: new Set(data.entries.map((entry) => entry.workDate)).size }] : []),
       { label: 'PRs touched', value: prs.size },
       { label: 'PRs merged', value: [...prs.values()].filter((state) => state === 'merged').length },
       { label: 'Releases', value: data.releases.length },
+      ...(monthly ? [{ label: 'Issues opened', value: openedIssues(data).length }] : []),
       { label: 'Issues resolved', value: resolvedIssues(data).length },
+      ...(monthly
+        ? [
+            { label: 'Issues still open', value: openIssues(data).length },
+            { label: 'Plan items completed', value: data.completedItems.length },
+          ]
+        : []),
     ],
   );
 }
 
+/** §7.4: the month a week at a time — how much was logged, shipped and resolved in each. */
+function weekByWeekSection(data: ReportData): ReportSection {
+  const { from, to } = data.range;
+  const resolved = resolvedIssues(data);
+  if (data.entries.length + data.releases.length + resolved.length === 0) {
+    return section('Week by week', []);
+  }
+  const lines: ReportLine[] = [];
+  for (let monday = weekStart(from); monday <= to; monday = addDays(monday, 7)) {
+    const sunday = addDays(monday, 6);
+    const first = monday < from ? from : monday;
+    const last = sunday > to ? to : sunday;
+    const within = (date: IsoDate | null): boolean => date !== null && date >= first && date <= last;
+    const entries = data.entries.filter((entry) => within(entry.workDate));
+    const prs = new Set(entries.flatMap((entry) => (entry.pullRequestId === null ? [] : [entry.pullRequestId]))).size;
+    const releases = data.releases.filter((release) => within(release.releasedOn)).length;
+    const issues = resolved.filter((issue) => within(issue.resolvedOn)).length;
+    const parts = [
+      ...(entries.length > 0 ? [entryCount(entries.length)] : []),
+      ...(prs > 0 ? [count(prs, 'PR')] : []),
+      ...(releases > 0 ? [count(releases, 'release')] : []),
+      ...(issues > 0 ? [`${count(issues, 'issue')} resolved`] : []),
+    ];
+    lines.push(
+      line(first === last ? formatDate(first) : rangeLabel(first, last), {
+        detail: parts.length === 0 ? 'Nothing logged' : parts.join(' · '),
+        people: [...new Set(entries.flatMap((entry) => names(entry.people)))].sort(),
+      }),
+    );
+  }
+  return section('Week by week', [{ title: null, lines }]);
+}
+
 /** §7.3.6 / §7.4.7: per person — entries, issues resolved on time vs late, open overdue items. */
 function perDeveloperSection(data: ReportData): ReportSection {
-  type Tally = { entries: number; onTime: number; late: number; overdue: number };
+  type Tally = { entries: number; planDone: number; onTime: number; late: number; overdue: number };
   const tallies = new Map<string, Tally>();
   const tally = (name: string): Tally => {
-    const existing = tallies.get(name) ?? { entries: 0, onTime: 0, late: 0, overdue: 0 };
+    const existing = tallies.get(name) ?? { entries: 0, planDone: 0, onTime: 0, late: 0, overdue: 0 };
     tallies.set(name, existing);
     return existing;
   };
   for (const entry of data.entries) {
     for (const name of names(entry.people)) {
       tally(name).entries += 1;
+    }
+  }
+  // Plan items finished in the period: the month's completed items, or the done items of the period's own plans.
+  const finished =
+    data.kind === 'monthly'
+      ? data.completedItems
+      : data.planItems.filter((item) => item.completedOn !== null && item.completedOn >= data.range.from && item.completedOn <= data.range.to);
+  for (const item of finished) {
+    for (const name of names(item.assignees)) {
+      tally(name).planDone += 1;
     }
   }
   for (const issue of resolvedIssues(data)) {
@@ -245,6 +357,7 @@ function perDeveloperSection(data: ReportData): ReportSection {
       title: name,
       lines: [
         ...(t.entries > 0 ? [line(`Entries: ${String(t.entries)}`)] : []),
+        ...(t.planDone > 0 ? [line(`Plan items completed: ${String(t.planDone)}`)] : []),
         ...(t.onTime + t.late > 0
           ? [
               line(`Issues resolved: ${String(t.onTime + t.late)}`, {
@@ -261,9 +374,17 @@ function perDeveloperSection(data: ReportData): ReportSection {
   return section('Per developer', groups);
 }
 
+/** Why an unfinished item is unfinished, when its status says so. */
+function stuckTags(item: ReportPlanItemRow): readonly StatusTag[] {
+  if (item.status === 'blocked') {
+    return [{ tone: 'danger', label: 'Blocked' }];
+  }
+  return item.status === 'in_progress' ? [{ tone: 'warning', label: 'In progress' }] : [];
+}
+
 function planItemLine(item: ReportPlanItemRow, done: boolean): ReportLine {
   return line(item.title, {
-    tags: [done ? doneTag : notDoneTag],
+    tags: done ? [doneTag] : [notDoneTag, ...stuckTags(item)],
     detail: `Due ${formatShortDate(item.dueDate)}`,
     people: names(item.assignees),
   });
@@ -347,6 +468,8 @@ function sectionsFor(data: ReportData): readonly ReportSection[] {
     case 'monthly':
       return [
         summarySection(data),
+        workDone(data, 'in_full'),
+        weekByWeekSection(data),
         releasesSection(data, 'Releases'),
         mergedPrsSection(data),
         completedItemsSection(data),

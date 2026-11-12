@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import { AppLink as Link } from './app-link.tsx';
 import type { PlainAction } from '#src/ui/view-models/forms.ts';
 import type { IssueVM } from '#src/ui/view-models/issues.ts';
 import { ActionButton } from './action-button.tsx';
@@ -8,7 +8,7 @@ import { EmptyState } from './empty-state.tsx';
 import { ExternalLink } from './external-link.tsx';
 import { PersonList } from './person-list.tsx';
 import { DeadlineLabel, StatusTag } from './status-tag.tsx';
-import styles from './lists.module.css';
+import { lists as styles } from './lists.ts';
 
 type IssueTableProps = {
   readonly issues: readonly IssueVM[];

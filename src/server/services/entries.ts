@@ -6,6 +6,7 @@ import { parseIsoDate, type IsoDate } from '#src/server/domain/calendar.ts';
 import {
   deleteEntryRow, insertEntry, selectEntries, updateEntryRow, type EntryLinks, type EntryRow, type NamedRef,
 } from '#src/server/repositories/entries.ts';
+import { resolveIssueIfOpen } from '#src/server/repositories/issues.ts';
 import { invalid, notFound, parseInput, type ServiceResult } from './errors.ts';
 import { idList, isUuid, optionalId, requiredDate, requiredText } from './fields.ts';
 import { resolvePullRequest, toPullRequest, type PullRequest, type PullRequestDeps } from './pull-requests.ts';
@@ -54,6 +55,8 @@ const entryInput = z.object({
     .transform((value) => value ?? ''),
   planItemIds: idList('plan item'),
   issueIds: idList('issue'),
+  // BR-41: a ticked checkbox posts "on"; anything else means no.
+  resolveIssues: z.unknown().optional().transform((value) => value === 'on' || value === 'true' || value === true),
 });
 
 type ValidEntry = {
@@ -64,6 +67,7 @@ type ValidEntry = {
     readonly pullRequestId: string | null;
   };
   readonly links: EntryLinks;
+  readonly resolveIssues: boolean;
 };
 
 async function validateEntry(deps: PullRequestDeps, projectId: string, input: unknown): Promise<ServiceResult<ValidEntry>> {
@@ -71,7 +75,7 @@ async function validateEntry(deps: PullRequestDeps, projectId: string, input: un
   if (!parsed.ok) {
     return parsed;
   }
-  const { prUrl, personIds, planItemIds, issueIds, ...rest } = parsed.value;
+  const { prUrl, personIds, planItemIds, issueIds, resolveIssues, ...rest } = parsed.value;
   // BR-19: everything referenced belongs to this project (the database enforces it too).
   const errors = await referenceErrors(deps.db, projectId, { areaId: rest.areaId, personIds, planItemIds, issueIds });
   if (Object.keys(errors).length > 0) {
@@ -85,19 +89,26 @@ async function validateEntry(deps: PullRequestDeps, projectId: string, input: un
     }
     pullRequestId = pr.value.id;
   }
-  return ok({ values: { ...rest, pullRequestId }, links: { personIds, planItemIds, issueIds } });
+  return ok({ values: { ...rest, pullRequestId }, links: { personIds, planItemIds, issueIds }, resolveIssues });
 }
 
 /**
  * BR-17…BR-20. BR-18: the date is whatever day the work was done, weekends included.
  * BR-20: linking a plan item never changes its status.
+ * BR-41: on request, the entry resolves the issues it is linked to — on the day the work
+ * was done, by the entry's pull request. Issues already resolved keep their resolution.
  */
 export async function createEntry(deps: PullRequestDeps, projectId: string, input: unknown): Promise<ServiceResult<{ readonly id: string }>> {
   const valid = await validateEntry(deps, projectId, input);
   if (!valid.ok) {
     return valid;
   }
-  return ok({ id: await insertEntry(deps.db, projectId, valid.value.values, valid.value.links) });
+  const { values, links, resolveIssues } = valid.value;
+  const id = await insertEntry(deps.db, projectId, values, links);
+  if (resolveIssues) {
+    await Promise.all(links.issueIds.map((issueId) => resolveIssueIfOpen(deps.db, projectId, issueId, values.workDate, values.pullRequestId)));
+  }
+  return ok({ id });
 }
 
 export async function updateEntry(

@@ -24,7 +24,12 @@ export type Block = {
   readonly spaceBefore: number;
   /** Never leave this block as the last thing on a page (headings). */
   readonly keepWithNext?: boolean;
+  /** Draw a hairline across the page under this block (the header, section headings). */
+  readonly ruleBelow?: boolean;
 };
+
+/** A hairline from `x` across `width`, at height `y`. */
+export type Rule = { readonly x: number; readonly y: number; readonly width: number };
 
 export type Placed = {
   readonly x: number;
@@ -34,7 +39,7 @@ export type Placed = {
   readonly lineHeight: number;
 } & Run;
 
-export type PageLayout = { readonly items: readonly Placed[] };
+export type PageLayout = { readonly items: readonly Placed[]; readonly rules: readonly Rule[] };
 
 export type Measure = (text: string, font: FontKey, size: number) => number;
 
@@ -122,15 +127,19 @@ function wrap(block: Block, width: number, measure: Measure, options: LayoutOpti
   return lines;
 }
 
+const ruleGap = 4;
+
 /** Lays out blocks top to bottom over as many pages as needed. Always returns at least one page. */
 export function layoutBlocks(blocks: readonly Block[], measure: Measure, options: LayoutOptions = a4): readonly PageLayout[] {
   const { pageWidth, pageHeight, margin } = options;
   const contentWidth = pageWidth - margin.left - margin.right;
   const top = pageHeight - margin.top;
   const pages: Placed[][] = [[]];
+  const rules: Rule[][] = [[]];
   let y = top;
   const newPage = (): void => {
     pages.push([]);
+    rules.push([]);
     y = top;
   };
   const wrapped = blocks.map((block) => ({ block, lines: wrap(block, contentWidth - block.indent, measure, options) }));
@@ -169,6 +178,11 @@ export function layoutBlocks(blocks: readonly Block[], measure: Measure, options
         x += piece.width;
       }
     }
+    if (block.ruleBelow === true) {
+      // The rule takes a little room of its own, so the next block never sits on it.
+      y -= ruleGap;
+      rules.at(-1)?.push({ x: margin.left, y, width: contentWidth });
+    }
   });
-  return pages.map((items) => ({ items }));
+  return pages.map((items, index) => ({ items, rules: rules[index] ?? [] }));
 }
