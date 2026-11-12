@@ -41,6 +41,8 @@ export type PlansVM = {
   readonly canAdd: boolean;
   readonly defaultDueDate: string;
   readonly items: readonly PlanItemVM[];
+  /** Week plans: the items under each day, Monday to Friday (empty days included). */
+  readonly days: readonly { readonly date: string; readonly label: string; readonly items: readonly PlanItemVM[] }[] | null;
 };
 
 export type PlanItemDetailVM = PlanItemVM & { readonly horizon: Horizon; readonly planLabel: string; readonly form: PlanItemFormValues };

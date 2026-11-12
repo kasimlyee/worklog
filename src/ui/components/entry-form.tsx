@@ -66,9 +66,32 @@ export function QuickLog({ action, pickers, today }: { readonly action: FormActi
     }
   };
   return (
-    <details className="quick-log" onToggle={focusDescription}>
+    <details className="quick-log" id="quick-log" onToggle={focusDescription}>
       <summary>Quick log</summary>
       <EntryForm action={action} pickers={pickers} values={values} submitLabel="Log work" label="Quick log" />
     </details>
+  );
+}
+
+/** Opens the Quick log at the top of the page (an anchor jump without JavaScript). */
+export function OpenQuickLog(): React.JSX.Element {
+  return (
+    <a
+      className="button"
+      data-size="small"
+      data-variant="primary"
+      href="#quick-log"
+      onClick={(event) => {
+        const panel = document.getElementById('quick-log');
+        if (panel instanceof HTMLDetailsElement) {
+          event.preventDefault();
+          panel.open = true;
+          panel.scrollIntoView({ block: 'start', behavior: 'smooth' });
+          panel.querySelector('textarea')?.focus({ preventScroll: true });
+        }
+      }}
+    >
+      Log work
+    </a>
   );
 }

@@ -143,6 +143,7 @@ describe('view-model mappers', () => {
         todaysPlan: null,
         openIssues: [],
         recentEntries: [entry()],
+        loggedThisWeek: 3,
       },
       d('2026-11-14'),
       'UTC',
@@ -154,6 +155,7 @@ describe('view-model mappers', () => {
       ['plan_item', 'Due Fri 6 Nov', 'danger'],
     ]);
     expect(vm.todaysPlan).toBeNull();
+    expect(vm.pulse).toEqual({ overdue: 2, dueSoon: 0, today: null, loggedThisWeek: 3 });
   });
 
   it('maps releases with notes only when there are some', () => {
@@ -223,12 +225,19 @@ describe('plans screen', () => {
       defaultDueDate: '2026-11-10',
     });
     expect(vm.items).toHaveLength(1);
+    expect(vm.days?.map((day) => [day.label, day.items.length])).toEqual([
+      ['Monday 9 Nov 2026', 0],
+      ['Tuesday 10 Nov 2026', 0],
+      ['Wednesday 11 Nov 2026', 0],
+      ['Thursday 12 Nov 2026', 0],
+      ['Friday 13 Nov 2026', 0],
+    ]);
   });
 
   it('BR-03: a weekend day has no plan and cannot take items', () => {
     const vm = toPlansVM(null, 'day', d('2026-11-14'), d('2026-11-10'), 'UTC');
 
-    expect(vm).toMatchObject({ label: 'Saturday 14 Nov 2026', canAdd: false, items: [], previousQuery: 'horizon=day&date=2026-11-13', defaultDueDate: '2026-11-14' });
+    expect(vm).toMatchObject({ days: null, label: 'Saturday 14 Nov 2026', canAdd: false, items: [], previousQuery: 'horizon=day&date=2026-11-13', defaultDueDate: '2026-11-14' });
   });
 });
 
@@ -257,6 +266,7 @@ describe('issue priority', () => {
         todaysPlan: null,
         openIssues: [],
         recentEntries: [],
+        loggedThisWeek: 0,
       },
       d('2026-11-10'),
       'UTC',

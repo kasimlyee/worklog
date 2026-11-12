@@ -50,6 +50,15 @@ describe('dashboard', () => {
     expect(titles(dashboard.dueSoon)).toEqual(['high, due tomorrow']);
   });
 
+  it('counts the entries logged this week, Monday to today', async () => {
+    const project = await aProject(testDb());
+    for (const workDate of ['2026-11-06', '2026-11-09', '2026-11-10', '2026-11-11']) {
+      await anEntry(testDb(), project.id, { workDate });
+    }
+
+    expect((await getDashboard(testDb(), project.id, tuesday)).loggedThisWeek).toBe(2);
+  });
+
   it('shows today’s day plan, and none on a weekend', async () => {
     const project = await aProject(testDb());
     await aPlanItem(testDb(), await aPlan(testDb(), project.id, { horizon: 'day', periodStart: '2026-11-10' }), { title: 'Standup notes' });
@@ -58,7 +67,7 @@ describe('dashboard', () => {
     expect((await getDashboard(testDb(), project.id, d('2026-11-14'))).todaysPlan).toBeNull();
   });
 
-  it('lists open issues by deadline and the ten most recent entries', async () => {
+  it('lists open issues by deadline and the five most recent entries', async () => {
     const project = await aProject(testDb());
     await anIssue(testDb(), project.id, { title: 'b', deadline: '2026-11-20' });
     await anIssue(testDb(), project.id, { title: 'a', deadline: '2026-11-12' });
@@ -69,11 +78,11 @@ describe('dashboard', () => {
     const dashboard = await getDashboard(testDb(), project.id, tuesday);
 
     expect(dashboard.openIssues.map((i) => i.title)).toEqual(['a', 'b']);
-    expect(dashboard.recentEntries).toHaveLength(10);
+    expect(dashboard.recentEntries).toHaveLength(5);
     expect(dashboard.recentEntries[0]?.workDate).toBe('2026-11-12');
   });
 
-  it('NF-01: uses four queries however much data there is', async () => {
+  it('NF-01: uses five queries however much data there is', async () => {
     const project = await aProject(testDb());
     const person = await aPerson(testDb());
     const plan = await aPlan(testDb(), project.id, { horizon: 'day', periodStart: '2026-11-10' });
@@ -84,7 +93,7 @@ describe('dashboard', () => {
       await anEntry(testDb(), project.id);
     }
 
-    expect(await countQueries(() => getDashboard(testDb(), project.id, tuesday))).toBe(4);
+    expect(await countQueries(() => getDashboard(testDb(), project.id, tuesday))).toBe(5);
   });
 });
 

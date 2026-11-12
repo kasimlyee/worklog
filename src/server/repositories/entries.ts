@@ -205,6 +205,18 @@ export async function updateEntryRow(db: Db, projectId: string, id: string, valu
   });
 }
 
+/** How many entries fall within [from, to] — for the dashboard's pulse. */
+export async function countEntries(db: Db, projectId: string, from: IsoDate, to: IsoDate): Promise<number> {
+  const row = await db
+    .selectFrom('entries')
+    .select((eb) => eb.fn.countAll<string>().as('n'))
+    .where('projectId', '=', projectId)
+    .where('workDate', '>=', from)
+    .where('workDate', '<=', to)
+    .executeTakeFirstOrThrow();
+  return Number(row.n);
+}
+
 export async function deleteEntryRow(db: Db, projectId: string, id: string): Promise<boolean> {
   const result = await db.deleteFrom('entries').where('id', '=', id).where('projectId', '=', projectId).executeTakeFirst();
   return result.numDeletedRows > 0n;

@@ -1,5 +1,5 @@
 import 'server-only';
-import { daysBetween, formatDate, formatShortDate, dayLabel, isWorkingDay, today as todayIn, type IsoDate } from '#src/server/domain/calendar.ts';
+import { datesBetween, daysBetween, formatDate, formatShortDate, dayLabel, isWorkingDay, today as todayIn, type IsoDate } from '#src/server/domain/calendar.ts';
 import type { Dashboard, DashboardItem } from '#src/server/services/dashboard.ts';
 import type { Entry, EntryPage } from '#src/server/services/entries.ts';
 import { priorityRank, type Issue } from '#src/server/services/issues.ts';
@@ -118,6 +118,14 @@ export function toPlansVM(plan: PlanView | null, horizon: Horizon, start: IsoDat
     canAdd: plan !== null,
     defaultDueDate: isInPeriod(period, today) ? today : period.end,
     items: (plan?.items ?? []).map((item) => toPlanItemVM(item, timeZone)),
+    days:
+      horizon === 'week'
+        ? datesBetween(period.start, period.end).map((date) => ({
+            date,
+            label: dayLabel(date),
+            items: (plan?.items ?? []).filter((item) => item.dueDate === date).map((item) => toPlanItemVM(item, timeZone)),
+          }))
+        : null,
   };
 }
 
@@ -199,8 +207,15 @@ function toTrackedVM(item: DashboardItem): TrackedVM {
 }
 
 export function toDashboardVM(dashboard: Dashboard, today: IsoDate, timeZone: string): DashboardVM {
+  const todays = dashboard.todaysPlan;
   return {
     todayLabel: dayLabel(today),
+    pulse: {
+      overdue: dashboard.urgent.filter((item) => (item.kind === 'issue' ? item.issue.deadlineState.state : item.item.deadline?.state) === 'overdue').length,
+      dueSoon: dashboard.dueSoon.length,
+      today: todays === null ? null : { done: todays.filter((item) => item.status === 'done').length, total: todays.length },
+      loggedThisWeek: dashboard.loggedThisWeek,
+    },
     urgent: dashboard.urgent.map(toTrackedVM),
     dueSoon: dashboard.dueSoon.map(toTrackedVM),
     todaysPlan: dashboard.todaysPlan === null ? null : dashboard.todaysPlan.map((item) => toPlanItemVM(item, timeZone)),

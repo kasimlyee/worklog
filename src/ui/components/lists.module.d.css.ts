@@ -3,7 +3,8 @@ declare const styles: {
   readonly "actions": string;
   readonly "card": string;
   readonly "cards": string;
-  readonly "dashboardGrid": string;
+  readonly "column": string;
+  readonly "dashboardLayout": string;
   readonly "dayHeading": string;
   readonly "description": string;
   readonly "grid": string;
@@ -13,6 +14,9 @@ declare const styles: {
   readonly "meta": string;
   readonly "notice": string;
   readonly "periodLabel": string;
+  readonly "progress": string;
+  readonly "pulse": string;
+  readonly "pulseTile": string;
   readonly "row": string;
   readonly "stack": string;
   readonly "statusSelect": string;
@@ -20,5 +24,8 @@ declare const styles: {
   readonly "tabs": string;
   readonly "title": string;
   readonly "toolbar": string;
+  readonly "weekDay": string;
+  readonly "weekDayEmpty": string;
+  readonly "weekDayHeading": string;
 };
 export default styles;

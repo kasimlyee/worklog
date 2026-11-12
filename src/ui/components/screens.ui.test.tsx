@@ -459,3 +459,33 @@ describe('markup validity', () => {
     expect(document.querySelectorAll('form form')).toHaveLength(0);
   });
 });
+
+describe('dashboard layout and week plan', () => {
+  it('shows the pulse: overdue in red and due soon in yellow, each with its words', () => {
+    render(<DashboardScreen projectId={f.projectId} vm={f.dashboard} setStatus={plainAction} planToday={plainAction} />);
+
+    const pulse = document.querySelector('dl[aria-label="At a glance"]');
+    expect(pulse?.getAttribute('aria-label')).toBe('At a glance');
+    expect([...(pulse?.querySelectorAll('div') ?? [])].map((tile) => `${tile.getAttribute('data-pulse-tone') ?? 'plain'}:${tile.textContent}`)).toEqual([
+      'danger:Overdue2',
+      'warning:Due soon1',
+      'plain:Today1 / 2 done',
+      'plain:Logged this week7',
+    ]);
+    expect(screen.getByText('1 of 2 done')).toBeDefined();
+    expect(screen.getByRole('link', { name: 'Log work' }).getAttribute('href')).toBe('#quick-log');
+  });
+
+  it('groups a week plan by day, Monday to Friday, showing empty days', () => {
+    render(<PlansScreen projectId={f.projectId} vm={f.plans} pickers={f.pickers} createItem={formAction} setStatus={plainAction} />);
+
+    expect(screen.getAllByRole('heading', { level: 3 }).map((h) => h.textContent)).toEqual([
+      'Monday 9 Nov 2026',
+      'Tuesday 10 Nov 2026',
+      'Wednesday 11 Nov 2026',
+      'Thursday 12 Nov 2026',
+      'Friday 13 Nov 2026',
+    ]);
+    expect(screen.getByText('Nothing due.')).toBeDefined();
+  });
+});

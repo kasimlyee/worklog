@@ -14,8 +14,18 @@ export type TrackedVM = {
   readonly people: readonly string[];
 };
 
+/** The numbers at the top of the dashboard: what needs attention, at a glance. */
+export type PulseVM = {
+  readonly overdue: number;
+  readonly dueSoon: number;
+  /** Null at the weekend (no day plan). */
+  readonly today: { readonly done: number; readonly total: number } | null;
+  readonly loggedThisWeek: number;
+};
+
 export type DashboardVM = {
   readonly todayLabel: string;
+  readonly pulse: PulseVM;
   readonly urgent: readonly TrackedVM[];
   readonly dueSoon: readonly TrackedVM[];
   /** Null on a weekend: there are no day plans. */

@@ -1,4 +1,9 @@
+/* Stays in view while scrolling, so every section is one click away. */
 .nav {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: var(--bg);
   overflow-x: auto;
   margin-bottom: var(--space-5);
   border-bottom: 1px solid var(--border);

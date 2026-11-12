@@ -227,6 +227,7 @@ export const projectHeader: ProjectHeaderVM = { id: projectId, name: 'Atlas', is
 
 export const dashboard: DashboardVM = {
   todayLabel: 'Tuesday 10 Nov 2026',
+  pulse: { overdue: 2, dueSoon: 1, today: { done: 1, total: 2 }, loggedThisWeek: 7 },
   urgent: [
     { id: 's1', kind: 'issue', title: 'Crash on save', dueLabel: 'Deadline 6 Nov', deadline: statuses.overdue, priority: status('danger', 'Urgent'), people: ['Grace'] },
     { id: 'i2', kind: 'plan_item', title: 'Migrate billing tables', dueLabel: 'Due Fri 6 Nov', deadline: statuses.overdue, priority: null, people: ['Wanjiru'] },
@@ -237,7 +238,10 @@ export const dashboard: DashboardVM = {
   recentEntries: entries,
 };
 
-export const emptyDashboard: DashboardVM = { todayLabel: 'Saturday 14 Nov 2026', urgent: [], dueSoon: [], todaysPlan: null, openIssues: [], recentEntries: [] };
+export const emptyDashboard: DashboardVM = {
+  todayLabel: 'Saturday 14 Nov 2026',
+  pulse: { overdue: 0, dueSoon: 0, today: null, loggedThisWeek: 0 },
+  urgent: [], dueSoon: [], todaysPlan: null, openIssues: [], recentEntries: [] };
 
 export const plans: PlansVM = {
   horizon: 'week',
@@ -250,6 +254,13 @@ export const plans: PlansVM = {
   canAdd: true,
   defaultDueDate: '2026-11-13',
   items: planItems,
+  days: [
+    { date: '2026-11-09', label: 'Monday 9 Nov 2026', items: [billing] },
+    { date: '2026-11-10', label: 'Tuesday 10 Nov 2026', items: [releaseNotes] },
+    { date: '2026-11-11', label: 'Wednesday 11 Nov 2026', items: [onboarding] },
+    { date: '2026-11-12', label: 'Thursday 12 Nov 2026', items: [shipLogin] },
+    { date: '2026-11-13', label: 'Friday 13 Nov 2026', items: [] },
+  ],
 };
 
 export const weekendDayPlan: PlansVM = {
@@ -260,6 +271,7 @@ export const weekendDayPlan: PlansVM = {
   periodEnd: '2026-11-14',
   canAdd: false,
   items: [],
+  days: null,
 };
 
 export const planItemDetail: PlanItemDetailVM = {

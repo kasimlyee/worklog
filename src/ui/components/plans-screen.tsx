@@ -57,7 +57,21 @@ export function PlansScreen({
         </nav>
       </div>
       <Section title={vm.label}>
-        <PlanItemList items={vm.items} projectId={projectId} setStatus={setStatus} empty="Nothing planned for this period yet." />
+        {vm.days === null ? (
+          <PlanItemList items={vm.items} projectId={projectId} setStatus={setStatus} empty="Nothing planned for this period yet." />
+        ) : (
+          // Week plans read day by day, Monday to Friday.
+          vm.days.map((day) => (
+            <div key={day.date} className={styles.weekDay}>
+              <h3 className={styles.weekDayHeading}>{day.label}</h3>
+              {day.items.length === 0 ? (
+                <p className={styles.weekDayEmpty}>Nothing due.</p>
+              ) : (
+                <PlanItemList items={day.items} projectId={projectId} setStatus={setStatus} />
+              )}
+            </div>
+          ))
+        )}
       </Section>
       <Section title="Add to this plan">
         {vm.canAdd ? (
