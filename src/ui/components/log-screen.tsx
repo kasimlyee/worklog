@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import { AppLink as Link } from './app-link.tsx';
 import type { Pickers } from '#src/ui/view-models/common.ts';
 import type { EntryFormValues, LogVM } from '#src/ui/view-models/entries.ts';
 import type { FormAction, PlainAction } from '#src/ui/view-models/forms.ts';
@@ -46,7 +46,7 @@ export function LogScreen({
     <div>
       <PageHeader title="Log" actions={<Link href={projectHref(projectId, 'pull-requests')}>Pull requests</Link>} />
       <Section title="Log work">
-        <EntryForm action={createEntry} pickers={pickers} values={blank} submitLabel="Log work" label="Log work" />
+        <EntryForm action={createEntry} pickers={pickers} values={blank} submitLabel="Log work" label="Log work" canResolve />
       </Section>
       <Section title="Entries">
         {/* A GET form: filters live in the URL and work without JavaScript. */}
@@ -54,11 +54,19 @@ export function LogScreen({
           <FilterSelect name="areaId" label="Area" options={pickers.areas} value={vm.filters.areaId} />
           <FilterSelect name="personId" label="Person" options={pickers.people} value={vm.filters.personId} />
           <FilterSelect name="pullRequestId" label="Pull request" options={pickers.pullRequests} value={vm.filters.pullRequestId} />
+          {/* Carried along, so narrowing further keeps the issue or plan item the page was opened for. */}
+          {vm.filters.issueId === '' ? null : <input type="hidden" name="issueId" value={vm.filters.issueId} />}
+          {vm.filters.planItemId === '' ? null : <input type="hidden" name="planItemId" value={vm.filters.planItemId} />}
           <button type="submit" data-size="small">
             Filter
           </button>
           {vm.isFiltered ? <Link href={projectHref(projectId, 'log')}>Clear filters</Link> : null}
         </form>
+        {vm.filters.issueId === '' && vm.filters.planItemId === '' ? null : (
+          <p className="mb-4 rounded-md bg-accent-soft px-3 py-2 text-sm" role="status">
+            Showing only the work linked to {vm.filters.issueId === '' ? 'one plan item' : 'one issue'}.
+          </p>
+        )}
         {vm.days.length === 0 ? <EmptyState>{vm.isFiltered ? 'No entries match these filters.' : 'No work logged yet.'}</EmptyState> : null}
         {vm.days.map((day) => (
           <div key={day.date}>

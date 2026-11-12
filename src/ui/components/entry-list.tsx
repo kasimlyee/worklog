@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import { AppLink as Link } from './app-link.tsx';
 import type { EntryVM } from '#src/ui/view-models/entries.ts';
 import { projectItemHref } from '#src/ui/routes.ts';
 import { EmptyState } from './empty-state.tsx';
@@ -50,7 +50,11 @@ export function EntryList({
   return (
     <ul className={styles.list}>
       {entries.map((entry) => (
-        <li key={entry.id} className={styles.item}>
+        // A timeline: a dot for each piece of work, joined by a line down the side.
+        <li
+          key={entry.id}
+          className="relative grid gap-1 pb-5 pl-6 before:absolute before:top-2 before:left-0 before:size-2.5 before:rounded-full before:bg-accent before:ring-4 before:ring-accent-soft after:absolute after:top-6 after:bottom-1 after:left-1 after:w-px after:bg-line last:pb-0 last:after:hidden"
+        >
           <p className={styles.text}>{entry.description}</p>
           <div className={styles.meta}>
             {showDate ? <span>{entry.dateLabel}</span> : null}

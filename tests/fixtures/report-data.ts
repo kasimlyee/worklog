@@ -62,8 +62,20 @@ export function issue(
   resolvedOn: string | null = null,
   assignees = [person('Grace')],
   priority: ReportIssueRow['priority'] = 'medium',
+  extra: { readonly assignedOn?: string; readonly resolvedBy?: PrFixture } = {},
 ): ReportIssueRow {
-  return { id: nextId(), title, priority, deadline: isoDate(deadline), resolvedOn: resolvedOn === null ? null : isoDate(resolvedOn), assignees };
+  return {
+    id: nextId(),
+    title,
+    priority,
+    // Assigned before the fixture periods unless a test says otherwise.
+    assignedOn: isoDate(extra.assignedOn ?? '2026-10-01'),
+    deadline: isoDate(deadline),
+    resolvedOn: resolvedOn === null ? null : isoDate(resolvedOn),
+    resolvedByNumber: extra.resolvedBy?.number ?? null,
+    resolvedByTitle: extra.resolvedBy?.title ?? null,
+    assignees,
+  };
 }
 
 export function planItem(

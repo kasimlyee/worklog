@@ -2,7 +2,7 @@
 
 /* Client Component — justified: marks the current section with aria-current from the URL. */
 
-import Link from 'next/link';
+import { AppLink as Link } from './app-link.tsx';
 import { usePathname } from 'next/navigation';
 import { projectHref, type ProjectSection } from '#src/ui/routes.ts';
 
@@ -18,12 +18,12 @@ const sections: readonly { readonly section: ProjectSection; readonly label: str
   { section: 'settings', label: 'Settings', icon: 'M4 7h9M17 7h3M4 17h3M11 17h9M15 4.5v5M9 14.5v5' },
 ];
 
-/* Tabs with an underline on narrow screens; a sidebar list with a raised current item on wide ones. */
+/* Tabs with an underline on narrow screens; a list in the dark sidebar on wide ones. */
 const link = [
   'group flex items-center gap-2 border-b-2 border-transparent px-3 py-2 text-sm font-semibold whitespace-nowrap text-muted no-underline',
   'hover:text-fg aria-[current=page]:border-ink aria-[current=page]:text-fg',
-  'lg:gap-3 lg:rounded-sm lg:border-b-0 lg:hover:bg-sunken',
-  'lg:aria-[current=page]:bg-surface lg:aria-[current=page]:shadow-sm lg:aria-[current=page]:ring-1 lg:aria-[current=page]:ring-line',
+  'lg:gap-3 lg:rounded-sm lg:border-b-0 lg:text-side-muted lg:hover:bg-side-hover lg:hover:text-side-fg',
+  'lg:aria-[current=page]:bg-side-active lg:aria-[current=page]:text-side-fg',
 ].join(' ');
 
 export function ProjectNav({ projectId }: { readonly projectId: string }): React.JSX.Element {
@@ -34,13 +34,13 @@ export function ProjectNav({ projectId }: { readonly projectId: string }): React
   return (
     <nav
       aria-label="Project"
-      className="sticky top-0 z-5 mb-6 overflow-x-auto border-b border-line bg-page lg:static lg:mb-0 lg:overflow-visible lg:border-b-0 lg:bg-transparent"
+      className="sticky top-0 z-5 -mx-4 mb-6 overflow-x-auto border-b border-line bg-page px-4 sm:-mx-8 sm:px-8 lg:static lg:m-0 lg:overflow-visible lg:border-b-0 lg:bg-transparent lg:p-0"
     >
       <ul className="flex gap-1 lg:flex-col lg:gap-0.5">
         {sections.map(({ section, label, icon }) => (
           <li key={label}>
             <Link className={link} href={projectHref(projectId, section)} aria-current={current(section) ? 'page' : undefined}>
-              <svg className="flex-none group-aria-[current=page]:text-accent" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false">
+              <svg className="flex-none group-aria-[current=page]:text-accent lg:group-aria-[current=page]:text-side-fg" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false">
                 <path d={icon} fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
               {label}

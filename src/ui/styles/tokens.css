@@ -6,21 +6,29 @@
 :root {
   color-scheme: light dark;
 
-  /* Warm paper and ink; indigo is the one accent, kept for links, focus and "you are here". */
-  --bg: #f6f4ee;
-  --surface: #fffefc;
-  --surface-sunken: #efece4;
-  --border: #e2ded3;
-  --border-strong: #b5af9f;
-  --text: #1d1b16;
-  --text-muted: #615c50;
-  --accent: #3b3fc0;
+  /* Cool, quiet surfaces; one vivid indigo for actions, links and "you are here". */
+  --bg: #f3f4f7;
+  --surface: #ffffff;
+  --surface-sunken: #eceef3;
+  --border: #e2e4ea;
+  --border-strong: #b3b8c6;
+  --text: #14161c;
+  --text-muted: #596070;
+  --accent: #4640d9;
   --accent-text: #ffffff;
-  --accent-soft: #e8e9fa;
-  --focus: #3b3fc0;
-  /* Primary buttons are ink, not accent. */
-  --ink: #1d1b16;
-  --ink-text: #fffefc;
+  --accent-soft: #ecebfd;
+  --focus: #4640d9;
+  /* The fill of primary buttons and the brand mark. */
+  --ink: #4f46e5;
+  --ink-text: #ffffff;
+
+  /* The app sidebar is dark in both colour schemes. */
+  --side-bg: #13141b;
+  --side-text: #f1f2f6;
+  --side-muted: #a2a6b8;
+  --side-hover: #1e2029;
+  --side-active: #2b2d3d;
+  --side-border: #272935;
 
   --success-bg: #dcf2e1;
   --success-text: #17663a;
@@ -35,25 +43,30 @@
   --neutral-text: #4c515c;
   --neutral-border: #cfd3da;
 
-  --elevation-sm: 0 1px 2px rgb(40 30 10 / 6%);
-  --elevation-md: 0 12px 32px rgb(40 30 10 / 14%);
+  --elevation-sm: 0 1px 2px rgb(20 22 40 / 5%), 0 1px 1px rgb(20 22 40 / 3%);
+  --elevation-md: 0 14px 34px rgb(20 22 40 / 13%);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #141310;
-    --surface: #1c1b17;
-    --surface-sunken: #100f0d;
-    --border: #2e2c26;
-    --border-strong: #5a564b;
-    --text: #edeae2;
-    --text-muted: #a9a497;
-    --accent: #aab0ff;
+    --bg: #0f1014;
+    --surface: #17181e;
+    --surface-sunken: #0b0c0f;
+    --border: #262832;
+    --border-strong: #4b4f5d;
+    --text: #ecedf2;
+    --text-muted: #a1a6b5;
+    --accent: #a9adff;
     --accent-text: #11123a;
-    --accent-soft: #26274f;
-    --focus: #aab0ff;
-    --ink: #edeae2;
-    --ink-text: #141310;
+    --accent-soft: #23244a;
+    --focus: #a9adff;
+    --ink: #5451e0;
+    --ink-text: #ffffff;
+
+    --side-bg: #0a0b0e;
+    --side-hover: #16171d;
+    --side-active: #22243a;
+    --side-border: #1d1f27;
 
     --success-bg: #12301d;
     --success-text: #8ee0a8;

@@ -70,7 +70,7 @@ export async function loadReportData(db: Db, request: ReportRequestData): Promis
     selectAreas(db, projectId, true),
     selectEntries(db, projectId, { from: range.from, to: range.to, order: 'oldest' }),
     selectReleases(db, projectId, { releasedBetween: range }),
-    selectReportIssues(db, projectId, range, { deadlineBefore: overdueCutoff(asOf), asOf }),
+    selectReportIssues(db, projectId, range, { deadlineBefore: overdueCutoff(asOf), asOf }, kind === 'monthly'),
     selectReportPlanItems(db, projectId, { kind: 'in_plans', scopes }),
     selectReportMoves(db, projectId, scopes),
     selectReportPlanItems(db, projectId, { kind: 'open_overdue', dueBefore: overdueCutoff(asOf), asOf }),

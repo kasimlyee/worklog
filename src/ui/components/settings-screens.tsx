@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import { AppLink as Link } from './app-link.tsx';
 import type { FormAction, PlainAction } from '#src/ui/view-models/forms.ts';
 import type { PersonVM, PullRequestRowVM, SettingsVM } from '#src/ui/view-models/settings.ts';
 import { ActionButton } from './action-button.tsx';

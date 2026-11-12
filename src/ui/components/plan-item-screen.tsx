@@ -1,9 +1,10 @@
-import Link from 'next/link';
+import { AppLink as Link } from './app-link.tsx';
 import type { Pickers } from '#src/ui/view-models/common.ts';
 import type { FormAction, PlainAction } from '#src/ui/view-models/forms.ts';
 import type { PlanItemDetailVM } from '#src/ui/view-models/plans.ts';
-import { projectHref } from '#src/ui/routes.ts';
+import { projectHref, projectItemHref } from '#src/ui/routes.ts';
 import { ConfirmDialog } from './confirm-dialog.tsx';
+import { OpenQuickLog } from './entry-form.tsx';
 import { ActionForm, CheckboxGroupField, SelectField, TextField } from './form.tsx';
 import { PageHeader, Section } from './page-header.tsx';
 import { PersonList } from './person-list.tsx';
@@ -43,6 +44,8 @@ export function PlanItemScreen({
         actions={
           <>
             <Link href={projectHref(projectId, 'plans', `horizon=${item.horizon}&date=${item.dueDate}`)}>Back to plan</Link>
+            <Link href={projectHref(projectId, 'log', `planItemId=${item.id}`)}>Work logged</Link>
+            {item.status === 'done' ? null : <OpenQuickLog link={{ field: 'planItemIds', id: item.id }} label="Log work on this" />}
             <ConfirmDialog
               action={remove}
               triggerLabel="Delete"
@@ -57,7 +60,13 @@ export function PlanItemScreen({
       <Section title="Status">
         <div className={styles.meta}>
           <span>{item.dueLabel}</span>
+          {item.area === null ? null : <span>{item.area}</span>}
           <PersonList people={item.assignees} />
+          {item.issue === null || item.issueId === null ? null : (
+            <span>
+              Issue: <Link href={projectItemHref(projectId, 'issues', item.issueId)}>{item.issue}</Link>
+            </span>
+          )}
         </div>
         <StatusForm item={item} action={setStatus} />
       </Section>

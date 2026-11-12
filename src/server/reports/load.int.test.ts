@@ -71,6 +71,23 @@ describe('report loading', () => {
     expect(data?.moves).toEqual([{ title: 'moved item', fromDue: '2026-11-10', toDue: '2026-11-16' }]);
   });
 
+  it('§7.4: a monthly report also loads issues opened in the month and every issue still open, with the PR that resolved one', async () => {
+    const project = await aProject(testDb());
+    const pr = await aPullRequest(testDb(), project.id, { number: 12, title: 'Add login', state: 'merged' });
+    await anIssue(testDb(), project.id, { title: 'opened and fixed', assignedOn: '2026-11-09', deadline: '2026-11-13', status: 'resolved', resolvedOn: '2026-11-12', resolvedByPrId: pr.id });
+    await anIssue(testDb(), project.id, { title: 'opened, still open', assignedOn: '2026-11-18', deadline: '2026-12-15' });
+    await anIssue(testDb(), project.id, { title: 'older, still open', assignedOn: '2026-10-01', deadline: '2026-12-20' });
+    await anIssue(testDb(), project.id, { title: 'older, fixed earlier', assignedOn: '2026-10-01', deadline: '2026-10-09', status: 'resolved', resolvedOn: '2026-10-08' });
+
+    const monthly = await loadReportData(testDb(), { projectId: project.id, kind: 'monthly', start: d('2026-11-01'), today: d('2026-12-01'), author: 'K' });
+    const weekly = await loadReportData(testDb(), { projectId: project.id, kind: 'weekly', start: d('2026-11-09'), today: d('2026-12-01'), author: 'K' });
+
+    expect(monthly?.issues.map((issue) => issue.title).sort()).toEqual(['older, still open', 'opened and fixed', 'opened, still open']);
+    expect(monthly?.issues.find((issue) => issue.title === 'opened and fixed')).toMatchObject({ assignedOn: '2026-11-09', resolvedByNumber: 12, resolvedByTitle: 'Add login' });
+    // The weekly report keeps to §7.3: resolved in the week, or open and overdue.
+    expect(weekly?.issues.map((issue) => issue.title)).toEqual(['opened and fixed']);
+  });
+
   it('R-01: never includes another project’s data, and returns null for unknown projects', async () => {
     const project = await aProject(testDb());
     const other = await aProject(testDb());

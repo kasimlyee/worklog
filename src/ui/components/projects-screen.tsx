@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import { AppLink as Link } from './app-link.tsx';
 import type { FormAction } from '#src/ui/view-models/forms.ts';
 import type { ProjectSummaryVM } from '#src/ui/view-models/shell.ts';
 import { projectHref } from '#src/ui/routes.ts';

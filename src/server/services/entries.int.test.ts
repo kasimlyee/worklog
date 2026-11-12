@@ -44,6 +44,42 @@ describe('entries', () => {
     });
   });
 
+  it('BR-41: logging work can resolve the linked issues — on the work date, by the entry’s pull request', async () => {
+    const { project, grace } = await setup();
+    const crash = await anIssue(testDb(), project.id, { title: 'Crash on save' });
+    const alreadyFixed = await anIssue(testDb(), project.id, { title: 'Old bug', status: 'resolved', resolvedOn: '2026-11-03' });
+    const untouched = await anIssue(testDb(), project.id, { title: 'Not linked' });
+
+    const created = await createEntry(prDeps(testDb()), project.id, {
+      workDate: '2026-11-10',
+      description: 'Fixed the crash',
+      personIds: [grace.id],
+      prUrl: 'https://github.com/acme/app/pull/12',
+      issueIds: [crash.id, alreadyFixed.id],
+      resolveIssues: 'on',
+    });
+
+    expect(created.ok).toBe(true);
+    const issues = await testDb().selectFrom('issues').select(['title', 'status', 'resolvedOn', 'resolvedByPrId']).where('projectId', '=', project.id).orderBy('title').execute();
+    const entry = await getEntry(testDb(), project.id, created.ok ? created.value.id : '');
+    expect(issues).toEqual([
+      { title: 'Crash on save', status: 'resolved', resolvedOn: '2026-11-10', resolvedByPrId: entry?.pullRequest?.id },
+      // Already resolved: its resolution is kept as it was.
+      { title: 'Not linked', status: 'open', resolvedOn: null, resolvedByPrId: null },
+      { title: 'Old bug', status: 'resolved', resolvedOn: '2026-11-03', resolvedByPrId: null },
+    ]);
+    expect(untouched.status).toBe('open');
+  });
+
+  it('BR-41: without the request, linking an issue leaves it open', async () => {
+    const { project, grace } = await setup();
+    const crash = await anIssue(testDb(), project.id, { title: 'Crash on save' });
+
+    await createEntry(prDeps(testDb()), project.id, { workDate: '2026-11-10', description: 'Looked into it', personIds: [grace.id], issueIds: [crash.id] });
+
+    expect(await testDb().selectFrom('issues').select('status').where('id', '=', crash.id).executeTakeFirst()).toEqual({ status: 'open' });
+  });
+
   it('BR-17: needs a description, a valid date and at least one person', async () => {
     const { project } = await setup();
 

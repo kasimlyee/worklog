@@ -142,11 +142,14 @@ export async function updateIssueStatus(
   return result.numUpdatedRows > 0n;
 }
 
-/** BR-39: resolve an issue unless it already is (an existing resolution is kept as it is). */
-export async function resolveIssueIfOpen(db: Db, projectId: string, id: string, resolvedOn: IsoDate): Promise<void> {
+/**
+ * BR-39, BR-41: resolve an issue unless it already is (an existing resolution is kept as it
+ * is). BR-41 also records the pull request that resolved it.
+ */
+export async function resolveIssueIfOpen(db: Db, projectId: string, id: string, resolvedOn: IsoDate, resolvedByPrId: string | null = null): Promise<void> {
   await db
     .updateTable('issues')
-    .set({ status: 'resolved', resolvedOn, updatedAt: new Date() })
+    .set({ status: 'resolved', resolvedOn, ...(resolvedByPrId === null ? {} : { resolvedByPrId }), updatedAt: new Date() })
     .where('id', '=', id)
     .where('projectId', '=', projectId)
     .where('status', '<>', 'resolved')

@@ -3,10 +3,10 @@ import { StatusTag } from './status-tag.tsx';
 
 export function ProjectHeader({ project }: { readonly project: ProjectHeaderVM }): React.JSX.Element {
   return (
-    <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-2 lg:mb-5 lg:px-3">
-      <p className="text-lg font-[750] tracking-tight wrap-anywhere lg:basis-full">
-        {/* Says what the sidebar belongs to; the name alone is enough on narrow screens. */}
-        <span className="hidden font-mono text-xs font-medium tracking-wide text-muted uppercase lg:block">Project</span>
+    <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-2 lg:mb-4 lg:px-3">
+      <p className="text-lg font-[750] tracking-tight wrap-anywhere lg:basis-full lg:text-base lg:text-side-fg">
+        {/* Says what this part of the sidebar belongs to; the name alone is enough on narrow screens. */}
+        <span className="hidden font-mono text-xs font-medium tracking-wide text-side-muted uppercase lg:block">Project</span>
         {project.name}
       </p>
       {project.overdueCount > 0 ? (

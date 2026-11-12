@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import { AppLink as Link } from './app-link.tsx';
 import type { FormAction } from '#src/ui/view-models/forms.ts';
 import type { ReportKind, ReportsVM } from '#src/ui/view-models/reports.ts';
 import { projectHref } from '#src/ui/routes.ts';
@@ -49,6 +49,8 @@ export function ReportsScreen({ projectId, vm, saveNote }: { readonly projectId:
           </Link>
         </nav>
       </div>
+      {/* The report first; its note is edited underneath. */}
+      <ReportPreview model={vm.model} />
       <Section title="Report note">
         <ActionForm action={saveNote} submitLabel="Save note" label="Report note">
           <HiddenField name="kind" value={vm.kind} />
@@ -56,7 +58,6 @@ export function ReportsScreen({ projectId, vm, saveNote }: { readonly projectId:
           <TextAreaField name="body" label="Note shown under the header" defaultValue={vm.note} maxLength={5000} rows={3} hint="Leave empty for no note." />
         </ActionForm>
       </Section>
-      <ReportPreview model={vm.model} />
     </div>
   );
 }

@@ -5,7 +5,8 @@ import { sanitizeForPdf } from './pdf-sanitize.ts';
 
 /* §7.5: A4 portrait, plain typography, status labels as coloured tags, page numbers. */
 
-const ink: Readonly<Record<Ink, RGB>> = { text: rgb(0.11, 0.12, 0.14), muted: rgb(0.38, 0.4, 0.44) };
+const ink: Readonly<Record<Ink, RGB>> = { text: rgb(0.11, 0.11, 0.09), muted: rgb(0.38, 0.36, 0.31) };
+const ruleColour = rgb(0.85, 0.83, 0.78);
 
 // The same semantic colours as the UI tokens (product spec §5).
 const tagColours: Readonly<Record<Tone, { readonly fill: RGB; readonly text: RGB }>> = {
@@ -48,6 +49,7 @@ export function reportBlocks(model: ReportModel): readonly Block[] {
       ],
       indent: 0,
       spaceBefore: 4,
+      ruleBelow: true,
     },
   ];
   if (model.note !== null) {
@@ -59,20 +61,20 @@ export function reportBlocks(model: ReportModel): readonly Block[] {
     blocks.push({ runs: [run(emptyReportMessage, 'regular', 11)], indent: 0, spaceBefore: 18 });
   }
   for (const section of model.sections) {
-    blocks.push({ runs: [run(section.title, 'bold', 14)], indent: 0, spaceBefore: 18, keepWithNext: true });
+    blocks.push({ runs: [run(section.title, 'bold', 14)], indent: 0, spaceBefore: 22, keepWithNext: true, ruleBelow: true });
     if (section.summary.length > 0) {
       blocks.push({
         runs: section.summary.flatMap((item, index) => [
           run(`${index === 0 ? '' : '   ·   '}${item.label}: `, 'regular', 10, 'muted'),
-          run(String(item.value), 'bold', 10),
+          run(String(item.value), 'bold', 11),
         ]),
         indent: 0,
-        spaceBefore: 4,
+        spaceBefore: 6,
       });
     }
     for (const group of section.groups) {
       if (group.title !== null) {
-        blocks.push({ runs: [run(group.title, 'bold', 11)], indent: 0, spaceBefore: 10, keepWithNext: true });
+        blocks.push({ runs: [run(group.title, 'bold', 11)], indent: 0, spaceBefore: 12, keepWithNext: true });
       }
       blocks.push(...group.lines.flatMap((item) => lineBlocks(item, 0)));
     }
@@ -84,6 +86,9 @@ type Fonts = Readonly<Record<FontKey, PDFFont>>;
 
 function drawPage(doc: PDFDocument, layout: PageLayout, fonts: Fonts, footer: string, pageLabel: string): void {
   const page = doc.addPage([a4.pageWidth, a4.pageHeight]);
+  for (const rule of layout.rules) {
+    page.drawLine({ start: { x: rule.x, y: rule.y }, end: { x: rule.x + rule.width, y: rule.y }, thickness: 0.6, color: ruleColour });
+  }
   for (const item of layout.items) {
     const font = fonts[item.font];
     if (item.tag === undefined) {

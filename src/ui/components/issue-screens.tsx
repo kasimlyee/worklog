@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import { AppLink as Link } from './app-link.tsx';
 import type { Pickers } from '#src/ui/view-models/common.ts';
 import type { FormAction, PlainAction } from '#src/ui/view-models/forms.ts';
 import type { IssueDetailVM, IssueFormValues, IssueHistoryVM, IssueListControls, IssueVM } from '#src/ui/view-models/issues.ts';
@@ -6,6 +6,7 @@ import { IssueHistory } from './issue-history.tsx';
 import { newItemHref, projectHref } from '#src/ui/routes.ts';
 import { ActionButton } from './action-button.tsx';
 import { ConfirmDialog } from './confirm-dialog.tsx';
+import { OpenQuickLog } from './entry-form.tsx';
 import { ExternalLink } from './external-link.tsx';
 import { ActionForm, CheckboxGroupField, SelectField, TextAreaField, TextField } from './form.tsx';
 import { IssueTable } from './issue-table.tsx';
@@ -178,6 +179,8 @@ export function IssueScreen({
         actions={
           <>
             <Link href={projectHref(projectId, 'issues')}>Back to issues</Link>
+            <Link href={projectHref(projectId, 'log', `issueId=${issue.id}`)}>Work logged</Link>
+            {issue.status === 'resolved' ? null : <OpenQuickLog link={{ field: 'issueIds', id: issue.id }} label="Log work on this" />}
             <ConfirmDialog
               action={remove}
               triggerLabel="Delete"

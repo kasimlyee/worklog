@@ -57,6 +57,7 @@ export const screens: Readonly<Record<string, Preview>> = {
   note: { element: <NoteScreen projectId={id} note={f.note} remove={plain} /> },
   'note-edit': { element: <NoteEditScreen projectId={id} title="Edit note" values={f.noteValues} pickers={f.pickers} save={form} /> },
   reports: { element: <ReportsScreen projectId={id} vm={f.reports} saveNote={form} /> },
+  'reports-monthly': { element: <ReportsScreen projectId={id} vm={f.monthlyReports} saveNote={form} /> },
   'reports-empty': { element: <ReportsScreen projectId={id} vm={f.emptyReports} saveNote={form} /> },
   settings: {
     element: (

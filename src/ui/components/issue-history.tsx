@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import { AppLink as Link } from './app-link.tsx';
 import type { IssueHistoryVM, TimelineEventVM } from '#src/ui/view-models/issues.ts';
 import { projectItemHref } from '#src/ui/routes.ts';
 import { ExternalLink } from './external-link.tsx';

@@ -17,6 +17,8 @@ function submitOnModEnter(event: React.KeyboardEvent<HTMLFormElement>): void {
   }
 }
 
+const resolveOption = [{ value: 'on', label: 'Resolve the linked issues' }] as const;
+
 type EntryFormProps = {
   readonly action: FormAction;
   readonly pickers: Pickers;
@@ -24,10 +26,12 @@ type EntryFormProps = {
   readonly submitLabel: string;
   readonly label: string;
   readonly autoFocus?: boolean;
+  /** BR-41: offer to resolve the linked issues when the work is logged (new entries only). */
+  readonly canResolve?: boolean;
 };
 
 /** BR-17: date, description, area, people, PR link, any plan items and issues. */
-export function EntryForm({ action, pickers, values, submitLabel, label, autoFocus = false }: EntryFormProps): React.JSX.Element {
+export function EntryForm({ action, pickers, values, submitLabel, label, autoFocus = false, canResolve = false }: EntryFormProps): React.JSX.Element {
   return (
     <ActionForm action={action} submitLabel={submitLabel} label={label} onKeyDown={submitOnModEnter}>
       <TextAreaField
@@ -50,6 +54,14 @@ export function EntryForm({ action, pickers, values, submitLabel, label, autoFoc
         placeholder="https://github.com/org/repo/pull/123"
       />
       <CheckboxGroupField name="issueIds" legend="Issues it fixes or works on" options={pickers.issues} defaultValues={values.issueIds} scrollable />
+      {canResolve && pickers.issues.length > 0 ? (
+        <CheckboxGroupField
+          name="resolveIssues"
+          legend="When this fixes them"
+          options={resolveOption}
+          hint="Marks the ticked issues resolved on this date, by this pull request."
+        />
+      ) : null}
       <CheckboxGroupField name="planItemIds" legend="Plan items it fulfils" options={pickers.planItems} defaultValues={values.planItemIds} scrollable />
       <CheckboxGroupField name="personIds" legend="People" options={pickers.people} defaultValues={values.personIds} />
     </ActionForm>
@@ -68,13 +80,20 @@ export function QuickLog({ action, pickers, today }: { readonly action: FormActi
   return (
     <details className="quick-log" id="quick-log" onToggle={focusDescription}>
       <summary>Quick log</summary>
-      <EntryForm action={action} pickers={pickers} values={values} submitLabel="Log work" label="Quick log" />
+      <EntryForm action={action} pickers={pickers} values={values} submitLabel="Log work" label="Quick log" canResolve />
     </details>
   );
 }
 
-/** Opens the Quick log at the top of the page (an anchor jump without JavaScript). */
-export function OpenQuickLog(): React.JSX.Element {
+/** What a new entry should start out linked to: one issue or one plan item. */
+export type QuickLogLink = { readonly field: 'issueIds' | 'planItemIds'; readonly id: string };
+
+/**
+ * Opens the Quick log at the top of the page (an anchor jump without JavaScript). With
+ * `link`, the entry starts out linked to that issue or plan item — logging work from the
+ * thing you worked on, without finding it in the list again.
+ */
+export function OpenQuickLog({ link, label = 'Log work' }: { readonly link?: QuickLogLink; readonly label?: string }): React.JSX.Element {
   return (
     <a
       className="button"
@@ -86,12 +105,19 @@ export function OpenQuickLog(): React.JSX.Element {
         if (panel instanceof HTMLDetailsElement) {
           event.preventDefault();
           panel.open = true;
+          if (link !== undefined) {
+            for (const box of panel.querySelectorAll<HTMLInputElement>(`input[type="checkbox"][name="${link.field}"]`)) {
+              if (box.value === link.id) {
+                box.checked = true;
+              }
+            }
+          }
           panel.scrollIntoView({ block: 'start', behavior: 'smooth' });
           panel.querySelector('textarea')?.focus({ preventScroll: true });
         }
       }}
     >
-      Log work
+      {label}
     </a>
   );
 }

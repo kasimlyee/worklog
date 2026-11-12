@@ -94,8 +94,16 @@ describe('PDF layout', () => {
   });
 
   it('returns one empty page for no blocks, and a line for an empty block', () => {
-    expect(layoutBlocks([], measure, small)).toEqual([{ items: [] }]);
-    expect(layoutBlocks([text('')], measure, small)).toEqual([{ items: [] }]);
+    expect(layoutBlocks([], measure, small)).toEqual([{ items: [], rules: [] }]);
+    expect(layoutBlocks([text('')], measure, small)).toEqual([{ items: [], rules: [] }]);
+  });
+
+  it('draws a rule under a heading across the content width, with the next block clear of it', () => {
+    const [page] = layoutBlocks([text('Heading', { ruleBelow: true }), text('Body')], measure, small);
+
+    // The heading's 14pt line ends at y = 96; the rule sits 4pt below it.
+    expect(page?.rules).toEqual([{ x: 10, y: 92, width: 100 }]);
+    expect(page?.items.find((item) => item.text === 'Body')?.y).toBeLessThan(92);
   });
 
   it('places a tall line on an empty page even if it does not fit', () => {

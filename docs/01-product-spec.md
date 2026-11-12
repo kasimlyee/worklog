@@ -132,6 +132,7 @@ These are deliberate. A feature request that falls here needs this document chan
 - **BR-39** Marking a plan item `done` resolves the issue it references (BR-12), if that issue is not already resolved; `resolved_on` is the item's `completed_on`. Reopening the plan item does not reopen the issue — reopening an issue is always done on the issue.
 
 - **BR-40** An issue shows its history: when it was assigned, every plan item that references it (with status and due date), every log entry linked to it (with date, people and PR), and when and how it was resolved (on time or late, resolving PR). A resolved issue also shows a summary: resolved date and deadline state, days from assignment to resolution, the people who logged work on it, and the pull requests involved.
+- **BR-41** Logging work can **resolve the issues the entry is linked to** in the same step ("Resolve the linked issues" in the log form). Each linked issue that is not already resolved becomes `resolved`, with the entry's date as `resolved_on` and the entry's pull request (if any) as the resolving PR (BR-30). Issues already resolved keep their resolution. Editing or deleting the entry later does not reopen them.
 
 ### 4.7 Releases and notes
 
@@ -205,14 +206,20 @@ Period: Monday–Friday. Saturday/Sunday are included **only if they have entrie
 7. **Plan vs. actual** for the week plan and its day plans: done, not done, carried over during the week (with count), unplanned work.
 
 ### 7.4 Monthly report
+The monthly report is the record of the month: it leaves nothing out.
+
 1. Header and report note.
-2. **Summary line** — as weekly, for the month.
-3. **Releases** in the month with their linked PRs.
-4. **Merged PRs** per area (title and number only).
-5. **Completed plan items** from week and month plans.
-6. **Issues** — resolved on time vs. late, still open and overdue.
-7. **Per developer** — as weekly, for the month.
-8. **Plan vs. actual** for the month plan.
+2. **Summary line** — as weekly, for the month, plus: days with work logged, issues opened, issues still open at the end, plan items completed.
+3. **Work done** — by area → each PR (state, number of entries, everyone who worked on it) with **every entry under it, dated** → entries without a PR, dated.
+4. **Week by week** — one line per calendar week of the month: entries, PRs, releases, issues resolved, and who logged work.
+5. **Releases** in the month with their linked PRs.
+6. **Merged PRs** per area (title and number only).
+7. **Completed plan items** from week and month plans.
+8. **Issues** — opened in the month (with how each stood at the end), resolved on time vs. late, still open and overdue, still open.
+9. **Per developer** — as weekly, for the month.
+10. **Plan vs. actual** for the month plan.
+
+In every report, an entry line names the issues and plan items it is linked to (BR-17), an issue line gives its assigned date, deadline, resolved date and the PR that resolved it (BR-30), and a plan item that was not done says so if it is blocked or in progress. Per developer also counts plan items completed.
 
 ### 7.5 Export formats
 - **Markdown:** CommonMark. Colours appear as text labels only, e.g. `**[Merged]**`.
