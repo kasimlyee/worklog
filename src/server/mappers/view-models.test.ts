@@ -9,7 +9,7 @@ import type { Release } from '#src/server/services/releases.ts';
 import { deadlineTag } from './status.ts';
 import {
   timestampLabel, toDashboardVM, toEntryFormValues, toEntryVM, toIssueDetailVM, toLogDays, toNoteFormValues, toNoteVM, toPickers,
-  arrangeIssues, toIssueHistoryVM, toPlanItemDetailVM, toPlansVM, toPullRequestRowVM, toReleaseDetailVM,
+  arrangeIssues, toIssueHistoryVM, toOverviewVM, toWorkloadVM, toPlanItemDetailVM, toPlansVM, toPullRequestRowVM, toReleaseDetailVM,
 } from './view-models.ts';
 import { issuePriorityTag } from './status.ts';
 
@@ -327,5 +327,44 @@ describe('issue history', () => {
 
     expect([open.isResolved, open.summary, open.events.map((e) => e.kind)]).toEqual([false, [], ['assigned']]);
     expect(onTime.summary.map((s) => s.value)).toEqual(['3 Nov 2026', 'On time', '1 day', '0', 'Nobody logged work', 'None']);
+  });
+});
+
+describe('overview and workload', () => {
+  it('BR-42: maps cross-project work with its project, deadline colour and only high/urgent priorities', () => {
+    const vm = toOverviewVM(
+      {
+        projects: [{ id: 'p', name: 'Atlas', slug: 'atlas', description: '', overdueCount: 1, today: { done: 1, total: 2 } }],
+        attention: [
+          {
+            kind: 'issue', id: 's1', title: 'Crash', project: { id: 'p', name: 'Atlas' }, due: d('2026-11-06'),
+            deadline: { state: 'overdue', label: '4 days overdue' }, priority: 'urgent', people: [grace],
+          },
+        ],
+        dueSoon: [
+          {
+            kind: 'plan_item', id: 'i1', title: 'Ship', project: { id: 'p', name: 'Atlas' }, due: d('2026-11-11'),
+            deadline: { state: 'due_soon', label: 'Due tomorrow' }, priority: null, people: [],
+          },
+          {
+            kind: 'issue', id: 's2', title: 'Minor', project: { id: 'p', name: 'Atlas' }, due: d('2026-11-11'),
+            deadline: { state: 'due_soon', label: 'Due tomorrow' }, priority: 'low', people: [],
+          },
+        ],
+        recentlyDone: [{ kind: 'issue', id: 's3', title: 'Typo', projectId: 'p', projectName: 'Atlas', doneOn: d('2026-11-09') }],
+      },
+      d('2026-11-10'),
+    );
+
+    expect(vm.attention[0]).toMatchObject({ projectName: 'Atlas', dueLabel: 'Deadline Fri 6 Nov', deadline: { tone: 'danger' }, priority: { label: 'Urgent' }, people: ['Grace'] });
+    expect(vm.dueSoon.map((item) => [item.dueLabel, item.priority])).toEqual([['Due Wed 11 Nov', null], ['Deadline Wed 11 Nov', null]]);
+    expect(vm.recentlyDone).toEqual([{ key: 'issue-s3', kind: 'issue', id: 's3', title: 'Typo', projectId: 'p', projectName: 'Atlas', doneLabel: 'Mon 9 Nov' }]);
+    expect(vm.projects[0]?.today).toEqual({ done: 1, total: 2 });
+  });
+
+  it('BR-43: passes workload rows through unchanged', () => {
+    const row = { id: 'p1', name: 'Ali', openItems: 1, overdueItems: 0, blockedItems: 0, openIssues: 0, overdueIssues: 0, doneRecently: 2, projects: ['Atlas'] };
+
+    expect(toWorkloadVM([row])).toEqual([row]);
   });
 });

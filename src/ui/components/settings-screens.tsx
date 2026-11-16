@@ -1,5 +1,6 @@
 import { AppLink as Link } from './app-link.tsx';
 import type { FormAction, PlainAction } from '#src/ui/view-models/forms.ts';
+import type { WorkloadVM } from '#src/ui/view-models/overview.ts';
 import type { PersonVM, PullRequestRowVM, SettingsVM } from '#src/ui/view-models/settings.ts';
 import { ActionButton } from './action-button.tsx';
 import { AreaReorder } from './area-reorder.tsx';
@@ -106,13 +107,58 @@ export function SettingsScreen({
 }
 
 /** Product spec §6: people are global labels — add, rename, archive. */
+/** BR-43: each person's recorded assignments across projects. */
+function WorkloadTable({ workload }: { readonly workload: readonly WorkloadVM[] }): React.JSX.Element {
+  if (workload.length === 0) {
+    return <EmptyState>No people yet.</EmptyState>;
+  }
+  const cell = (value: number, tone?: 'danger' | 'warning'): React.JSX.Element =>
+    value > 0 && tone !== undefined ? <StatusTag status={{ tone, label: String(value) }} /> : <span className="tabular-nums">{value}</span>;
+  return (
+    // Scrolls sideways on phones, so keyboard users must be able to reach it.
+    <div className={styles.tableWrap} tabIndex={0} role="region" aria-label="Workload, scrollable">
+      <table>
+        <caption className="visually-hidden">Assignments per person across all active projects</caption>
+        <thead>
+          <tr>
+            <th scope="col">Person</th>
+            <th scope="col">Open plan items</th>
+            <th scope="col">Open issues</th>
+            <th scope="col">Overdue</th>
+            <th scope="col">Blocked</th>
+            <th scope="col">Done, last 30 days</th>
+            <th scope="col">Projects</th>
+          </tr>
+        </thead>
+        <tbody>
+          {workload.map((person) => (
+            <tr key={person.id}>
+              <th scope="row" className="font-semibold text-fg normal-case tracking-normal">
+                {person.name}
+              </th>
+              <td>{cell(person.openItems)}</td>
+              <td>{cell(person.openIssues)}</td>
+              <td>{cell(person.overdueItems + person.overdueIssues, 'danger')}</td>
+              <td>{cell(person.blockedItems, 'warning')}</td>
+              <td>{cell(person.doneRecently)}</td>
+              <td className="text-muted">{person.projects.length === 0 ? 'None' : person.projects.join(', ')}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 export function PeopleScreen({
   people,
+  workload = [],
   create,
   rename,
   setArchived,
 }: {
   readonly people: readonly PersonVM[];
+  readonly workload?: readonly WorkloadVM[];
   readonly create: FormAction;
   readonly rename: FormAction;
   readonly setArchived: PlainAction;
@@ -122,6 +168,10 @@ export function PeopleScreen({
   return (
     <div>
       <PageHeader title="People" description="Developer names used as labels across all projects." />
+      <Section title="Workload">
+        <p className="mb-3 text-sm text-muted">Assignments recorded in Worklog, across all active projects. A count of work, not a measure of anyone’s productivity.</p>
+        <WorkloadTable workload={workload} />
+      </Section>
       <Section title="Add a person">
         <ActionForm action={create} submitLabel="Add person" label="Add person" layout="inline">
           <TextField name="name" label="Name" required maxLength={80} />

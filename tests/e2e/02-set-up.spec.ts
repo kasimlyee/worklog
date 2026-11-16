@@ -43,9 +43,10 @@ test('set up a project with areas and people', async ({ signedIn: page }) => {
   await page.getByRole('button', { name: 'Restore Ali' }).click();
   await expect(page.getByRole('button', { name: 'Archive Ali' })).toBeVisible();
 
-  await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Projects' }).click();
-  await expect(page.getByRole('link', { name: 'Atlas' })).toBeVisible();
-  await expect(page.getByText('Nothing overdue')).toBeVisible();
+  await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Overview' }).click();
+  const cards = page.getByRole('list', { name: 'Projects' });
+  await expect(cards.getByRole('link', { name: 'Atlas' })).toBeVisible();
+  await expect(cards.getByText('Nothing overdue', { exact: true })).toBeVisible();
 });
 
 test('BR-05: a duplicate project name shows a message next to the field and keeps the input', async ({ signedIn: page }) => {

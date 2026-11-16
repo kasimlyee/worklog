@@ -53,7 +53,7 @@ test('a signed-in visit to sign-in goes to the projects', async ({ page }) => {
   await page.goto('/sign-in');
 
   await expect(page).toHaveURL(/\/projects$/);
-  await expect(page.getByRole('heading', { level: 1, name: 'Projects' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'Overview' })).toBeVisible();
 });
 
 test('NF-05: the report export Route Handler checks the session itself', async ({ page }) => {

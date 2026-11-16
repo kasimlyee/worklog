@@ -134,6 +134,9 @@ These are deliberate. A feature request that falls here needs this document chan
 - **BR-40** An issue shows its history: when it was assigned, every plan item that references it (with status and due date), every log entry linked to it (with date, people and PR), and when and how it was resolved (on time or late, resolving PR). A resolved issue also shows a summary: resolved date and deadline state, days from assignment to resolution, the people who logged work on it, and the pull requests involved.
 - **BR-41** Logging work can **resolve the issues the entry is linked to** in the same step ("Resolve the linked issues" in the log form). Each linked issue that is not already resolved becomes `resolved`, with the entry's date as `resolved_on` and the entry's pull request (if any) as the resolving PR (BR-30). Issues already resolved keep their resolution. Editing or deleting the entry later does not reopen them.
 
+- **BR-42** The first screen is an **overview across every active project**: each project's overdue count and today's progress; everything that needs attention (overdue plan items and issues, and urgent issues) from all projects, oldest first, each naming its project; what is due soon; and what was finished (plan items done, issues resolved) in the last 7 days.
+- **BR-43** The People screen shows each active person's **workload** across active projects: open plan items, open issues, overdue and blocked work, work finished in the last 30 days, and the projects they have open work in. These are counts of recorded assignments, never presented as a measure of productivity.
+
 ### 4.7 Releases and notes
 
 - **BR-32** A release has a version (unique within the project), a status (`planned` or `released`), a target date, a released date (required when `released`), notes in Markdown and zero or more linked PRs.
@@ -161,7 +164,7 @@ Colours are semantic and identical in the UI and in PDF exports. Colour is never
 | Screen | Contents |
 |---|---|
 | **Sign in** | One "Sign in with GitHub" button. |
-| **Project switcher** | All active projects. Each shows a red count of overdue items + issues if any. |
+| **Overview** (project switcher) | All active projects, each with a red count of overdue items + issues if any; needs attention, due soon and recently done across projects (BR-42). |
 | **Project dashboard** | Urgent (overdue plan items and issues, oldest first) · Due soon · Today's plan (issues can be dragged onto it, BR-38) · Open issues by deadline · Recent entries. |
 | **Plans** | Day / week / month view; create items; change status; move (carry-over) with history visible. |
 | **Log** | Entries by date, newest first; quick-add form; filter by area, person, PR. |
@@ -171,7 +174,7 @@ Colours are semantic and identical in the UI and in PDF exports. Colour is never
 | **Notes** | List, editor, rendered view. |
 | **Reports** | Choose type and period → preview → export PDF / Markdown. Report note editable here. |
 | **Settings (per project)** | Name, description, areas (add, rename, reorder, archive), archive project. |
-| **People** | Global list: add, rename, archive. |
+| **People** | Workload per person across projects (BR-43); add, rename, archive. |
 
 ## 7. Reports
 

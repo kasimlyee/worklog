@@ -14,7 +14,7 @@ test('BR-15: carry over an overdue item', async ({ signedIn: page }) => {
   await page.goto('/projects');
   await expect(page.getByText('1 overdue')).toBeVisible();
 
-  await page.getByRole('link', { name: 'Atlas' }).click();
+  await page.getByRole('list', { name: 'Projects' }).getByRole('link', { name: 'Atlas' }).click();
   const urgent = page.getByRole('region', { name: 'Urgent' });
   await expect(urgent.getByRole('link', { name: 'Write the migration' })).toBeVisible();
   await expect(urgent.locator('[data-tone="danger"]')).toContainText('overdue');
@@ -31,5 +31,5 @@ test('BR-15: carry over an overdue item', async ({ signedIn: page }) => {
   await page.getByRole('navigation', { name: 'Project' }).getByRole('link', { name: 'Dashboard' }).click();
   await expect(page.getByRole('region', { name: 'Urgent' }).getByText('Nothing overdue.')).toBeVisible();
   await page.goto('/projects');
-  await expect(page.getByText('Nothing overdue')).toBeVisible();
+  await expect(page.getByRole('list', { name: 'Projects' }).getByText('Nothing overdue', { exact: true })).toBeVisible();
 });

@@ -71,19 +71,48 @@ describe('shell', () => {
   });
 });
 
-describe('project switcher', () => {
-  it('BR-13: shows each project with its red overdue count', () => {
-    render(<ProjectsScreen projects={f.projects} createProject={formAction} />);
+describe('overview (project switcher)', () => {
+  it('BR-13: shows each project with its red overdue count and today’s progress', () => {
+    render(<ProjectsScreen overview={f.overview} createProject={formAction} />);
 
-    expect(screen.getByRole('link', { name: 'Atlas' })).toBeDefined();
-    expect(tagsIn(document.body)).toEqual(['danger:3 overdue', 'neutral:Nothing overdue']);
+    const cards = screen.getByRole('list', { name: 'Projects' });
+    expect(within(cards).getByRole('link', { name: 'Atlas' })).toBeDefined();
+    expect(tagsIn(cards)).toEqual(['danger:3 overdue', 'neutral:Nothing overdue']);
+    expect(within(cards).getByText('Today: 1 of 3 done')).toBeDefined();
     expectHeadingOrder();
   });
 
-  it('shows an empty state with no projects', () => {
-    render(<ProjectsScreen projects={[]} createProject={formAction} />);
+  it('BR-42: lists what needs attention across projects, each naming and linking its project', () => {
+    render(<ProjectsScreen overview={f.overview} createProject={formAction} />);
+
+    const attention = screen.getByRole('region', { name: 'Needs attention' });
+    expect(within(attention).getByRole('link', { name: 'Crash on save' }).getAttribute('href')).toBe(`/projects/${f.projectId}/issues/s1`);
+    expect(within(attention).getAllByRole('link', { name: 'Atlas' })).toHaveLength(2);
+    expect(tagsIn(attention)).toEqual(['danger:Urgent', 'danger:3 days overdue', 'danger:3 days overdue']);
+    expect(within(screen.getByRole('region', { name: 'Due soon' })).getByRole('link', { name: 'Borealis' })).toBeDefined();
+    expect(within(screen.getByRole('region', { name: 'Done in the last 7 days' })).getAllByRole('listitem')).toHaveLength(2);
+    const tiles = document.querySelector('dl[aria-label="Across all projects"]');
+    expect(tiles?.textContent).toContain('Projects needing attention1 of 2');
+  });
+
+  it('shows the empty states with no projects', () => {
+    render(<ProjectsScreen overview={f.emptyOverview} createProject={formAction} />);
 
     expect(screen.getByText('No projects yet. Create the first one below.')).toBeDefined();
+    expect(screen.getByText('Nothing overdue in any project.')).toBeDefined();
+    expect(screen.getByText('Nothing finished in the last 7 days.')).toBeDefined();
+  });
+});
+
+describe('workload (BR-43)', () => {
+  it('BR-43: shows each person’s open, overdue and blocked assignments, with overdue in red', () => {
+    render(<PeopleScreen people={f.people} workload={f.workload} create={formAction} rename={formAction} setArchived={plainAction} />);
+
+    const table = screen.getByRole('table', { name: 'Assignments per person across all active projects' });
+    const grace = within(table).getByRole('row', { name: /Grace/ });
+    expect(within(grace).getAllByRole('cell').map((cell) => cell.textContent)).toEqual(['3', '2', '2', '1', '6', 'Atlas']);
+    expect(tagsIn(grace)).toEqual(['danger:2', 'warning:1']);
+    expect(screen.getByText(/not a measure of anyone’s productivity/)).toBeDefined();
   });
 });
 

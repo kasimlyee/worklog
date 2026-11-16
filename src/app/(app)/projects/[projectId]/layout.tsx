@@ -26,7 +26,7 @@ export default async function ProjectLayout({ children, params }: LayoutProps<'/
         </>
       }
     >
-      <QuickLog action={createEntryAction.bind(null, project.id)} pickers={pickers} today={today} />
+      <QuickLog action={createEntryAction.bind(null, project.id)} pickers={pickers} today={today} projectId={project.id} />
       {children}
     </ProjectFrame>
   );

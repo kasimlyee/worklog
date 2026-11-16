@@ -12,6 +12,8 @@ import type { PullRequest } from '#src/server/services/pull-requests.ts';
 import type { Release } from '#src/server/services/releases.ts';
 import type { PickerOptions } from '#src/server/services/project-chrome.ts';
 import type { Pickers, PullRequestVM } from '#src/ui/view-models/common.ts';
+import type { Overview, OverviewItem, Workload } from '#src/server/services/overview.ts';
+import type { OverviewItemVM, OverviewVM, WorkloadVM } from '#src/ui/view-models/overview.ts';
 import type { DashboardVM, TrackedVM } from '#src/ui/view-models/dashboard.ts';
 import type { EntryFormValues, EntryVM, LogDayVM } from '#src/ui/view-models/entries.ts';
 import type { IssueDetailVM, IssueHistoryVM, IssueVM, TimelineEventVM } from '#src/ui/view-models/issues.ts';
@@ -374,4 +376,46 @@ export function toIssueHistoryVM(issue: Issue, history: IssueHistory): IssueHist
     ],
     events,
   };
+}
+
+/** BR-42: the overview across every active project. */
+export function toOverviewVM(overview: Overview, today: IsoDate): OverviewVM {
+  const item = (entry: OverviewItem): OverviewItemVM => ({
+    key: `${entry.kind}-${entry.id}`,
+    kind: entry.kind,
+    id: entry.id,
+    title: entry.title,
+    projectId: entry.project.id,
+    projectName: entry.project.name,
+    dueLabel: `${entry.kind === 'issue' ? 'Deadline' : 'Due'} ${formatShortDate(entry.due)}`,
+    deadline: deadlineTag(entry.deadline),
+    priority: entry.priority === 'urgent' || entry.priority === 'high' ? issuePriorityTag[entry.priority] : null,
+    people: names(entry.people),
+  });
+  return {
+    todayLabel: dayLabel(today),
+    projects: overview.projects.map((project) => ({
+      id: project.id,
+      name: project.name,
+      description: project.description,
+      overdueCount: project.overdueCount,
+      today: project.today,
+    })),
+    attention: overview.attention.map(item),
+    dueSoon: overview.dueSoon.map(item),
+    recentlyDone: overview.recentlyDone.map((done) => ({
+      key: `${done.kind}-${done.id}`,
+      kind: done.kind,
+      id: done.id,
+      title: done.title,
+      projectId: done.projectId,
+      projectName: done.projectName,
+      doneLabel: formatShortDate(done.doneOn),
+    })),
+  };
+}
+
+/** BR-43 */
+export function toWorkloadVM(workload: readonly Workload[]): readonly WorkloadVM[] {
+  return workload.map((row) => ({ ...row }));
 }

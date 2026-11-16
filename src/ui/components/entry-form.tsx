@@ -68,17 +68,101 @@ export function EntryForm({ action, pickers, values, submitLabel, label, autoFoc
   );
 }
 
+type Remembered = { readonly areaId: string; readonly personIds: readonly string[] };
+
+/*
+ * The quick log remembers the area and people of the last entry in this project, in this
+ * browser only. A convenience: if storage is unavailable, the form simply starts empty.
+ */
+function storageKey(projectId: string): string {
+  return `worklog:quick-log:${projectId}`;
+}
+
+function rememberChoices(projectId: string, form: HTMLFormElement): void {
+  const data = new FormData(form);
+  const area = data.get('areaId');
+  const remembered: Remembered = {
+    areaId: typeof area === 'string' ? area : '',
+    personIds: data.getAll('personIds').filter((value): value is string => typeof value === 'string'),
+  };
+  try {
+    window.localStorage.setItem(storageKey(projectId), JSON.stringify(remembered));
+  } catch {
+    // Private mode or storage blocked: nothing to remember.
+  }
+}
+
+function readChoices(projectId: string): Remembered | null {
+  try {
+    const parsed: unknown = JSON.parse(window.localStorage.getItem(storageKey(projectId)) ?? 'null');
+    if (typeof parsed !== 'object' || parsed === null) {
+      return null;
+    }
+    const areaId: unknown = Reflect.get(parsed, 'areaId');
+    const personIds: unknown = Reflect.get(parsed, 'personIds');
+    return {
+      areaId: typeof areaId === 'string' ? areaId : '',
+      personIds: Array.isArray(personIds) ? personIds.filter((id): id is string => typeof id === 'string') : [],
+    };
+  } catch {
+    return null;
+  }
+}
+
+/** Fills area and people from the last entry — only into a form not yet started. */
+function applyChoices(projectId: string, panel: HTMLElement): void {
+  const form = panel.querySelector('form');
+  const remembered = readChoices(projectId);
+  if (form === null || remembered === null || (form.querySelector('textarea')?.value ?? '') !== '') {
+    return;
+  }
+  const area = form.querySelector<HTMLSelectElement>('select[name="areaId"]');
+  if (area !== null && Array.from(area.options).some((option) => option.value === remembered.areaId)) {
+    area.value = remembered.areaId;
+  }
+  for (const box of form.querySelectorAll<HTMLInputElement>('input[type="checkbox"][name="personIds"]')) {
+    box.checked = remembered.personIds.includes(box.value);
+  }
+}
+
 /** Reachable from every project page (product spec §6). */
-export function QuickLog({ action, pickers, today }: { readonly action: FormAction; readonly pickers: Pickers; readonly today: string }): React.JSX.Element {
+export function QuickLog({
+  action,
+  pickers,
+  today,
+  projectId,
+}: {
+  readonly action: FormAction;
+  readonly pickers: Pickers;
+  readonly today: string;
+  readonly projectId: string;
+}): React.JSX.Element {
   const values: EntryFormValues = { workDate: today, description: '', areaId: '', personIds: [], prUrl: '', planItemIds: [], issueIds: [] };
-  // Opening the panel puts the cursor in the description, so logging needs no mouse.
-  const focusDescription = (event: React.SyntheticEvent<HTMLDetailsElement>): void => {
+  // Opening the panel fills in the last area and people, and puts the cursor in the description.
+  const onToggle = (event: React.SyntheticEvent<HTMLDetailsElement>): void => {
     if (event.currentTarget.open) {
+      applyChoices(projectId, event.currentTarget);
       event.currentTarget.querySelector('textarea')?.focus();
     }
   };
   return (
-    <details className="quick-log" id="quick-log" onToggle={focusDescription}>
+    <details
+      className="quick-log"
+      id="quick-log"
+      onToggle={onToggle}
+      onSubmitCapture={(event) => {
+        if (event.target instanceof HTMLFormElement) {
+          rememberChoices(projectId, event.target);
+        }
+      }}
+      onResetCapture={(event) => {
+        // After a save React resets the form; fill the remembered choices back in.
+        const panel = event.currentTarget;
+        window.setTimeout(() => {
+          applyChoices(projectId, panel);
+        }, 0);
+      }}
+    >
       <summary>Quick log</summary>
       <EntryForm action={action} pickers={pickers} values={values} submitLabel="Log work" label="Quick log" canResolve />
     </details>

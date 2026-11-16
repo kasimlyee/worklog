@@ -8,6 +8,7 @@ import type { ReleaseDetailVM, ReleaseVM } from '#src/ui/view-models/releases.ts
 import type { ReportModelVM, ReportsVM } from '#src/ui/view-models/reports.ts';
 import type { PersonVM, PullRequestRowVM, SettingsVM } from '#src/ui/view-models/settings.ts';
 import type { ProjectHeaderVM, ProjectSummaryVM } from '#src/ui/view-models/shell.ts';
+import type { OverviewVM, WorkloadVM } from '#src/ui/view-models/overview.ts';
 
 /* Realistic view-models for every screen state: empty, normal, long text, many items, every status. */
 
@@ -221,6 +222,43 @@ export const issues: readonly IssueVM[] = [crash, slowQuery, typo];
 export const projects: readonly ProjectSummaryVM[] = [
   { id: projectId, name: 'Atlas', description: 'Field service app', overdueCount: 3 },
   { id: '22222222-2222-4222-8222-222222222222', name: 'Borealis', description: '', overdueCount: 0 },
+];
+
+const borealisId = '22222222-2222-4222-8222-222222222222';
+
+export const overview: OverviewVM = {
+  todayLabel: 'Tuesday 10 Nov 2026',
+  projects: [
+    { id: projectId, name: 'Atlas', description: 'Field service app', overdueCount: 3, today: { done: 1, total: 3 } },
+    { id: borealisId, name: 'Borealis', description: '', overdueCount: 0, today: { done: 0, total: 0 } },
+  ],
+  attention: [
+    {
+      key: 'issue-s1', kind: 'issue', id: 's1', title: 'Crash on save', projectId, projectName: 'Atlas',
+      dueLabel: 'Deadline Fri 6 Nov', deadline: statuses.overdue, priority: status('danger', 'Urgent'), people: ['Grace'],
+    },
+    {
+      key: 'plan_item-i2', kind: 'plan_item', id: 'i2', title: 'Migrate billing tables', projectId, projectName: 'Atlas',
+      dueLabel: 'Due Fri 6 Nov', deadline: statuses.overdue, priority: null, people: ['Wanjiru'],
+    },
+  ],
+  dueSoon: [
+    {
+      key: 'issue-b1', kind: 'issue', id: 'b1', title: 'Payment retries', projectId: borealisId, projectName: 'Borealis',
+      dueLabel: 'Deadline Wed 11 Nov', deadline: statuses.dueSoon, priority: null, people: ['Ali'],
+    },
+  ],
+  recentlyDone: [
+    { key: 'plan_item-i3', kind: 'plan_item', id: 'i3', title: 'Write release notes', projectId, projectName: 'Atlas', doneLabel: 'Tue 10 Nov' },
+    { key: 'issue-s3', kind: 'issue', id: 's3', title: 'Typo on invoice', projectId, projectName: 'Atlas', doneLabel: 'Thu 5 Nov' },
+  ],
+};
+
+export const emptyOverview: OverviewVM = { todayLabel: 'Saturday 14 Nov 2026', projects: [], attention: [], dueSoon: [], recentlyDone: [] };
+
+export const workload: readonly WorkloadVM[] = [
+  { id: 'p1', name: 'Ali', openItems: 2, overdueItems: 0, blockedItems: 0, openIssues: 1, overdueIssues: 0, doneRecently: 4, projects: ['Atlas', 'Borealis'] },
+  { id: 'p2', name: 'Grace', openItems: 3, overdueItems: 1, blockedItems: 1, openIssues: 2, overdueIssues: 1, doneRecently: 6, projects: ['Atlas'] },
 ];
 
 export const projectHeader: ProjectHeaderVM = { id: projectId, name: 'Atlas', isArchived: false, overdueCount: 3 };

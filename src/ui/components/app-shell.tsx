@@ -42,7 +42,7 @@ export function AppShell({ signOut, children }: { readonly signOut: PlainAction;
         <nav aria-label="Main" className="flex min-w-0 flex-1 gap-0.5 lg:flex-none lg:flex-col">
           <Link className={navLink} href={projectsHref}>
             <Icon path="M4 5h6l2 2h8v12H4z" />
-            Projects
+            Overview
           </Link>
           <Link className={navLink} href={peopleHref}>
             <Icon path="M9 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zM3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M16 4.5a3.5 3.5 0 0 1 0 6.5M21 20c0-2.5-1.5-4.6-3.5-5.5" />

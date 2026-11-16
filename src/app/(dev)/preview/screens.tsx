@@ -21,12 +21,12 @@ const id = f.projectId;
 /** Every screen of product spec §6, in its main fixture states (docs/04 §2.4). */
 export const screens: Readonly<Record<string, Preview>> = {
   'sign-in': { element: <SignInScreen notice="expired" />, bare: true },
-  projects: { element: <ProjectsScreen projects={f.projects} createProject={form} />, global: true },
-  'projects-empty': { element: <ProjectsScreen projects={[]} createProject={form} />, global: true },
+  projects: { element: <ProjectsScreen overview={f.overview} createProject={form} />, global: true },
+  'projects-empty': { element: <ProjectsScreen overview={f.emptyOverview} createProject={form} />, global: true },
   dashboard: {
     element: (
       <>
-        <QuickLog action={form} pickers={f.pickers} today={f.today} />
+        <QuickLog action={form} pickers={f.pickers} today={f.today} projectId={id} />
         <DashboardScreen projectId={id} vm={f.dashboard} setStatus={plain} planToday={plain} />
       </>
     ),
@@ -72,7 +72,7 @@ export const screens: Readonly<Record<string, Preview>> = {
       />
     ),
   },
-  people: { element: <PeopleScreen people={f.people} create={form} rename={form} setArchived={plain} />, global: true },
+  people: { element: <PeopleScreen people={f.people} workload={f.workload} create={form} rename={form} setArchived={plain} />, global: true },
   'pull-requests': {
     element: <PullRequestsScreen projectId={id} pullRequests={f.pullRequestRows} notice="That pull request is in use." add={form} refresh={plain} remove={plain} />,
   },

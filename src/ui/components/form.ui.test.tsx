@@ -76,7 +76,7 @@ describe('ActionForm', () => {
 describe('QuickLog', () => {
   it('submits with the keyboard only: Ctrl+Enter in the description', async () => {
     const action = returning({ status: 'success', message: 'Logged.' });
-    render(<QuickLog action={action} pickers={pickers} today={today} />);
+    render(<QuickLog action={action} pickers={pickers} today={today} projectId="p-atlas" />);
 
     await userEvent.click(screen.getByText('Quick log'));
     await userEvent.keyboard('Fixed the login bug');
@@ -91,7 +91,7 @@ describe('QuickLog', () => {
 
   it('BR-41: offers to resolve the linked issues, and sends the choice with the entry', async () => {
     const action = returning({ status: 'success', message: 'Logged.' });
-    render(<QuickLog action={action} pickers={pickers} today={today} />);
+    render(<QuickLog action={action} pickers={pickers} today={today} projectId="p-atlas" />);
 
     await userEvent.click(screen.getByText('Quick log'));
     await userEvent.keyboard('Fixed the crash');
@@ -109,7 +109,7 @@ describe('QuickLog', () => {
   it('BR-17: “Log work on this” opens the quick log already linked to that issue', async () => {
     render(
       <>
-        <QuickLog action={returning({ status: 'idle' })} pickers={pickers} today={today} />
+        <QuickLog action={returning({ status: 'idle' })} pickers={pickers} today={today} projectId="p-atlas" />
         <OpenQuickLog link={{ field: 'issueIds', id: 's1' }} label="Log work on this" />
       </>,
     );
@@ -124,7 +124,7 @@ describe('QuickLog', () => {
   });
 
   it('has every field of product spec §6 with a label', () => {
-    render(<QuickLog action={returning({ status: 'idle' })} pickers={pickers} today={today} />);
+    render(<QuickLog action={returning({ status: 'idle' })} pickers={pickers} today={today} projectId="p-atlas" />);
 
     for (const label of ['What was done', 'Date', 'Area', 'Pull request link']) {
       expect(screen.getByLabelText(label)).toBeDefined();
@@ -205,5 +205,44 @@ describe('AppLink', () => {
 
     expect(link.getAttribute('href')).toBe('/projects');
     expect(onFocus).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('QuickLog memory', () => {
+  it('remembers the area and people of the last entry for this project, and fills them in next time', async () => {
+    window.localStorage.clear();
+    const action = returning({ status: 'success', message: 'Logged.' });
+    const { unmount } = render(<QuickLog action={action} pickers={pickers} today={today} projectId="p-atlas" />);
+    await userEvent.click(screen.getByText('Quick log'));
+    await userEvent.keyboard('First entry');
+    await userEvent.selectOptions(screen.getByLabelText('Area'), 'a2');
+    await userEvent.click(screen.getByLabelText('Grace'));
+    await userEvent.click(screen.getByRole('button', { name: 'Log work' }));
+    await waitFor(() => {
+      expect(action).toHaveBeenCalledTimes(1);
+    });
+    unmount();
+
+    render(<QuickLog action={action} pickers={pickers} today={today} projectId="p-atlas" />);
+    await userEvent.click(screen.getByText('Quick log'));
+
+    expect(screen.getByLabelText<HTMLSelectElement>('Area').value).toBe('a2');
+    expect(screen.getByLabelText<HTMLInputElement>('Grace').checked).toBe(true);
+    expect(screen.getByLabelText<HTMLInputElement>('Ali').checked).toBe(false);
+  });
+
+  it('keeps each project’s choices separate, and survives storage being unavailable', async () => {
+    window.localStorage.clear();
+    window.localStorage.setItem('worklog:quick-log:p-atlas', JSON.stringify({ areaId: 'a2', personIds: ['p2'] }));
+    window.localStorage.setItem('worklog:quick-log:p-broken', '{not json');
+
+    const { unmount } = render(<QuickLog action={returning({ status: 'idle' })} pickers={pickers} today={today} projectId="p-other" />);
+    await userEvent.click(screen.getByText('Quick log'));
+    expect(screen.getByLabelText<HTMLSelectElement>('Area').value).toBe('');
+    unmount();
+
+    render(<QuickLog action={returning({ status: 'idle' })} pickers={pickers} today={today} projectId="p-broken" />);
+    await userEvent.click(screen.getByText('Quick log'));
+    expect(screen.getByLabelText<HTMLInputElement>('Grace').checked).toBe(false);
   });
 });
