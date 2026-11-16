@@ -3,7 +3,7 @@ import type { DashboardVM, PulseVM, TrackedVM } from '#src/ui/view-models/dashbo
 import type { PlainAction } from '#src/ui/view-models/forms.ts';
 import { projectHref, projectItemHref } from '#src/ui/routes.ts';
 import { EmptyState } from './empty-state.tsx';
-import { EntryList } from './entry-list.tsx';
+import { EntrySummaryRow, entryHref } from './entry-summary.tsx';
 import { IssueTable } from './issue-table.tsx';
 import { PageHeader, Section } from './page-header.tsx';
 import { PersonList } from './person-list.tsx';
@@ -118,7 +118,18 @@ export function DashboardScreen({
       </div>
       {/* Full width: entries carry long descriptions and notes, which a side column squeezes. */}
       <Section title="Recent entries" actions={<Link href={projectHref(projectId, 'log')}>Full log</Link>}>
-        <EntryList entries={vm.recentEntries} projectId={projectId} />
+        {/* One line per entry; the full notes are a click away in the log. */}
+        {vm.recentEntries.length === 0 ? (
+          <EmptyState>No work logged yet.</EmptyState>
+        ) : (
+          <ul className="-mx-4 list-none sm:-mx-2">
+            {vm.recentEntries.map((entry) => (
+              <li key={entry.id} className="border-b border-line last:border-b-0">
+                <EntrySummaryRow entry={entry} href={entryHref(projectId, '', entry.id)} showDate />
+              </li>
+            ))}
+          </ul>
+        )}
       </Section>
       <Section title="Open issues" count={vm.openIssues.length} actions={<Link href={projectHref(projectId, 'issues')}>All issues</Link>}>
         {/* At the weekend there is no day plan, so no dragging and no "Plan today". */}

@@ -1,5 +1,6 @@
 import { render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+import type { EntryVM } from '#src/ui/view-models/entries.ts';
 import * as f from '#src/ui/fixtures/fixtures.ts';
 import type { FormAction, PlainAction } from '#src/ui/view-models/forms.ts';
 import { DashboardScreen } from './dashboard-screen.tsx';
@@ -117,6 +118,26 @@ describe('workload (BR-43)', () => {
 });
 
 describe('dashboard', () => {
+  it('recent entries are one line each — the first thing done, how many more, what it closed — and open in the log', () => {
+    const batch: EntryVM = {
+      ...f.loginEntry,
+      id: 'e9',
+      description: '1. Similar houses by the same broker: a tab. 2. Regions on sales comments: a filter. 3. Commission column: removed.',
+    };
+    render(<DashboardScreen projectId={f.projectId} vm={{ ...f.dashboard, recentEntries: [batch, f.weekendEntry] }} setStatus={plainAction} planToday={plainAction} />);
+
+    const recent = screen.getByRole('region', { name: 'Recent entries' });
+    const [row, notes] = within(recent).getAllByRole('link').filter((link) => link.getAttribute('href')?.includes('entry=') === true);
+    expect(row?.getAttribute('href')).toBe(`/projects/${f.projectId}/log?entry=e9`);
+    expect(row?.textContent).toContain('Similar houses by the same broker');
+    expect(row?.textContent).toContain('+2 more');
+    expect(row?.textContent).toContain('Finished 1 plan item');
+    expect(row?.textContent).not.toContain('Regions on sales comments');
+    // Notes-only entries read by their first note; the cause and fix wait in the log.
+    expect(notes?.textContent).toContain('Fixed 1 issue');
+    expect(within(recent).queryByText('Images were decoded at full size')).toBeNull();
+  });
+
   it('BR-13: urgent lists overdue items in red, with their labels', () => {
     render(<DashboardScreen projectId={f.projectId} vm={f.dashboard} setStatus={plainAction} planToday={plainAction} />);
 
@@ -235,6 +256,25 @@ describe('log', () => {
     expect(within(table).getByText('Decode thumbnails, upload originals in the background')).toBeDefined();
     expect(screen.getByRole('link', { name: 'Crash on save' }).getAttribute('href')).toBe(`/projects/${f.projectId}/issues/s1`);
     expect(tagsIn(screen.getByRole('article'))).toContain('success:Fixed');
+  });
+
+  it('a pasted summary of plan work is titled by its changes and laid out one change per row', () => {
+    const batch: EntryVM = {
+      ...f.loginEntry,
+      description: '1. Similar houses by the same broker: a tab shows them. 2. Regions on sales comments: comments have a region. 3. Commission column: removed.',
+      planItems: [{ id: 'i1', title: 'Drafts (admin) — List listings still in draft', completes: true }],
+    };
+    render(<LogScreen projectId={f.projectId} vm={{ ...f.log, selected: batch }} pickers={f.pickers} />);
+
+    const detail = screen.getByRole('article');
+    expect(within(detail).getByRole('heading', { level: 2 }).textContent).toBe('Similar houses by the same broker, Regions on sales comments and Commission column');
+    const table = within(detail).getByRole('table', { name: 'What was done' });
+    expect(within(table).getAllByRole('row').slice(1).map((row) => row.textContent)).toEqual([
+      'Similar houses by the same brokera tab shows them.',
+      'Regions on sales commentscomments have a region.',
+      'Commission columnremoved.',
+    ]);
+    expect(within(detail).getByRole('link', { name: /^Drafts \(admin\)/ }).textContent).toBe('Drafts (admin)List listings still in draft');
   });
 
   it('BR-17, BR-45, BR-46: a picked entry shows every PR with its state and the plan items it finished', () => {

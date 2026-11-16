@@ -73,7 +73,7 @@ export const pullRequest: PullRequestVM = {
   state: statuses.merged,
 };
 
-const loginEntry: EntryVM = {
+export const loginEntry: EntryVM = {
   id: 'e1',
   date: '2026-11-10',
   dateLabel: 'Tue 10 Nov',
@@ -85,7 +85,7 @@ const loginEntry: EntryVM = {
   planItems: [{ id: 'i1', title: 'Ship login', completes: true }],
   issues: [],
 };
-const weekendEntry: EntryVM = {
+export const weekendEntry: EntryVM = {
   id: 'e2',
   date: '2026-11-08',
   dateLabel: 'Sun 8 Nov',

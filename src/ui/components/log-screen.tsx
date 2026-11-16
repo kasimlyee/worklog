@@ -1,5 +1,5 @@
 import { AppLink as Link } from './app-link.tsx';
-import { noteRows, splitEntryText, type NoteRow } from '#src/lib/entry-text.ts';
+import { changesTitle, numberedChanges, splitEntryText, type NumberedChange, type NoteRow } from '#src/lib/entry-text.ts';
 import type { Pickers } from '#src/ui/view-models/common.ts';
 import type { EntryFormValues, EntryVM, LogVM } from '#src/ui/view-models/entries.ts';
 import type { FormAction, PlainAction } from '#src/ui/view-models/forms.ts';
@@ -7,6 +7,7 @@ import { projectHref, projectItemHref } from '#src/ui/routes.ts';
 import { ConfirmDialog } from './confirm-dialog.tsx';
 import { EmptyState } from './empty-state.tsx';
 import { EntryForm, OpenQuickLog } from './entry-form.tsx';
+import { EntrySummaryRow, changeRows, entryHref } from './entry-summary.tsx';
 import { ExternalLink } from './external-link.tsx';
 import { PageHeader, Section } from './page-header.tsx';
 import { PersonList } from './person-list.tsx';
@@ -44,24 +45,14 @@ function FilterSelect({
   );
 }
 
-/** What an entry is about in one line: its text, or — for notes-only entries — the first issue. */
+/** The entry's title: the names of its numbered changes, its own words, or — for notes-only entries — the first note. */
 function headline(entry: EntryVM): string {
+  const changes = numberedChanges(entry.description);
+  if (changes.length > 0) {
+    return changesTitle(changes);
+  }
   const text = splitEntryText(entry.description);
   return text.lead !== '' ? text.lead : (text.notes[0]?.text ?? entry.description);
-}
-
-/** BR-44: the notes of each linked issue, then any written into the description, as What / Why / Change rows. */
-function changeRows(entry: EntryVM): readonly NoteRow[] {
-  const structured = entry.issues
-    .filter((issue) => issue.summary !== '' || issue.cause !== '' || issue.fix !== '')
-    .map((issue) => ({ issue: issue.summary === '' ? issue.title : issue.summary, cause: issue.cause, fix: issue.fix }));
-  return [...structured, ...noteRows(splitEntryText(entry.description).notes)];
-}
-
-const changeCount = (entry: EntryVM): number => changeRows(entry).filter((row) => row.fix !== '').length;
-
-function entryHref(projectId: string, listQuery: string, entryId: string): ReturnType<typeof projectHref> {
-  return projectHref(projectId, 'log', `${listQuery === '' ? '' : `${listQuery}&`}entry=${entryId}`);
 }
 
 /*
@@ -124,9 +115,52 @@ function ChangeTableWide({ rows }: { readonly rows: readonly NoteRow[] }): React
   );
 }
 
+/** A pasted summary of finished work, one row per numbered change. */
+function DoneTable({ changes }: { readonly changes: readonly NumberedChange[] }): React.JSX.Element {
+  return (
+    <div className="relative overflow-x-auto rounded-md border border-line" tabIndex={0} role="region" aria-label="What was done, scrollable">
+      <table className="min-w-[24rem]">
+        <caption className="visually-hidden">What was done</caption>
+        <thead>
+          <tr>
+            <th scope="col" className="w-1/3 pl-3!">
+              Change
+            </th>
+            <th scope="col" className="pr-3!">
+              What was done
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {changes.map((change, index) => (
+            <tr key={String(index)} className="[&>td]:align-top">
+              <td className="pl-3! font-semibold">{change.name}</td>
+              <td className="pr-3!">{change.text === '' ? <span className="text-muted">—</span> : change.text}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+/** A plan item's name, with the meaning after " — " underneath. */
+function PlanItemName({ title }: { readonly title: string }): React.JSX.Element {
+  const split = title.indexOf(' — ');
+  return split === -1 ? (
+    <>{title}</>
+  ) : (
+    <span className="grid">
+      <span>{title.slice(0, split)}</span>
+      <span className="text-xs text-muted">{title.slice(split + 3)}</span>
+    </span>
+  );
+}
+
 /** The selected entry in full: what was done, its fixes, PRs, what it closed and its plan items. */
 function EntryDetail({ entry, projectId }: { readonly entry: EntryVM; readonly projectId: string }): React.JSX.Element {
   const rows = changeRows(entry);
+  const done = numberedChanges(entry.description);
   return (
     <article className="grid content-start gap-5 p-5 sm:p-6" aria-labelledby="entry-title" id="entry">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-muted">
@@ -141,13 +175,14 @@ function EntryDetail({ entry, projectId }: { readonly entry: EntryVM; readonly p
       <h2 id="entry-title" className="text-xl leading-snug tracking-tight wrap-anywhere">
         {headline(entry)}
       </h2>
+      {done.length === 0 ? null : <DoneTable changes={done} />}
       {rows.length === 0 ? null : <ChangeTable rows={rows} />}
       {entry.pullRequests.length === 0 ? null : (
         <section className="grid gap-2" aria-label="Pull requests">
           <h3 className={smallLabel}>Pull requests</h3>
           <ul className="grid list-none gap-1.5">
             {entry.pullRequests.map((pr) => (
-              <li key={pr.id} className="flex flex-wrap items-center gap-2">
+              <li key={pr.id} className="flex items-start gap-2">
                 <ExternalLink href={pr.url}>
                   {pr.repo} #{pr.number} {pr.title}
                 </ExternalLink>
@@ -178,7 +213,9 @@ function EntryDetail({ entry, projectId }: { readonly entry: EntryVM; readonly p
               <ul className="grid list-none gap-1.5">
                 {entry.planItems.map((item) => (
                   <li key={item.id} className="flex flex-wrap items-center gap-2">
-                    <Link href={projectItemHref(projectId, 'plans/items', item.id)}>{item.title}</Link>
+                    <Link href={projectItemHref(projectId, 'plans/items', item.id)}>
+                      <PlanItemName title={item.title} />
+                    </Link>
                     {item.completes ? <StatusTag status={{ tone: 'success', label: 'Finished' }} /> : null}
                   </li>
                 ))}
@@ -243,31 +280,11 @@ export function LogScreen({ projectId, vm, pickers }: { readonly projectId: stri
                     {day.isWeekend ? <StatusTag status={{ tone: 'neutral', label: 'Weekend' }} /> : null}
                   </h2>
                   <ul className="list-none">
-                    {day.entries.map((entry) => {
-                      const changes = changeCount(entry);
-                      const current = entry.id === selectedId;
-                      return (
-                        <li key={entry.id} className="border-b border-line last:border-b-0">
-                          <Link
-                            href={entryHref(projectId, vm.listQuery, entry.id)}
-                            aria-current={current ? 'true' : undefined}
-                            className="grid gap-1.5 border-l-[3px] border-transparent px-4 py-3 text-fg no-underline hover:bg-sunken aria-[current=true]:border-accent aria-[current=true]:bg-accent-soft"
-                          >
-                            <span className="line-clamp-2 text-sm font-semibold wrap-anywhere">{headline(entry)}</span>
-                            <span className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs text-muted">
-                              <span>{entry.area ?? 'General'}</span>
-                              {changes === 0 ? null : <span className="font-semibold text-success-fg">{changes === 1 ? '1 change' : `${String(changes)} changes`}</span>}
-                              {entry.pullRequests.map((pr) => (
-                                <span key={pr.id} className="font-mono">
-                                  #{pr.number}
-                                </span>
-                              ))}
-                              <span>{entry.people.join(', ')}</span>
-                            </span>
-                          </Link>
-                        </li>
-                      );
-                    })}
+                    {day.entries.map((entry) => (
+                      <li key={entry.id} className="border-b border-line last:border-b-0">
+                        <EntrySummaryRow entry={entry} href={entryHref(projectId, vm.listQuery, entry.id)} current={entry.id === selectedId} />
+                      </li>
+                    ))}
                   </ul>
                 </div>
               ))}

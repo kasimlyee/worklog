@@ -34,16 +34,13 @@ function EventTitle({ event, projectId }: { readonly event: TimelineEventVM; rea
 }
 
 /** BR-44: the short Issue / Cause / Fix a log entry recorded. */
-/** Outside an issue's own page the work may be a feature, so the labels stay neutral. */
-const neutralLabels = { Issue: 'What', Cause: 'Why', Fix: 'Change' } as const;
-
-export function ClosureNotes({ notes, neutral = false }: { readonly notes: TimelineEventVM['notes']; readonly neutral?: boolean }): React.JSX.Element {
+export function ClosureNotes({ notes }: { readonly notes: TimelineEventVM['notes'] }): React.JSX.Element {
   return (
     <dl className="grid max-w-[75ch] gap-1 border-l-2 border-line pl-3 text-sm sm:grid-cols-[3.5rem_1fr] sm:gap-x-3">
       {notes.map((note, index) => (
         // The same label can repeat (one entry, two issues).
         <div key={`${note.label}-${String(index)}`} className="contents">
-          <dt className={smallLabel}>{neutral ? neutralLabels[note.label] : note.label}</dt>
+          <dt className={smallLabel}>{note.label}</dt>
           <dd className="wrap-anywhere">{note.text}</dd>
         </div>
       ))}
