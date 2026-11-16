@@ -20,6 +20,8 @@ export default defineConfig({
     baseURL: `http://localhost:${String(appPort)}`,
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
+    // Clicks never race a smooth scroll; the app honours this setting (WCAG 2.3.3).
+    contextOptions: { reducedMotion: 'reduce' },
   },
   webServer: [
     {

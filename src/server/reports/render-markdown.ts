@@ -39,7 +39,7 @@ export function renderMarkdown(model: ReportModel): string {
     out.push('', ...model.note.split(/\r?\n/).map((noteLine) => `> ${escapeMarkdown(noteLine)}`.trimEnd()));
   }
   if (model.sections.length === 0) {
-    out.push('', emptyReportMessage);
+    out.push('', model.emptyMessage ?? emptyReportMessage);
   }
   for (const section of model.sections) {
     out.push('', `## ${section.title}`);

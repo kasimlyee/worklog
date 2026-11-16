@@ -2,7 +2,7 @@ import { AppLink as Link } from './app-link.tsx';
 import type { Pickers } from '#src/ui/view-models/common.ts';
 import type { FormAction, PlainAction } from '#src/ui/view-models/forms.ts';
 import type { Horizon, PlansVM } from '#src/ui/view-models/plans.ts';
-import { projectHref } from '#src/ui/routes.ts';
+import { planExportHref, projectHref } from '#src/ui/routes.ts';
 import { EmptyState } from './empty-state.tsx';
 import { ActionForm, CheckboxGroupField, HiddenField, SelectField, TextField } from './form.tsx';
 import { PageHeader, Section } from './page-header.tsx';
@@ -14,6 +14,50 @@ const horizons: readonly { readonly value: Horizon; readonly label: string }[] =
   { value: 'week', label: 'Week' },
   { value: 'month', label: 'Month' },
 ];
+
+/**
+ * BR-47: download the week or month plan as PDF or Markdown. A native disclosure, so it
+ * works without JavaScript; the downloads are plain links to a GET route.
+ */
+function ExportMenu({ projectId, exports }: { readonly projectId: string; readonly exports: PlansVM['exports'] }): React.JSX.Element {
+  return (
+    <details className="relative">
+      <summary className="button cursor-pointer list-none [&::-webkit-details-marker]:hidden" data-size="small">
+        Export plan
+      </summary>
+      <div className="absolute right-0 z-20 mt-2 grid w-72 gap-3 rounded-lg border border-line bg-surface p-4 shadow-lg">
+        {exports.map((item) => (
+          <div key={item.kind} className="grid gap-1.5">
+            <p className="text-sm font-semibold">
+              {item.kind === 'weekly' ? 'Week' : 'Month'}: {item.label}
+            </p>
+            <div className="flex gap-2">
+              <a
+                className="button"
+                data-size="small"
+                data-variant="primary"
+                href={planExportHref(projectId, item.kind, item.start, 'pdf')}
+                aria-label={`PDF of the ${item.kind === 'weekly' ? 'week' : 'month'} plan`}
+                download
+              >
+                PDF
+              </a>
+              <a
+                className="button"
+                data-size="small"
+                href={planExportHref(projectId, item.kind, item.start, 'md')}
+                aria-label={`Markdown of the ${item.kind === 'weekly' ? 'week' : 'month'} plan`}
+                download
+              >
+                Markdown
+              </a>
+            </div>
+          </div>
+        ))}
+      </div>
+    </details>
+  );
+}
 
 /** Product spec §6: day / week / month plans; add items; change status; move with history. */
 export function PlansScreen({
@@ -31,7 +75,7 @@ export function PlansScreen({
 }): React.JSX.Element {
   return (
     <div>
-      <PageHeader title="Plans" />
+      <PageHeader title="Plans" actions={<ExportMenu projectId={projectId} exports={vm.exports} />} />
       <div className={styles.toolbar}>
         <nav aria-label="Plan horizon" className={styles.tabs}>
           {horizons.map((horizon) => (

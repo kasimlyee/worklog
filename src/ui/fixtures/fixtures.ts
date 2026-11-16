@@ -308,6 +308,10 @@ export const plans: PlansVM = {
   canAdd: true,
   defaultDueDate: '2026-11-13',
   items: planItems,
+  exports: [
+    { kind: 'weekly', start: '2026-11-09', label: 'Week of 9–13 Nov 2026' },
+    { kind: 'monthly', start: '2026-11-01', label: 'November 2026' },
+  ],
   days: [
     { date: '2026-11-09', label: 'Monday 9 Nov 2026', items: [billing] },
     { date: '2026-11-10', label: 'Tuesday 10 Nov 2026', items: [releaseNotes] },

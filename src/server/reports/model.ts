@@ -37,6 +37,8 @@ export type ReportModel = {
   readonly author: string;
   readonly generatedLabel: string;
   readonly note: string | null;
+  /** Shown when there are no sections; reports say no work was recorded (BR-47: plans differ). */
+  readonly emptyMessage?: string;
   /** R-08: never contains an empty section. */
   readonly sections: readonly ReportSection[];
 };

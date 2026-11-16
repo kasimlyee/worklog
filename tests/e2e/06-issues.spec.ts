@@ -10,6 +10,7 @@ async function logTheFix(page: Page, title: string): Promise<void> {
   await page.getByRole('link', { name: 'Log work on this' }).click();
   const form = page.getByRole('form', { name: 'Quick log' });
   await expect(form.getByLabel(title, { exact: true })).toBeChecked();
+  await expect(form.getByLabel(`Issue — ${title}`)).toBeInViewport();
   // Ticked: its notes are shown.
   await form.getByLabel(`Issue — ${title}`).fill('It broke');
   await form.getByLabel(`Cause — ${title}`).fill('A stale cache');
@@ -75,6 +76,9 @@ test('BR-44: closing an issue from the log needs the fix', async ({ signedIn: pa
 
   await page.getByRole('link', { name: 'Log work on this' }).click();
   const form = page.getByRole('form', { name: 'Quick log' });
+  // The panel scrolls into view smoothly: wait for it to settle before clicking inside it.
+  await expect(form.getByLabel('Typo on pricing', { exact: true })).toBeChecked();
+  await expect(form.getByLabel(/This fixes it — Typo on pricing/)).toBeInViewport();
   await form.getByLabel(/This fixes it — Typo on pricing/).check();
   await form.getByLabel('What was done').fill('Fixed the typo');
   await form.getByLabel('Grace').check();

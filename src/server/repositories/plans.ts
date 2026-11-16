@@ -38,6 +38,8 @@ export type PlanItemFilter = {
   readonly limit?: number;
   /** Items working on this issue (BR-40). */
   readonly issueId?: string;
+  /** Items due within [from, to], of any plan (BR-47 export). */
+  readonly dueBetween?: { readonly from: IsoDate; readonly to: IsoDate };
 };
 
 /*
@@ -106,6 +108,9 @@ export async function selectPlanItems(db: Db, projectId: string, filter: PlanIte
       }
       if (filter.issueId !== undefined) {
         conditions.push(eb('pi.issueId', '=', filter.issueId));
+      }
+      if (filter.dueBetween !== undefined) {
+        conditions.push(eb('pi.dueDate', '>=', filter.dueBetween.from), eb('pi.dueDate', '<=', filter.dueBetween.to));
       }
       return eb.and(conditions);
     })

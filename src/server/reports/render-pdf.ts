@@ -58,7 +58,7 @@ export function reportBlocks(model: ReportModel): readonly Block[] {
     );
   }
   if (model.sections.length === 0) {
-    blocks.push({ runs: [run(emptyReportMessage, 'regular', 11)], indent: 0, spaceBefore: 18 });
+    blocks.push({ runs: [run(model.emptyMessage ?? emptyReportMessage, 'regular', 11)], indent: 0, spaceBefore: 18 });
   }
   for (const section of model.sections) {
     blocks.push({ runs: [run(section.title, 'bold', 14)], indent: 0, spaceBefore: 22, keepWithNext: true, ruleBelow: true });

@@ -408,7 +408,9 @@ export function OpenQuickLog({ link, label = 'Log work' }: { readonly link?: Qui
               }
             }
           }
-          panel.scrollIntoView({ block: 'start', behavior: 'smooth' });
+          // Glides there, unless the person asked their system for less motion.
+          const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+          panel.scrollIntoView({ block: 'start', behavior: reduce ? 'auto' : 'smooth' });
           panel.querySelector('textarea')?.focus({ preventScroll: true });
         }
       }}

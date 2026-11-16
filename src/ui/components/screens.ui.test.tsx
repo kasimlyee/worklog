@@ -156,6 +156,15 @@ describe('plans', () => {
     expectHeadingOrder();
   });
 
+  it('BR-47: offers the week and the month plan as PDF or Markdown downloads', () => {
+    render(<PlansScreen projectId={f.projectId} vm={f.plans} pickers={f.pickers} createItem={formAction} setStatus={plainAction} />);
+
+    expect(screen.getByText('Export plan')).toBeDefined();
+    // Inside a closed <details> (jsdom does not open it); the E2E test clicks through.
+    expect(screen.getByRole('link', { name: 'PDF of the week plan', hidden: true }).getAttribute('href')).toBe(`/projects/${f.projectId}/plans/export?kind=weekly&start=2026-11-09&format=pdf`);
+    expect(screen.getByRole('link', { name: 'Markdown of the month plan', hidden: true }).getAttribute('href')).toBe(`/projects/${f.projectId}/plans/export?kind=monthly&start=2026-11-01&format=md`);
+  });
+
   it('BR-11: the due date input is limited to the plan period', () => {
     render(<PlansScreen projectId={f.projectId} vm={f.plans} pickers={f.pickers} createItem={formAction} setStatus={plainAction} />);
 

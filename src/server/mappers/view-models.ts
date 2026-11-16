@@ -1,5 +1,5 @@
 import 'server-only';
-import { datesBetween, daysBetween, formatDate, formatShortDate, dayLabel, isWorkingDay, today as todayIn, type IsoDate } from '#src/server/domain/calendar.ts';
+import { datesBetween, daysBetween, formatDate, formatShortDate, dayLabel, isWorkingDay, monthStart, today as todayIn, weekStart, type IsoDate } from '#src/server/domain/calendar.ts';
 import type { Dashboard, DashboardItem } from '#src/server/services/dashboard.ts';
 import type { Entry, EntryPage } from '#src/server/services/entries.ts';
 import { priorityRank, type Issue } from '#src/server/services/issues.ts';
@@ -128,6 +128,10 @@ export function toPlansVM(plan: PlanView | null, horizon: Horizon, start: IsoDat
             items: (plan?.items ?? []).filter((item) => item.dueDate === date).map((item) => toPlanItemVM(item, timeZone)),
           }))
         : null,
+    exports: [
+      { kind: 'weekly', start: weekStart(period.start), label: periodLabel('week', weekStart(period.start)) },
+      { kind: 'monthly', start: monthStart(period.start), label: periodLabel('month', monthStart(period.start)) },
+    ],
   };
 }
 

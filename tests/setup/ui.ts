@@ -22,3 +22,11 @@ if (!Reflect.has(HTMLDialogElement.prototype, 'showModal')) {
     },
   });
 }
+
+// jsdom has no media queries; components only read `matches` (reduced motion).
+if (typeof window !== 'undefined' && typeof Reflect.get(window, 'matchMedia') !== 'function') {
+  Object.defineProperty(window, 'matchMedia', {
+    configurable: true,
+    value: (query: string): Pick<MediaQueryList, 'matches' | 'media'> => ({ matches: false, media: query }),
+  });
+}
