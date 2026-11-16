@@ -177,6 +177,14 @@ describe('plans', () => {
     expectHeadingOrder();
   });
 
+  it('BR-48: the add form has a description field, and items show theirs under the title', () => {
+    render(<PlansScreen projectId={f.projectId} vm={f.plans} pickers={f.pickers} createItem={formAction} setStatus={plainAction} />);
+
+    const add = screen.getByRole('form', { name: 'Add plan item' });
+    expect(within(add).getByLabelText<HTMLTextAreaElement>('Description').maxLength).toBe(2000);
+    expect(screen.getByText('Email and password sign-in, with a session that survives a restart.')).toBeDefined();
+  });
+
   it('BR-47: offers the week and the month plan as PDF or Markdown downloads', () => {
     render(<PlansScreen projectId={f.projectId} vm={f.plans} pickers={f.pickers} createItem={formAction} setStatus={plainAction} />);
 
@@ -209,6 +217,15 @@ describe('plans', () => {
     expect(screen.getByText(/Moved from Wed 4 Nov to Fri 6 Nov/)).toBeDefined();
     expect(screen.getByLabelText<HTMLInputElement>('Wanjiru').checked).toBe(true);
     expectHeadingOrder();
+  });
+
+  it('BR-48: a plan item shows its description, and the edit form is prefilled with it', () => {
+    render(
+      <PlanItemScreen projectId={f.projectId} item={f.planItemDetail} pickers={f.pickers} update={formAction} move={formAction} setStatus={plainAction} remove={plainAction} />,
+    );
+
+    expect(within(screen.getByRole('region', { name: 'Description' })).getByText('Move invoices and payments to the new schema.')).toBeDefined();
+    expect(screen.getByRole<HTMLTextAreaElement>('textbox', { name: 'Description' }).value).toBe('Move invoices and payments to the new schema.');
   });
 
   it('BR-15: a done item cannot be moved until reopened', () => {

@@ -39,7 +39,8 @@ export async function planIssueForToday(db: Db, projectId: string, issueId: stri
       trx,
       projectId,
       plan.id,
-      { title: issue.title, areaId: issue.areaId, issueId: issue.id, dueDate: today },
+      // BR-48: the issue's description travels with it.
+      { title: issue.title, description: issue.description, areaId: issue.areaId, issueId: issue.id, dueDate: today },
       issue.assignees.map((person) => person.id),
     );
     if (issue.status === 'open') {

@@ -6,6 +6,8 @@ import { aPerson, aPlan, aPlanItem, aProject, anArea, anIssue } from '#tests/fix
 import {
   createPlanItem, deletePlanItem, getPlan, getPlanItem, listOpenPlanItems, movePlanItem, setPlanItemStatus, updatePlanItem,
 } from './plans.ts';
+import type { Kysely } from 'kysely';
+import * as planItemDescription from '#src/server/db/migrations/0007_plan_item_description.ts';
 import { prDeps } from '#tests/fixtures/github.ts';
 import { createEntry } from './entries.ts';
 
@@ -41,6 +43,7 @@ describe('plan items', () => {
       id,
       horizon: 'week',
       title: 'Ship login',
+      description: '',
       status: 'planned',
       dueDate: '2026-11-12',
       completedOn: null,
@@ -50,6 +53,40 @@ describe('plan items', () => {
       moves: [],
       deadline: { state: 'on_track', label: 'Due in 2 days' },
     });
+  });
+
+  it('BR-48: an item may carry a description, kept on edit and at most 2,000 characters', async () => {
+    const project = await aProject(testDb());
+    const base = { horizon: 'day', periodStart: '2026-11-10', title: 'Drafts (admin)', dueDate: '2026-11-10' } as const;
+
+    const id = await itemIdOf(await createPlanItem(testDb(), project.id, { ...base, description: '  List drafts and what failed on each.\nAdmins only.  ' }));
+    expect((await getPlanItem(testDb(), project.id, id, today))?.description).toBe('List drafts and what failed on each.\nAdmins only.');
+
+    await updatePlanItem(testDb(), project.id, id, { title: 'Drafts (admin)', description: 'Now with filters.' });
+    expect((await getPlanItem(testDb(), project.id, id, today))?.description).toBe('Now with filters.');
+
+    const tooLong = await createPlanItem(testDb(), project.id, { ...base, description: 'x'.repeat(2001) });
+    expect(tooLong).toEqual({ ok: false, error: { code: 'invalid', fieldErrors: { description: 'Description must be at most 2000 characters.' } } });
+    expect((await itemIdOf(await createPlanItem(testDb(), project.id, base))).length).toBeGreaterThan(0);
+  });
+
+  it('BR-48: the migration splits "Name — what it means" titles into a title and a description', async () => {
+    const project = await aProject(testDb());
+    const plan = await aPlan(testDb(), project.id);
+    const split = await aPlanItem(testDb(), plan, { title: 'Drafts (admin) — List listings still in draft' });
+    const plain = await aPlanItem(testDb(), plan, { title: 'Review PRs' });
+    const kept = await aPlanItem(testDb(), plan, { title: 'Old — new', description: 'Already described' });
+
+    // Running the migration again is safe and applies the split to these rows.
+    await planItemDescription.up(testDb() as unknown as Kysely<unknown>);
+
+    const rows = await testDb().selectFrom('planItems').select(['id', 'title', 'description']).where('id', 'in', [split.id, plain.id, kept.id]).execute();
+    const byId = new Map(rows.map((row) => [row.id, [row.title, row.description]]));
+    expect([byId.get(split.id), byId.get(plain.id), byId.get(kept.id)]).toEqual([
+      ['Drafts (admin)', 'List listings still in draft'],
+      ['Review PRs', ''],
+      ['Old — new', 'Already described'],
+    ]);
   });
 
   it('BR-10: an item may have zero assignees and no area', async () => {

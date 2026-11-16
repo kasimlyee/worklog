@@ -15,6 +15,7 @@ export type PlanItemRow = {
   readonly horizon: PlanHorizon;
   readonly periodStart: IsoDate;
   readonly title: string;
+  readonly description: string;
   readonly status: PlanItemStatus;
   readonly dueDate: IsoDate;
   readonly completedOn: IsoDate | null;
@@ -62,6 +63,7 @@ export async function selectPlanItems(db: Db, projectId: string, filter: PlanIte
       'p.horizon',
       'p.periodStart',
       'pi.title',
+      'pi.description',
       'pi.status',
       'pi.dueDate',
       'pi.completedOn',
@@ -157,6 +159,8 @@ export async function selectItemPlan(db: Db, projectId: string, itemId: string):
 
 export type PlanItemValues = {
   readonly title: string;
+  /** BR-48 */
+  readonly description: string;
   readonly areaId: string | null;
   readonly issueId: string | null;
 };

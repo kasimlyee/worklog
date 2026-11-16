@@ -13,6 +13,7 @@ function item(title: string, horizon: PlanItemRow['horizon'], periodStart: strin
     horizon,
     periodStart: d(periodStart),
     title,
+    description: '',
     status: 'planned',
     dueDate: d(due),
     completedOn: null,
@@ -40,7 +41,7 @@ describe('plan export', () => {
   it('BR-47: a weekly plan: key numbers, by area and by day, the week plan, then every deliverable Monday to Sunday', () => {
     const model = buildPlanExportModel(
       data('weekly', '2026-11-16', [
-        item('Similar houses — catch mixed interiors', 'day', '2026-11-16', '2026-11-16', { areaName: 'Nestly', assignees: [{ id: 'p', name: 'Kasim Lyee' }], status: 'done' }),
+        item('Similar houses', 'day', '2026-11-16', '2026-11-16', { description: 'catch mixed interiors', areaName: 'Nestly', assignees: [{ id: 'p', name: 'Kasim Lyee' }], status: 'done' }),
         item('Roofs backend', 'day', '2026-11-17', '2026-11-17', { areaName: 'Roofs' }),
         item('Test Roofs (Admin)', 'month', '2026-11-01', '2026-11-21', { areaName: 'Roofs' }),
         item('Broker acquisition', 'week', '2026-11-16', '2026-11-20', { areaName: 'Nestly', status: 'in_progress' }),

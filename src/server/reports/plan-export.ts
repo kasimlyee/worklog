@@ -65,13 +65,12 @@ const statusTags: Readonly<Record<PlanItemStatus, StatusTag>> = {
   blocked: { tone: 'danger', label: 'Blocked' },
 };
 
-/** "Name — what it means" titles show the name, with the meaning on a second line. */
+/** BR-48: the item's description sits on a second line under its title. */
 function itemLine(item: PlanItemRow, cells: Readonly<Record<string, string>>): ReportLine {
-  const split = item.title.indexOf(' — ');
   return {
-    text: split === -1 ? item.title : item.title.slice(0, split),
+    text: item.title,
     tags: [statusTags[item.status]],
-    detail: split === -1 ? null : item.title.slice(split + 3),
+    detail: item.description === '' ? null : item.description,
     people: item.assignees.map((person) => person.name),
     cells: Object.entries(cells).map(([label, text]) => ({ label, text })),
     children: [],

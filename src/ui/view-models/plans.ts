@@ -8,6 +8,8 @@ export type MoveVM = { readonly fromLabel: string; readonly toLabel: string; rea
 export type PlanItemVM = {
   readonly id: string;
   readonly title: string;
+  /** BR-48: '' when there is none. */
+  readonly description: string;
   readonly status: PlanItemStatus;
   readonly statusTag: StatusVM;
   readonly dueDate: string;
@@ -23,6 +25,7 @@ export type PlanItemVM = {
 
 export type PlanItemFormValues = {
   readonly title: string;
+  readonly description: string;
   readonly areaId: string;
   readonly issueId: string;
   readonly personIds: readonly string[];

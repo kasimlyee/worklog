@@ -101,6 +101,8 @@ export type PlanItemsTable = {
   areaId: string | null;
   issueId: string | null;
   title: string;
+  /** BR-48: optional, plain text. */
+  description: Generated<string>;
   status: Generated<PlanItemStatus>;
   dueDate: DateColumn;
   completedOn: DateColumn | null;
@@ -271,7 +273,7 @@ export const schemaContract = {
   issueAssignees: { issueId: uuid, personId: uuid },
   plans: { id: uuid, projectId: uuid, horizon: userEnum(), periodStart: date, createdAt: tz },
   planItems: {
-    id: uuid, projectId: uuid, planId: uuid, areaId: uuidNull, issueId: uuidNull, title: text, status: userEnum(),
+    id: uuid, projectId: uuid, planId: uuid, areaId: uuidNull, issueId: uuidNull, title: text, description: text, status: userEnum(),
     dueDate: date, completedOn: dateNull, position: int, createdAt: tz, updatedAt: tz,
   },
   planItemAssignees: { planItemId: uuid, personId: uuid },

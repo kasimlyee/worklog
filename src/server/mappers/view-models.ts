@@ -86,6 +86,7 @@ export function toPlanItemVM(item: PlanItem, timeZone: string): PlanItemVM {
   return {
     id: item.id,
     title: item.title,
+    description: item.description,
     status: item.status,
     statusTag: planStatusTag[item.status],
     dueDate: item.dueDate,
@@ -140,7 +141,7 @@ export function toPlanItemDetailVM(item: PlanItem, planLabel: string, timeZone: 
     ...toPlanItemVM(item, timeZone),
     horizon: item.horizon,
     planLabel,
-    form: { title: item.title, areaId: item.area?.id ?? '', issueId: item.issue?.id ?? '', personIds: item.assignees.map((person) => person.id) },
+    form: { title: item.title, description: item.description, areaId: item.area?.id ?? '', issueId: item.issue?.id ?? '', personIds: item.assignees.map((person) => person.id) },
   };
 }
 

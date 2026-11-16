@@ -125,6 +125,7 @@ export const entries: readonly EntryVM[] = [loginEntry, weekendEntry, longEntry]
 const shipLogin: PlanItemVM = {
   id: 'i1',
   title: 'Ship login',
+  description: 'Email and password sign-in, with a session that survives a restart.',
   status: 'in_progress',
   statusTag: statuses.inProgress,
   dueDate: '2026-11-12',
@@ -139,6 +140,7 @@ const shipLogin: PlanItemVM = {
 const billing: PlanItemVM = {
   id: 'i2',
   title: 'Migrate billing tables',
+  description: '',
   status: 'blocked',
   statusTag: statuses.blocked,
   dueDate: '2026-11-06',
@@ -153,6 +155,7 @@ const billing: PlanItemVM = {
 const releaseNotes: PlanItemVM = {
   id: 'i3',
   title: 'Write release notes',
+  description: '',
   status: 'done',
   statusTag: statuses.done,
   dueDate: '2026-11-10',
@@ -167,6 +170,7 @@ const releaseNotes: PlanItemVM = {
 const onboarding: PlanItemVM = {
   id: 'i4',
   title: 'Review the onboarding copy',
+  description: '',
   status: 'planned',
   statusTag: statuses.planned,
   dueDate: '2026-11-11',
@@ -334,9 +338,10 @@ export const weekendDayPlan: PlansVM = {
 
 export const planItemDetail: PlanItemDetailVM = {
   ...billing,
+  description: 'Move invoices and payments to the new schema.',
   horizon: 'week',
   planLabel: 'Week of 2–6 Nov 2026',
-  form: { title: 'Migrate billing tables', areaId: 'a2', issueId: 's1', personIds: ['p3'] },
+  form: { title: 'Migrate billing tables', description: 'Move invoices and payments to the new schema.', areaId: 'a2', issueId: 's1', personIds: ['p3'] },
 };
 
 export const log: LogVM = {

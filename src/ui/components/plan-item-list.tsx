@@ -78,6 +78,8 @@ export function PlanItemList({
               <StatusTag status={item.statusTag} />
               {item.deadline === null ? null : <DeadlineLabel status={item.deadline} />}
             </div>
+            {/* BR-48: the description, kept short here; in full on the item's page. */}
+            {item.description === '' ? null : <p className="line-clamp-2 pl-7 text-sm text-muted">{item.description}</p>}
             <div className={`${styles.meta} pl-7`}>
               <span>{item.dueLabel}</span>
               {item.area === null ? null : <span>{item.area}</span>}

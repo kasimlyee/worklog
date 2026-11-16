@@ -14,7 +14,7 @@ import {
   updatePlanItemRow, updatePlanItemStatus, type MoveRow, type PlanItemRow,
 } from '#src/server/repositories/plans.ts';
 import { invalid, notFound, parseInput, type ServiceResult } from './errors.ts';
-import { idList, isUuid, oneOf, optionalId, requiredDate, requiredText } from './fields.ts';
+import { idList, isUuid, oneOf, optionalId, requiredDate, requiredText, optionalText } from './fields.ts';
 import { referenceErrors } from './references.ts';
 
 export const planItemStatuses = ['planned', 'in_progress', 'done', 'blocked'] as const satisfies readonly PlanItemStatus[];
@@ -23,6 +23,8 @@ export type PlanItem = {
   readonly id: string;
   readonly horizon: Horizon;
   readonly title: string;
+  /** BR-48 */
+  readonly description: string;
   readonly status: PlanItemStatus;
   readonly dueDate: IsoDate;
   readonly completedOn: IsoDate | null;
@@ -46,6 +48,7 @@ export function toPlanItem(row: PlanItemRow, today: IsoDate): PlanItem {
     id: row.id,
     horizon: row.horizon,
     title: row.title,
+    description: row.description,
     status: row.status,
     dueDate: row.dueDate,
     completedOn: row.completedOn,
@@ -91,6 +94,8 @@ export async function listOpenPlanItems(db: Db, projectId: string, today: IsoDat
 
 const detailsInput = {
   title: requiredText('Title', 300),
+  // BR-48: what the item means, beyond its title.
+  description: optionalText('Description', 2000),
   areaId: optionalId,
   issueId: optionalId,
   personIds: idList('person'),

@@ -32,6 +32,7 @@ const planItem: PlanItem = {
   id: 'i1',
   horizon: 'week',
   title: 'Ship login',
+  description: '',
   status: 'blocked',
   dueDate: d('2026-11-06'),
   completedOn: null,

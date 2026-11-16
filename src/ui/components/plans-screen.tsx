@@ -4,7 +4,7 @@ import type { FormAction, PlainAction } from '#src/ui/view-models/forms.ts';
 import type { Horizon, PlansVM } from '#src/ui/view-models/plans.ts';
 import { planExportHref, projectHref } from '#src/ui/routes.ts';
 import { EmptyState } from './empty-state.tsx';
-import { ActionForm, CheckboxGroupField, HiddenField, SelectField, TextField } from './form.tsx';
+import { ActionForm, CheckboxGroupField, HiddenField, SelectField, TextAreaField, TextField } from './form.tsx';
 import { PageHeader, Section } from './page-header.tsx';
 import { PlanItemList } from './plan-item-list.tsx';
 import { lists as styles } from './lists.ts';
@@ -124,6 +124,7 @@ export function PlansScreen({
             <HiddenField name="horizon" value={vm.horizon} />
             <HiddenField name="periodStart" value={vm.periodStart} />
             <TextField name="title" label="Title" required maxLength={300} wide />
+            <TextAreaField name="description" label="Description" maxLength={2000} rows={2} hint="Optional. What the item means or what done looks like." />
             <TextField name="dueDate" label="Due date" type="date" defaultValue={vm.defaultDueDate} min={vm.periodStart} max={vm.periodEnd} required />
             <SelectField name="areaId" label="Area" options={pickers.areas} emptyLabel="General (no area)" />
             <SelectField name="issueId" label="Issue" options={pickers.issues} emptyLabel="None" />

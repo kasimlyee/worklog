@@ -5,7 +5,7 @@ import type { PlanItemDetailVM } from '#src/ui/view-models/plans.ts';
 import { projectHref, projectItemHref } from '#src/ui/routes.ts';
 import { ConfirmDialog } from './confirm-dialog.tsx';
 import { OpenQuickLog } from './entry-form.tsx';
-import { ActionForm, CheckboxGroupField, SelectField, TextField } from './form.tsx';
+import { ActionForm, CheckboxGroupField, SelectField, TextAreaField, TextField } from './form.tsx';
 import { PageHeader, Section } from './page-header.tsx';
 import { PersonList } from './person-list.tsx';
 import { StatusForm } from './plan-item-list.tsx';
@@ -57,6 +57,11 @@ export function PlanItemScreen({
           </>
         }
       />
+      {item.description === '' ? null : (
+        <Section title="Description">
+          <p className={styles.description}>{item.description}</p>
+        </Section>
+      )}
       <Section title="Status">
         <div className={styles.meta}>
           <span>{item.dueLabel}</span>
@@ -94,6 +99,7 @@ export function PlanItemScreen({
       <Section title="Edit">
         <ActionForm action={update} submitLabel="Save changes" label="Edit plan item">
           <TextField name="title" label="Title" defaultValue={item.form.title} required maxLength={300} wide />
+          <TextAreaField name="description" label="Description" defaultValue={item.form.description} maxLength={2000} rows={3} hint="Optional. What the item means or what done looks like." />
           <SelectField name="areaId" label="Area" options={pickers.areas} defaultValue={item.form.areaId} emptyLabel="General (no area)" />
           <SelectField name="issueId" label="Issue" options={pickers.issues} defaultValue={item.form.issueId} emptyLabel="None" />
           <CheckboxGroupField name="personIds" legend="Assignees" options={pickers.people} defaultValues={item.form.personIds} />
