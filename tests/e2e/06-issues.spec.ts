@@ -3,7 +3,24 @@ import { addDays, appToday, nextWorkingDay, previousWorkingDay } from './support
 import { expect, test } from './support/fixtures.ts';
 import { seedProject } from './support/seed.ts';
 
-/* Journey 6: due soon is yellow; resolving late is red "late", on time is green. */
+/* Journey 6: due soon is yellow; resolving late is red "late", on time is green. BR-44: resolving is logging the fix. */
+
+/** From the issue page: "Log work on this", fill Issue / Cause / Fix, tick "This fixes it". */
+async function logTheFix(page: Page, title: string): Promise<void> {
+  await page.getByRole('link', { name: 'Log work on this' }).click();
+  const form = page.getByRole('form', { name: 'Quick log' });
+  await expect(form.getByLabel(title, { exact: true })).toBeChecked();
+  // Ticked: its notes are shown.
+  await form.getByLabel(`Issue — ${title}`).fill('It broke');
+  await form.getByLabel(`Cause — ${title}`).fill('A stale cache');
+  await form.getByLabel(`Fix — ${title}`).fill('Cleared it on deploy');
+  await form.getByLabel(new RegExp(`This fixes it — ${title}`)).check();
+  await form.getByLabel('What was done').fill(`Fixed ${title}`);
+  await form.getByLabel('Grace').check();
+  await form.getByRole('button', { name: 'Log work' }).click();
+  await expect(form.getByRole('status')).toHaveText('Work logged.');
+  await page.reload();
+}
 
 async function createIssue(page: Page, projectId: string, title: string, assignedOn: string, deadline: string): Promise<void> {
   await page.goto(`/projects/${projectId}/issues/new`);
@@ -24,8 +41,15 @@ test('BR-31: due soon is yellow, then resolving it on time is green', async ({ s
   await createIssue(page, projectId, 'Crash on save', today, nextWorkingDay(today));
   await expect(page.locator('[data-tone="warning"]').filter({ hasText: /Due/ })).toBeVisible();
 
-  await page.getByRole('button', { name: 'Resolve issue' }).click();
+  // BR-44: no resolving on the issue itself.
+  await expect(page.getByRole('button', { name: 'Resolve issue' })).toHaveCount(0);
+  await logTheFix(page, 'Crash on save');
   await expect(page.locator('[data-tone="success"]').filter({ hasText: 'Resolved on time' }).first()).toBeVisible();
+
+  // The history shows the cause and fix from the log.
+  const history = page.getByRole('region', { name: 'How it was resolved' });
+  await expect(history.getByText('A stale cache').first()).toBeVisible();
+  await expect(history.getByText('Cleared it on deploy').first()).toBeVisible();
 });
 
 test('BR-31: resolving after the deadline is red and says how late', async ({ signedIn: page }) => {
@@ -36,12 +60,34 @@ test('BR-31: resolving after the deadline is red and says how late', async ({ si
   await createIssue(page, projectId, 'Slow export', addDays(deadline, -3), deadline);
   await expect(page.locator('[data-tone="danger"]').filter({ hasText: /overdue/ }).first()).toBeVisible();
 
-  await page.getByRole('button', { name: 'Resolve issue' }).click();
+  await logTheFix(page, 'Slow export');
   await expect(page.locator('[data-tone="danger"]').filter({ hasText: /Resolved \d+ days? late/ }).first()).toBeVisible();
 
   // BR-29: reopening clears the resolution.
   await page.getByRole('button', { name: 'Reopen issue' }).click();
-  await expect(page.getByRole('button', { name: 'Resolve issue' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Mark in progress' })).toBeVisible();
+});
+
+test('BR-44: closing an issue from the log needs the fix', async ({ signedIn: page }) => {
+  const { projectId } = await seedProject();
+  const today = appToday();
+  await createIssue(page, projectId, 'Typo on pricing', today, addDays(today, 7));
+
+  await page.getByRole('link', { name: 'Log work on this' }).click();
+  const form = page.getByRole('form', { name: 'Quick log' });
+  await form.getByLabel(/This fixes it — Typo on pricing/).check();
+  await form.getByLabel('What was done').fill('Fixed the typo');
+  await form.getByLabel('Grace').check();
+  await form.getByRole('button', { name: 'Log work' }).click();
+
+  await expect(form.getByRole('alert')).toContainText('Say what the fix was before closing the issue.');
+  // The ticks are kept, so filling in the fix is all that is left.
+  await expect(form.getByLabel(/This fixes it — Typo on pricing/)).toBeChecked();
+  await form.getByLabel('Fix — Typo on pricing').fill('Corrected the copy');
+  await form.getByRole('button', { name: 'Log work' }).click();
+  await expect(form.getByRole('status')).toHaveText('Work logged.');
+  await page.reload();
+  await expect(page.locator('[data-tone="success"]').filter({ hasText: 'Resolved on time' }).first()).toBeVisible();
 });
 
 test('BR-28: a deadline before the assigned date is refused', async ({ signedIn: page }) => {

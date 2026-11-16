@@ -148,6 +148,8 @@ describe('plans', () => {
     expect(screen.getByRole('heading', { name: 'Week of 9–13 Nov 2026' })).toBeDefined();
     expect(screen.getByRole('link', { name: 'Week' }).getAttribute('aria-current')).toBe('page');
     expect(screen.getByLabelText<HTMLSelectElement>('Status of Ship login').value).toBe('in_progress');
+    // BR-45: "Done" is not a choice — a log finishes an item.
+    expect([...screen.getByLabelText<HTMLSelectElement>('Status of Ship login').options].map((o) => o.value)).toEqual(['planned', 'in_progress', 'blocked']);
     expect(tagsIn(document.body)).toContain('danger:Blocked');
     expect(tagsIn(document.body)).toContain('danger:3 days overdue');
     expect(screen.getByText('Moved 1×')).toBeDefined();
@@ -211,6 +213,16 @@ describe('log', () => {
     expect(screen.getByText(f.longText)).toBeDefined();
   });
 
+  it('BR-44…BR-46: an entry shows every PR, what it fixed or finished, and the issue notes', () => {
+    render(<LogScreen projectId={f.projectId} vm={f.log} pickers={f.pickers} createEntry={formAction} today={f.today} />);
+
+    expect(screen.getByRole('link', { name: /#12 Add login/ })).toBeDefined();
+    expect(screen.getByRole('link', { name: /#40 Session endpoint/ })).toBeDefined();
+    expect(tagsIn(document.body)).toEqual(expect.arrayContaining(['success:Fixed', 'success:Finished']));
+    expect(screen.getByText('Images were decoded at full size')).toBeDefined();
+    expect(screen.getByText('Decode thumbnails, upload originals in the background')).toBeDefined();
+  });
+
   it('filters by area, person and PR, and shows the filtered empty state', () => {
     render(<LogScreen projectId={f.projectId} vm={f.emptyLog} pickers={f.pickers} createEntry={formAction} today={f.today} />);
 
@@ -226,7 +238,11 @@ describe('log', () => {
     render(<EntryEditScreen projectId={f.projectId} entryId="e1" values={f.entryValues} pickers={f.pickers} update={formAction} remove={plainAction} />);
 
     expect(screen.getByLabelText<HTMLTextAreaElement>('What was done').value).toBe(f.entryValues.description);
-    expect(screen.getByLabelText<HTMLInputElement>('Pull request link').value).toBe(f.entryValues.prUrl);
+    expect(screen.getByLabelText<HTMLTextAreaElement>('Pull request links').value).toBe(f.entryValues.prUrls);
+    // BR-44: the linked issue comes back ticked with its notes.
+    expect(screen.getByLabelText<HTMLInputElement>('Crash on save').checked).toBe(true);
+    expect(screen.getByLabelText<HTMLTextAreaElement>('Issue — Crash on save').value).toBe('Crash when saving');
+    expect(screen.getByLabelText<HTMLInputElement>(/This fixes it — Crash on save/).checked).toBe(false);
     expect(screen.getByLabelText<HTMLInputElement>('Grace').checked).toBe(true);
     expectHeadingOrder();
   });
@@ -277,20 +293,21 @@ describe('issues', () => {
     expectHeadingOrder();
   });
 
-  it('BR-29: an open issue offers resolve with an editable date; BR-30 the resolving PR', () => {
+  it('BR-44: an open issue cannot be resolved on its own — only by logging the fix', () => {
     render(
-      <IssueScreen projectId={f.projectId} issue={f.issueDetail} history={f.openIssueHistory} pickers={f.pickers} update={formAction} resolve={formAction} setStatus={plainAction} remove={plainAction} today={f.today} />,
+      <IssueScreen projectId={f.projectId} issue={f.issueDetail} history={f.openIssueHistory} pickers={f.pickers} update={formAction} setStatus={plainAction} remove={plainAction} />,
     );
 
-    expect(screen.getByLabelText<HTMLInputElement>('Resolved on').value).toBe(f.today);
-    expect(screen.getByLabelText('Resolved by pull request')).toBeDefined();
+    expect(screen.queryByRole('button', { name: 'Resolve issue' })).toBeNull();
+    expect(screen.queryByLabelText('Resolved on')).toBeNull();
+    expect(screen.getByText(/log the work that fixes it/)).toBeDefined();
     expect(screen.getByRole('button', { name: 'Mark in progress' })).toBeDefined();
     expectHeadingOrder();
   });
 
   it('BR-27: an issue shows its description with line breaks, and the form is prefilled', () => {
     render(
-      <IssueScreen projectId={f.projectId} issue={f.issueDetail} history={f.openIssueHistory} pickers={f.pickers} update={formAction} resolve={formAction} setStatus={plainAction} remove={plainAction} today={f.today} />,
+      <IssueScreen projectId={f.projectId} issue={f.issueDetail} history={f.openIssueHistory} pickers={f.pickers} update={formAction} setStatus={plainAction} remove={plainAction} />,
     );
 
     const shown = screen.getByText(/Saving a listing with more than 10 photos/, { selector: 'p' });
@@ -300,7 +317,7 @@ describe('issues', () => {
 
   it('BR-27: no description, no empty paragraph', () => {
     render(
-      <IssueScreen projectId={f.projectId} issue={f.resolvedIssueDetail} history={f.resolvedIssueHistory} pickers={f.pickers} update={formAction} resolve={formAction} setStatus={plainAction} remove={plainAction} today={f.today} />,
+      <IssueScreen projectId={f.projectId} issue={f.resolvedIssueDetail} history={f.resolvedIssueHistory} pickers={f.pickers} update={formAction} setStatus={plainAction} remove={plainAction} />,
     );
 
     expect(screen.queryByText(/Saving a listing/, { selector: 'p' })).toBeNull();
@@ -308,7 +325,7 @@ describe('issues', () => {
 
   it('BR-40: a resolved issue shows how it was resolved, linking to plan items, log entries and PRs', () => {
     render(
-      <IssueScreen projectId={f.projectId} issue={f.resolvedIssueDetail} history={f.resolvedIssueHistory} pickers={f.pickers} update={formAction} resolve={formAction} setStatus={plainAction} remove={plainAction} today={f.today} />,
+      <IssueScreen projectId={f.projectId} issue={f.resolvedIssueDetail} history={f.resolvedIssueHistory} pickers={f.pickers} update={formAction} setStatus={plainAction} remove={plainAction} />,
     );
 
     const section = screen.getByRole('region', { name: 'How it was resolved' });
@@ -319,11 +336,14 @@ describe('issues', () => {
       '2026-11-02', '2026-11-03', '2026-11-05', '2026-11-05', '2026-11-05',
     ]);
     expect(tagsIn(section)).toContain('danger:Resolved 2 days late');
+    // BR-44: the cause and fix from the log that closed it.
+    expect(within(section).getAllByText('Share links pointed at the old API server').length).toBeGreaterThanOrEqual(2);
+    expect(tagsIn(section)).toContain('success:Fixed it');
   });
 
   it('BR-40: an open issue shows its history so far, without a summary', () => {
     render(
-      <IssueScreen projectId={f.projectId} issue={f.issueDetail} history={f.openIssueHistory} pickers={f.pickers} update={formAction} resolve={formAction} setStatus={plainAction} remove={plainAction} today={f.today} />,
+      <IssueScreen projectId={f.projectId} issue={f.issueDetail} history={f.openIssueHistory} pickers={f.pickers} update={formAction} setStatus={plainAction} remove={plainAction} />,
     );
 
     const section = screen.getByRole('region', { name: 'History' });
@@ -333,7 +353,7 @@ describe('issues', () => {
 
   it('BR-29: a resolved issue offers reopen and shows who resolved it', () => {
     render(
-      <IssueScreen projectId={f.projectId} issue={f.resolvedIssueDetail} history={f.resolvedIssueHistory} pickers={f.pickers} update={formAction} resolve={formAction} setStatus={plainAction} remove={plainAction} today={f.today} />,
+      <IssueScreen projectId={f.projectId} issue={f.resolvedIssueDetail} history={f.resolvedIssueHistory} pickers={f.pickers} update={formAction} setStatus={plainAction} remove={plainAction} />,
     );
 
     expect(screen.getByRole('button', { name: 'Reopen issue' })).toBeDefined();

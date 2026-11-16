@@ -44,7 +44,7 @@ export async function movePlanItemAction(projectId: string, itemId: string, _pre
 /** BR-16 */
 export async function setPlanItemStatusAction(projectId: string, formData: FormData): Promise<void> {
   await requireSession();
-  await setPlanItemStatus(appDatabase(), projectId, field(formData, 'itemId'), formObject(formData), appToday());
+  await setPlanItemStatus(appDatabase(), projectId, field(formData, 'itemId'), formObject(formData));
   revalidateProject(projectId);
 }
 

@@ -148,10 +148,8 @@ export function IssueScreen({
   issue,
   pickers,
   update,
-  resolve,
   setStatus,
   remove,
-  today,
   history,
 }: {
   readonly projectId: string;
@@ -160,10 +158,8 @@ export function IssueScreen({
   readonly history: IssueHistoryVM;
   readonly pickers: Pickers;
   readonly update: FormAction;
-  readonly resolve: FormAction;
   readonly setStatus: PlainAction;
   readonly remove: PlainAction;
-  readonly today: string;
 }): React.JSX.Element {
   return (
     <div>
@@ -223,10 +219,8 @@ export function IssueScreen({
                 <ActionButton action={setStatus} label="Back to open" fields={{ issueId: issue.id, status: 'open' }} />
               </div>
             )}
-            <ActionForm action={resolve} submitLabel="Resolve issue" label="Resolve issue" layout="inline">
-              <TextField name="resolvedOn" label="Resolved on" type="date" defaultValue={today} max={today} />
-              <SelectField name="resolvedByPrId" label="Resolved by pull request" options={pickers.pullRequests} emptyLabel="None" />
-            </ActionForm>
+            {/* BR-44: closing happens in a log, with its cause and fix. */}
+            <p className="muted">To close this issue, log the work that fixes it: tick “This fixes it” and say what the cause and fix were.</p>
           </div>
         )}
       </Section>

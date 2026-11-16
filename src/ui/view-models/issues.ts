@@ -52,7 +52,9 @@ export type TimelineEventVM = {
   /** Links to the plan item page or the log entry. */
   readonly planItemId: string | null;
   readonly entryId: string | null;
-  readonly pullRequest: PullRequestVM | null;
+  readonly pullRequests: readonly PullRequestVM[];
+  /** BR-44: what a log entry said about this issue. */
+  readonly notes: readonly { readonly label: 'Issue' | 'Cause' | 'Fix'; readonly text: string }[];
 };
 
 export type IssueHistoryVM = {

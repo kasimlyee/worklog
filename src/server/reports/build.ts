@@ -84,27 +84,32 @@ function byArea(data: ReportData): readonly AreaBucket[] {
   return [...buckets.values(), general].filter((bucket) => bucket.entries.length > 0);
 }
 
-type PrBucket = { readonly number: number; readonly repo: string; readonly line: ReportLine; readonly entries: EntryRow[] };
+type PrBucket = { readonly number: number; readonly repo: string; readonly state: PrState; readonly line: ReportLine; readonly entries: EntryRow[] };
 
-/** R-06: PR groups first, by PR number; then entries without a PR in date and creation order. */
+/**
+ * R-06: PR groups first, by PR number; then entries without a PR in date and creation order.
+ * BR-46: an entry whose work spans several PRs appears under each of them.
+ */
 function splitByPr(entries: readonly EntryRow[]): { readonly prs: readonly PrBucket[]; readonly loose: readonly EntryRow[] } {
   const prs = new Map<string, PrBucket>();
   const loose: EntryRow[] = [];
   for (const entry of entries) {
-    const { pullRequestId, prNumber, prTitle, prState, prRepo } = entry;
-    if (pullRequestId === null || prNumber === null || prTitle === null || prState === null || prRepo === null) {
+    if (entry.pullRequests.length === 0) {
       loose.push(entry);
       continue;
     }
-    const bucket = prs.get(pullRequestId) ?? {
-      number: prNumber,
-      repo: prRepo,
-      // R-07: "#{number} {title}" with the PR state and its colour.
-      line: line(`#${String(prNumber)} ${prTitle}`, { tags: [prStateTags[prState]] }),
-      entries: [],
-    };
-    bucket.entries.push(entry);
-    prs.set(pullRequestId, bucket);
+    for (const pr of entry.pullRequests) {
+      const bucket = prs.get(pr.id) ?? {
+        number: pr.number,
+        repo: pr.repo,
+        state: pr.state,
+        // R-07: "#{number} {title}" with the PR state and its colour.
+        line: line(`#${String(pr.number)} ${pr.title}`, { tags: [prStateTags[pr.state]] }),
+        entries: [],
+      };
+      bucket.entries.push(entry);
+      prs.set(pr.id, bucket);
+    }
   }
   const sorted = [...prs.values()].sort((a, b) => a.number !== b.number ? a.number - b.number : a.repo.localeCompare(b.repo));
   return { prs: sorted, loose };
@@ -207,8 +212,25 @@ function issueDetail(issue: ReportIssueRow, asOf: IsoDate): string {
   ].join(' · ');
 }
 
+/** BR-44: a resolved issue carries the cause and fix from the log that closed it. */
+function closureLines(issue: ReportIssueRow, asOf: IsoDate): readonly ReportLine[] {
+  if (issue.resolvedOn === null || issue.resolvedOn > asOf) {
+    return [];
+  }
+  return [
+    ...(issue.cause === null || issue.cause === '' ? [] : [line(`Cause: ${issue.cause}`)]),
+    ...(issue.fix === null || issue.fix === '' ? [] : [line(`Fix: ${issue.fix}`)]),
+  ];
+}
+
 function issueLine(issue: ReportIssueRow, state: StatusTag, asOf: IsoDate): ReportLine {
-  return line(issue.title, { tags: [...priorityTags(issue), state], detail: issueDetail(issue, asOf), people: names(issue.assignees) });
+  const closure = closureLines(issue, asOf);
+  return line(issue.title, {
+    tags: [...priorityTags(issue), state],
+    detail: issueDetail(issue, asOf),
+    people: names(issue.assignees),
+    ...(closure.length === 0 ? {} : { children: closure }),
+  });
 }
 
 /** How an issue stood at the reference date: resolved (on time or late), overdue, or simply open. */
@@ -248,8 +270,8 @@ function issuesSection(data: ReportData): ReportSection {
 function touchedPullRequests(data: ReportData): ReadonlyMap<string, PrState> {
   const prs = new Map<string, PrState>();
   for (const entry of data.entries) {
-    if (entry.pullRequestId !== null && entry.prState !== null) {
-      prs.set(entry.pullRequestId, entry.prState);
+    for (const pr of entry.pullRequests) {
+      prs.set(pr.id, pr.state);
     }
   }
   return prs;
@@ -293,7 +315,7 @@ function weekByWeekSection(data: ReportData): ReportSection {
     const last = sunday > to ? to : sunday;
     const within = (date: IsoDate | null): boolean => date !== null && date >= first && date <= last;
     const entries = data.entries.filter((entry) => within(entry.workDate));
-    const prs = new Set(entries.flatMap((entry) => (entry.pullRequestId === null ? [] : [entry.pullRequestId]))).size;
+    const prs = new Set(entries.flatMap((entry) => entry.pullRequests.map((pr) => pr.id))).size;
     const releases = data.releases.filter((release) => within(release.releasedOn)).length;
     const issues = resolved.filter((issue) => within(issue.resolvedOn)).length;
     const parts = [
@@ -426,8 +448,8 @@ function planVsActualSection(data: ReportData): ReportSection {
 /** §7.4.4: merged PRs per area — title and number only. */
 function mergedPrsSection(data: ReportData): ReportSection {
   const groups = byArea(data).map((bucket): ReportGroup => {
-    const { prs } = splitByPr(bucket.entries.filter((entry) => entry.prState === 'merged'));
-    return { title: bucket.title, lines: prs.map((pr) => ({ ...pr.line, tags: [] })) };
+    const { prs } = splitByPr(bucket.entries);
+    return { title: bucket.title, lines: prs.filter((pr) => pr.state === 'merged').map((pr) => ({ ...pr.line, tags: [] })) };
   });
   return section('Merged pull requests', groups);
 }

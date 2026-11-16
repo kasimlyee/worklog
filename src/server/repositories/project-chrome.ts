@@ -1,13 +1,21 @@
 import 'server-only';
 import { jsonArrayFrom } from 'kysely/helpers/postgres';
 import type { Db } from '#src/server/db/client.ts';
+import type { IssuePriority } from '#src/server/db/types.ts';
 import type { IsoDate } from '#src/server/domain/calendar.ts';
 
 export type ProjectChromeRow = {
   readonly areas: readonly { readonly id: string; readonly name: string }[];
   readonly people: readonly { readonly id: string; readonly name: string }[];
   readonly planItems: readonly { readonly id: string; readonly title: string; readonly dueDate: IsoDate }[];
-  readonly issues: readonly { readonly id: string; readonly title: string }[];
+  /** With what the quick log shows when one is ticked (BR-44). */
+  readonly issues: readonly {
+    readonly id: string;
+    readonly title: string;
+    readonly description: string;
+    readonly priority: IssuePriority;
+    readonly deadline: IsoDate;
+  }[];
   readonly pullRequests: readonly { readonly id: string; readonly repo: string; readonly number: number; readonly title: string }[];
   readonly releases: readonly { readonly id: string; readonly version: string }[];
   readonly overdueItems: number;
@@ -36,7 +44,7 @@ export async function selectProjectChrome(db: Db, projectId: string, overdueCuto
           .limit(planItemLimit),
       ).as('planItems'),
       jsonArrayFrom(
-        eb.selectFrom('issues').select(['id', 'title']).where('projectId', '=', projectId).where('status', '<>', 'resolved').orderBy('deadline'),
+        eb.selectFrom('issues').select(['id', 'title', 'description', 'priority', 'deadline']).where('projectId', '=', projectId).where('status', '<>', 'resolved').orderBy('deadline'),
       ).as('issues'),
       jsonArrayFrom(
         eb

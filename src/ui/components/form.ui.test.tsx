@@ -89,21 +89,52 @@ describe('QuickLog', () => {
     expect(formData instanceof FormData ? [formData.get('description'), formData.get('workDate')] : null).toEqual(['Fixed the login bug', today]);
   });
 
-  it('BR-41: offers to resolve the linked issues, and sends the choice with the entry', async () => {
+  it('BR-44: a ticked issue shows its context and takes Issue / Cause / Fix and “This fixes it”', async () => {
     const action = returning({ status: 'success', message: 'Logged.' });
     render(<QuickLog action={action} pickers={pickers} today={today} projectId="p-atlas" />);
 
     await userEvent.click(screen.getByText('Quick log'));
     await userEvent.keyboard('Fixed the crash');
-    await userEvent.click(screen.getByLabelText('Crash on save'));
-    await userEvent.click(screen.getByLabelText('Resolve the linked issues'));
+    const issue = screen.getByLabelText('Crash on save');
+    await userEvent.click(issue);
+    expect(issue.getAttribute('aria-describedby')).not.toBeNull();
+    expect(screen.getByText(/more than 10 photos crashes/)).toBeDefined();
+    await userEvent.type(screen.getByLabelText('Issue — Crash on save'), 'Crash with many photos');
+    await userEvent.type(screen.getByLabelText('Cause — Crash on save'), 'Full-size decode');
+    await userEvent.type(screen.getByLabelText('Fix — Crash on save'), 'Decode thumbnails');
+    await userEvent.click(screen.getByLabelText(/This fixes it — Crash on save/));
+    await userEvent.click(screen.getByLabelText(/This finishes it — Ship login/));
     await userEvent.click(screen.getByRole('button', { name: 'Log work' }));
 
     await waitFor(() => {
       expect(action).toHaveBeenCalledTimes(1);
     });
     const formData = action.mock.calls[0]?.[1];
-    expect(formData instanceof FormData ? [formData.getAll('issueIds'), formData.get('resolveIssues')] : null).toEqual([['s1'], 'on']);
+    expect(
+      formData instanceof FormData
+        ? [formData.getAll('issueIds'), formData.get('issue.s1.summary'), formData.get('issue.s1.cause'), formData.get('issue.s1.fix'), formData.get('issue.s1.resolves'), formData.get('planItem.i1.completes')]
+        : null,
+    ).toEqual([['s1'], 'Crash with many photos', 'Full-size decode', 'Decode thumbnails', 'on', 'on']);
+  });
+
+  it('BR-44: after a rejected save, the issue notes and ticks are kept', async () => {
+    const action = returning({
+      status: 'error',
+      message: 'Check the highlighted fields.',
+      fieldErrors: { 'issue.s1.fix': 'Say what the fix was before closing the issue.' },
+      values: { description: 'x', issueIds: 's1', 'issue.s1.cause': 'Full-size decode', 'issue.s1.resolves': 'on' },
+    });
+    render(<QuickLog action={action} pickers={pickers} today={today} projectId="p-atlas" />);
+
+    await userEvent.click(screen.getByText('Quick log'));
+    await userEvent.keyboard('x');
+    await userEvent.click(screen.getByRole('button', { name: 'Log work' }));
+
+    expect(await screen.findByText('Say what the fix was before closing the issue.', { selector: 'p' })).toBeDefined();
+    expect(screen.getByLabelText<HTMLInputElement>('Crash on save').checked).toBe(true);
+    expect(screen.getByLabelText<HTMLTextAreaElement>('Cause — Crash on save').value).toBe('Full-size decode');
+    expect(screen.getByLabelText<HTMLInputElement>(/This fixes it — Crash on save/).checked).toBe(true);
+    expect(screen.getByLabelText<HTMLInputElement>('Slow dashboard query').checked).toBe(false);
   });
 
   it('BR-17: “Log work on this” opens the quick log already linked to that issue', async () => {
@@ -126,10 +157,10 @@ describe('QuickLog', () => {
   it('has every field of product spec §6 with a label', () => {
     render(<QuickLog action={returning({ status: 'idle' })} pickers={pickers} today={today} projectId="p-atlas" />);
 
-    for (const label of ['What was done', 'Date', 'Area', 'Pull request link']) {
+    for (const label of ['What was done', 'Date', 'Area', 'Pull request links']) {
       expect(screen.getByLabelText(label)).toBeDefined();
     }
-    for (const group of ['People', 'Issues it fixes or works on', 'Plan items it fulfils']) {
+    for (const group of ['People', 'Issues', 'Plan items']) {
       expect(screen.getByRole('group', { name: group })).toBeDefined();
     }
   });

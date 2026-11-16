@@ -142,6 +142,12 @@ export type EntryIssuesTable = {
   projectId: string;
   entryId: string;
   issueId: string;
+  /** BR-44: short summaries — the full story lives on the pull requests. */
+  summary: Generated<string>;
+  cause: Generated<string>;
+  fix: Generated<string>;
+  /** BR-44: this entry fixes the issue (resolves it). */
+  resolves: Generated<boolean>;
 };
 
 /** BR-17: the plan items an entry fulfils. */
@@ -149,6 +155,15 @@ export type EntryPlanItemsTable = {
   projectId: string;
   entryId: string;
   planItemId: string;
+  /** BR-45: this entry finishes the plan item (marks it done). */
+  completes: Generated<boolean>;
+};
+
+/** BR-46: the pull requests an entry's work went into — FE and BE can be two. */
+export type EntryPullRequestsTable = {
+  projectId: string;
+  entryId: string;
+  pullRequestId: string;
 };
 
 export type EntryPeopleTable = {
@@ -217,6 +232,7 @@ export type Database = {
   entryPeople: EntryPeopleTable;
   entryIssues: EntryIssuesTable;
   entryPlanItems: EntryPlanItemsTable;
+  entryPullRequests: EntryPullRequestsTable;
   releases: ReleasesTable;
   releasePullRequests: ReleasePullRequestsTable;
   notes: NotesTable;
@@ -265,8 +281,9 @@ export const schemaContract = {
     planItemId: uuidNull, issueId: uuidNull, createdAt: tz, updatedAt: tz,
   },
   entryPeople: { entryId: uuid, personId: uuid },
-  entryIssues: { projectId: uuid, entryId: uuid, issueId: uuid },
-  entryPlanItems: { projectId: uuid, entryId: uuid, planItemId: uuid },
+  entryIssues: { projectId: uuid, entryId: uuid, issueId: uuid, summary: text, cause: text, fix: text, resolves: { type: 'boolean', nullable: false } },
+  entryPlanItems: { projectId: uuid, entryId: uuid, planItemId: uuid, completes: { type: 'boolean', nullable: false } },
+  entryPullRequests: { projectId: uuid, entryId: uuid, pullRequestId: uuid },
   releases: {
     id: uuid, projectId: uuid, version: text, status: userEnum(), targetDate: dateNull, releasedOn: dateNull,
     notes: text, createdAt: tz, updatedAt: tz,

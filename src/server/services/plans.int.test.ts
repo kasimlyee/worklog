@@ -6,6 +6,8 @@ import { aPerson, aPlan, aPlanItem, aProject, anArea, anIssue } from '#tests/fix
 import {
   createPlanItem, deletePlanItem, getPlan, getPlanItem, listOpenPlanItems, movePlanItem, setPlanItemStatus, updatePlanItem,
 } from './plans.ts';
+import { prDeps } from '#tests/fixtures/github.ts';
+import { createEntry } from './entries.ts';
 
 const today = d('2026-11-10');
 
@@ -117,35 +119,59 @@ describe('plan items', () => {
   });
 });
 
+/** BR-45: the only way to finish a plan item — a log that finishes it. */
+async function logFinish(projectId: string, itemId: string, workDate = '2026-11-10') {
+  const person = await aPerson(testDb());
+  return await createEntry(prDeps(testDb()), projectId, {
+    workDate,
+    description: 'Finished it',
+    personIds: [person.id],
+    planItemIds: [itemId],
+    [`planItem.${itemId}.completes`]: 'on',
+  });
+}
+
 describe('status', () => {
-  it('BR-16: records completed_on when done and clears it when reopened', async () => {
+  it('BR-16: a log finishing the item records completed_on; another status reopens it and clears it', async () => {
     const project = await aProject(testDb());
     const item = await aPlanItem(testDb(), await aPlan(testDb(), project.id));
 
-    await setPlanItemStatus(testDb(), project.id, item.id, { status: 'done' }, today);
+    await logFinish(project.id, item.id);
     expect(await getPlanItem(testDb(), project.id, item.id, today)).toMatchObject({ status: 'done', completedOn: '2026-11-10', deadline: null });
 
-    await setPlanItemStatus(testDb(), project.id, item.id, { status: 'in_progress' }, today);
+    await setPlanItemStatus(testDb(), project.id, item.id, { status: 'in_progress' });
     expect(await getPlanItem(testDb(), project.id, item.id, today)).toMatchObject({ status: 'in_progress', completedOn: null });
   });
 
-  it('BR-10: rejects an unknown status and unknown items', async () => {
+  it('BR-45: done cannot be chosen as a status; BR-10 unknown statuses and items are refused', async () => {
     const project = await aProject(testDb());
     const item = await aPlanItem(testDb(), await aPlan(testDb(), project.id));
 
-    expect((await setPlanItemStatus(testDb(), project.id, item.id, { status: 'finished' }, today)).ok).toBe(false);
-    expect(await setPlanItemStatus(testDb(), project.id, 'bad', { status: 'done' }, today)).toEqual({ ok: false, error: { code: 'not_found' } });
-    expect(await setPlanItemStatus(testDb(), project.id, project.id, { status: 'done' }, today)).toEqual({ ok: false, error: { code: 'not_found' } });
+    expect((await setPlanItemStatus(testDb(), project.id, item.id, { status: 'done' })).ok).toBe(false);
+    expect((await setPlanItemStatus(testDb(), project.id, item.id, { status: 'finished' })).ok).toBe(false);
+    expect(await setPlanItemStatus(testDb(), project.id, 'bad', { status: 'blocked' })).toEqual({ ok: false, error: { code: 'not_found' } });
+    expect(await setPlanItemStatus(testDb(), project.id, project.id, { status: 'blocked' })).toEqual({ ok: false, error: { code: 'not_found' } });
+    expect((await getPlanItem(testDb(), project.id, item.id, today))?.status).toBe('planned');
+  });
+
+  it('BR-45: an item finished earlier keeps its completion date when a later log ticks it again', async () => {
+    const project = await aProject(testDb());
+    const item = await aPlanItem(testDb(), await aPlan(testDb(), project.id));
+
+    await logFinish(project.id, item.id, '2026-11-09');
+    await logFinish(project.id, item.id, '2026-11-10');
+
+    expect((await getPlanItem(testDb(), project.id, item.id, today))?.completedOn).toBe('2026-11-09');
   });
 });
 
 describe('resolving linked issues', () => {
-  it('BR-39: marking a plan item done resolves its issue, dated the completion day', async () => {
+  it('BR-39: finishing a plan item resolves its issue, dated the completion day', async () => {
     const project = await aProject(testDb());
     const issue = await anIssue(testDb(), project.id, { status: 'in_progress' });
     const item = await aPlanItem(testDb(), await aPlan(testDb(), project.id), { issueId: issue.id });
 
-    await setPlanItemStatus(testDb(), project.id, item.id, { status: 'done' }, today);
+    await logFinish(project.id, item.id);
 
     const row = await testDb().selectFrom('issues').select(['status', 'resolvedOn']).where('id', '=', issue.id).executeTakeFirstOrThrow();
     expect(row).toEqual({ status: 'resolved', resolvedOn: '2026-11-10' });
@@ -156,7 +182,7 @@ describe('resolving linked issues', () => {
     const issue = await anIssue(testDb(), project.id, { status: 'resolved', resolvedOn: '2026-11-05' });
     const item = await aPlanItem(testDb(), await aPlan(testDb(), project.id), { issueId: issue.id });
 
-    await setPlanItemStatus(testDb(), project.id, item.id, { status: 'done' }, today);
+    await logFinish(project.id, item.id);
 
     expect((await testDb().selectFrom('issues').select('resolvedOn').where('id', '=', issue.id).executeTakeFirstOrThrow()).resolvedOn).toBe('2026-11-05');
   });
@@ -167,19 +193,12 @@ describe('resolving linked issues', () => {
     const item = await aPlanItem(testDb(), await aPlan(testDb(), project.id), { issueId: issue.id });
     const statusOf = async () => (await testDb().selectFrom('issues').select('status').where('id', '=', issue.id).executeTakeFirstOrThrow()).status;
 
-    await setPlanItemStatus(testDb(), project.id, item.id, { status: 'blocked' }, today);
+    await setPlanItemStatus(testDb(), project.id, item.id, { status: 'blocked' });
     expect(await statusOf()).toBe('open');
 
-    await setPlanItemStatus(testDb(), project.id, item.id, { status: 'done' }, today);
-    await setPlanItemStatus(testDb(), project.id, item.id, { status: 'in_progress' }, today);
+    await logFinish(project.id, item.id);
+    await setPlanItemStatus(testDb(), project.id, item.id, { status: 'in_progress' });
     expect(await statusOf()).toBe('resolved');
-  });
-
-  it('BR-39: a plan item without an issue just becomes done', async () => {
-    const project = await aProject(testDb());
-    const item = await aPlanItem(testDb(), await aPlan(testDb(), project.id));
-
-    expect(await setPlanItemStatus(testDb(), project.id, item.id, { status: 'done' }, today)).toEqual({ ok: true, value: { id: item.id } });
   });
 });
 

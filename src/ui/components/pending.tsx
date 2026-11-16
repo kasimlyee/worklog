@@ -29,7 +29,7 @@ type AutoSubmitSelectProps = {
   readonly name: string;
   readonly defaultValue: string;
   readonly className?: string;
-  readonly options: readonly { readonly value: string; readonly label: string }[];
+  readonly options: readonly { readonly value: string; readonly label: string; readonly disabled?: boolean }[];
 };
 
 /** Saves as soon as a new value is chosen; the form's own button remains for keyboard and no-JavaScript use. */
@@ -47,7 +47,7 @@ export function AutoSubmitSelect({ id, name, defaultValue, className, options }:
       }}
     >
       {options.map((option) => (
-        <option key={option.value} value={option.value}>
+        <option key={option.value} value={option.value} disabled={option.disabled}>
           {option.label}
         </option>
       ))}

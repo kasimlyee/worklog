@@ -3,7 +3,9 @@ import { anyString } from '#tests/fixtures/matchers.ts';
 import { isoDate as d } from '#src/server/domain/calendar.ts';
 import { testDb } from '#tests/setup/test-db.ts';
 import { aPerson, aPlan, aPlanItem, aProject, aPullRequest, anArea, anEntry, anIssue, withPeople } from '#tests/fixtures/builders.ts';
-import { createIssue, deleteIssue, getIssue, listIssues, resolveIssue, setIssueStatus, updateIssue } from './issues.ts';
+import { prDeps } from '#tests/fixtures/github.ts';
+import { createEntry } from './entries.ts';
+import { createIssue, deleteIssue, getIssue, listIssues, setIssueStatus, updateIssue } from './issues.ts';
 
 const today = d('2026-11-10');
 
@@ -96,11 +98,25 @@ describe('issues', () => {
 });
 
 describe('resolving', () => {
-  it('BR-29: resolving records resolved_on, defaulting to today', async () => {
+  /** BR-44: the only way to resolve — a log that fixes the issue. */
+  async function logFix(projectId: string, issueId: string, fields: Record<string, unknown> = {}) {
+    const person = await aPerson(testDb());
+    return await createEntry(prDeps(testDb()), projectId, {
+      workDate: '2026-11-10',
+      description: 'Fixed it',
+      personIds: [person.id],
+      issueIds: [issueId],
+      [`issue.${issueId}.fix`]: 'The fix',
+      [`issue.${issueId}.resolves`]: 'on',
+      ...fields,
+    });
+  }
+
+  it('BR-29: resolving records resolved_on — the day the fixing work was done', async () => {
     const { project } = await base();
     const issue = await anIssue(testDb(), project.id, { deadline: '2026-11-13' });
 
-    await resolveIssue(testDb(), project.id, issue.id, {}, today);
+    await logFix(project.id, issue.id);
 
     expect(await getIssue(testDb(), project.id, issue.id, today)).toMatchObject({
       status: 'resolved',
@@ -109,27 +125,21 @@ describe('resolving', () => {
     });
   });
 
-  it('BR-29: the resolved date is editable, but not in the future', async () => {
+  it('BR-29: a fix logged for an earlier day resolves it on that day', async () => {
     const { project } = await base();
     const issue = await anIssue(testDb(), project.id, { assignedOn: '2026-11-02', deadline: '2026-11-05' });
 
-    const future = await resolveIssue(testDb(), project.id, issue.id, { resolvedOn: '2026-11-11' }, today);
-    await resolveIssue(testDb(), project.id, issue.id, { resolvedOn: '2026-11-09' }, today);
+    await logFix(project.id, issue.id, { workDate: '2026-11-09' });
 
-    expect(future.ok).toBe(false);
     expect((await getIssue(testDb(), project.id, issue.id, today))?.deadlineState).toEqual({ state: 'late', label: 'Resolved 4 days late' });
   });
 
-  it('BR-30: may record the PR that resolved it, from this project only', async () => {
+  it('BR-30: records the pull request that resolved it — the log’s first', async () => {
     const { project } = await base();
     const issue = await anIssue(testDb(), project.id);
-    const pr = await aPullRequest(testDb(), project.id, { number: 77 });
-    const foreign = await aPullRequest(testDb(), (await aProject(testDb())).id);
 
-    const refused = await resolveIssue(testDb(), project.id, issue.id, { resolvedByPrId: foreign.id }, today);
-    await resolveIssue(testDb(), project.id, issue.id, { resolvedByPrId: pr.id }, today);
+    await logFix(project.id, issue.id, { prUrls: 'https://github.com/acme/app/pull/77\nhttps://github.com/acme/api/pull/3' });
 
-    expect(refused).toEqual({ ok: false, error: { code: 'invalid', fieldErrors: { resolvedByPrId: 'Choose a pull request of this project.' } } });
     expect((await getIssue(testDb(), project.id, issue.id, today))?.resolvedBy).toMatchObject({ number: 77 });
   });
 
@@ -143,7 +153,7 @@ describe('resolving', () => {
     expect(await getIssue(testDb(), project.id, issue.id, today)).toMatchObject({ status: 'open', resolvedOn: null, resolvedBy: null });
   });
 
-  it('BR-27: in_progress is a status; resolved can only be set by resolving', async () => {
+  it('BR-44: in_progress is a status; resolved can only be set by a log that fixes it', async () => {
     const { project } = await base();
     const issue = await anIssue(testDb(), project.id);
 
@@ -156,12 +166,10 @@ describe('resolving', () => {
     const other = await anIssue(testDb(), (await aProject(testDb())).id);
 
     for (const issueId of ['bad', other.id]) {
-      expect(await resolveIssue(testDb(), project.id, issueId, {}, today)).toEqual({ ok: false, error: { code: 'not_found' } });
       expect(await setIssueStatus(testDb(), project.id, issueId, { status: 'open' })).toEqual({ ok: false, error: { code: 'not_found' } });
       expect(await deleteIssue(testDb(), project.id, issueId)).toEqual({ ok: false, error: { code: 'not_found' } });
       expect(await getIssue(testDb(), project.id, issueId, today)).toBeNull();
     }
-    expect((await resolveIssue(testDb(), project.id, other.id, { resolvedOn: 'x' }, today)).ok).toBe(false);
     expect((await setIssueStatus(testDb(), project.id, other.id, {})).ok).toBe(false);
   });
 });

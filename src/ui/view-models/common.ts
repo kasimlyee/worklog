@@ -6,6 +6,9 @@ export type StatusVM = { readonly tone: Tone; readonly label: string };
 
 export type Option = { readonly value: string; readonly label: string };
 
+/** BR-44: an open issue to pick, with the context shown once it is ticked. */
+export type IssueOption = Option & { readonly description: string; readonly priority: StatusVM; readonly deadlineLabel: string };
+
 export type PullRequestVM = {
   readonly id: string;
   readonly number: number;
@@ -20,7 +23,7 @@ export type Pickers = {
   readonly areas: readonly Option[];
   readonly people: readonly Option[];
   readonly planItems: readonly Option[];
-  readonly issues: readonly Option[];
+  readonly issues: readonly IssueOption[];
   readonly pullRequests: readonly Option[];
   readonly releases: readonly Option[];
 };

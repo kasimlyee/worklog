@@ -24,13 +24,17 @@ type EntryOptions = {
   readonly date?: string;
   readonly area?: { readonly id: string } | null;
   readonly people?: readonly NamedRef[];
-  readonly pr?: { readonly id: string; readonly number: number; readonly title: string; readonly state: PrState; readonly repo?: string };
+  readonly pr?: PrOption;
+  /** BR-46: more pull requests the same work went into. */
+  readonly morePrs?: readonly PrOption[];
   readonly planItemIds?: readonly string[];
   readonly createdAt?: string;
 };
 
+type PrOption = { readonly id: string; readonly number: number; readonly title: string; readonly state: PrState; readonly repo?: string };
+
 export function entry(description: string, options: EntryOptions = {}): EntryRow {
-  const { pr } = options;
+  const prs = [...(options.pr === undefined ? [] : [options.pr]), ...(options.morePrs ?? [])];
   return {
     id: nextId(),
     workDate: isoDate(options.date ?? '2026-11-10'),
@@ -38,13 +42,8 @@ export function entry(description: string, options: EntryOptions = {}): EntryRow
     createdAt: options.createdAt ?? '2026-11-10 08:00:00+00',
     areaId: options.area?.id ?? null,
     areaName: null,
-    pullRequestId: pr?.id ?? null,
-    prOwner: pr === undefined ? null : 'acme',
-    prRepo: pr === undefined ? null : (pr.repo ?? 'app'),
-    prNumber: pr?.number ?? null,
-    prTitle: pr?.title ?? null,
-    prState: pr?.state ?? null,
-    planItems: (options.planItemIds ?? []).map((id) => ({ id, title: `Plan item ${id}` })),
+    pullRequests: prs.map((pr) => ({ id: pr.id, owner: 'acme', repo: pr.repo ?? 'app', number: pr.number, title: pr.title, state: pr.state })),
+    planItems: (options.planItemIds ?? []).map((id) => ({ id, title: `Plan item ${id}`, completes: false })),
     issues: [],
     people: options.people ?? [person('Grace')],
   };
@@ -62,7 +61,7 @@ export function issue(
   resolvedOn: string | null = null,
   assignees = [person('Grace')],
   priority: ReportIssueRow['priority'] = 'medium',
-  extra: { readonly assignedOn?: string; readonly resolvedBy?: PrFixture } = {},
+  extra: { readonly assignedOn?: string; readonly resolvedBy?: PrFixture; readonly cause?: string; readonly fix?: string } = {},
 ): ReportIssueRow {
   return {
     id: nextId(),
@@ -74,6 +73,8 @@ export function issue(
     resolvedOn: resolvedOn === null ? null : isoDate(resolvedOn),
     resolvedByNumber: extra.resolvedBy?.number ?? null,
     resolvedByTitle: extra.resolvedBy?.title ?? null,
+    cause: extra.cause ?? null,
+    fix: extra.fix ?? null,
     assignees,
   };
 }

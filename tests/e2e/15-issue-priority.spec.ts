@@ -15,7 +15,7 @@ test('BR-37, BR-27: an urgent issue with a description appears under Urgent long
   await form.getByLabel('Deadline').fill(addDays(appToday(), 30));
   await form.getByLabel('Grace').check();
   await form.getByRole('button', { name: 'Create issue' }).click();
-  await expect(page.locator('[data-tone="danger"]').filter({ hasText: 'Urgent' })).toBeVisible();
+  await expect(page.locator('[data-tone="danger"]:visible').filter({ hasText: 'Urgent' })).toBeVisible();
   await expect(page.getByRole('region', { name: 'Summary' }).getByText(/Mobile Money deposits time out\.\s+Affects about 1 in 10 users\./)).toBeVisible();
 
   await page.getByRole('navigation', { name: 'Project' }).getByRole('link', { name: 'Dashboard' }).click();

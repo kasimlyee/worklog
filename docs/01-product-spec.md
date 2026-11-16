@@ -85,14 +85,14 @@ These are deliberate. A feature request that falls here needs this document chan
   1. sets a new due date,
   2. moves it into the plan covering that date and horizon (creating that plan if missing),
   3. records the move (from-date, to-date, when) in the item's history.
-- **BR-16** A plan item records `completed_on` when it becomes `done` and clears it if reopened.
+- **BR-16** A plan item records `completed_on` when it becomes `done` and clears it if reopened. A plan item becomes `done` only through a log entry that finishes it (BR-45); its status can be set by hand to planned, in progress or blocked, which from `done` reopens it.
 
 ### 4.4 Entries
 
-- **BR-17** An entry has a work date, a description, an area, one or more people, and optionally a PR, any number of plan items it fulfils, and any number of issues it relates to (one PR often carries several fixes).
+- **BR-17** An entry has a work date, a description, an area, one or more people, and any number of pull requests (BR-46), any number of plan items it fulfils, and any number of issues it relates to (one PR often carries several fixes).
 - **BR-18** Entries are recorded on the **actual date the work was done**, including Saturday and Sunday.
 - **BR-19** An entry's area, PR, plan item and issue must all belong to the entry's project.
-- **BR-20** Linking an entry to a plan item does **not** change the plan item's status automatically. Marking done is a separate, explicit action. (One plan item may need several entries.)
+- **BR-20** Linking an entry to a plan item or issue does **not** by itself change its status. Closing is an explicit tick on the link (BR-44, BR-45). (One plan item or issue may need several entries.)
 
 ### 4.5 Pull requests
 
@@ -107,8 +107,8 @@ These are deliberate. A feature request that falls here needs this document chan
 
 - **BR-27** An issue has a short title, an optional short description (plain text, at most 2,000 characters), an optional external link, an optional area, one or more assignees, an assigned date, a deadline date, a priority (BR-37), and a status: `open`, `in_progress` or `resolved`.
 - **BR-28** The deadline must be on or after the assigned date.
-- **BR-29** When an issue becomes `resolved`, `resolved_on` is recorded (defaults to today, editable). Reopening clears it.
-- **BR-30** An issue may reference the PR that resolved it.
+- **BR-29** When an issue becomes `resolved`, `resolved_on` is recorded: the work date of the log entry that fixed it (BR-44). Reopening clears it.
+- **BR-30** An issue may reference the PR that resolved it: the first pull request of the log entry that fixed it.
 - **BR-31** Deadline state of an issue, calculated, never stored:
 
   | Condition | State | Colour | Label example |
@@ -129,13 +129,16 @@ These are deliberate. A feature request that falls here needs this document chan
 
 - **BR-38** An unresolved issue can be put on *today's* day plan — by dragging it onto Today's plan on the dashboard, or with a "Plan today" button (keyboard and touch). This creates a plan item due today, linked to the issue (BR-12), with the issue's title, area and assignees. An `open` issue becomes `in_progress`. An issue already on today's plan is not added twice. There is no day plan at the weekend (BR-08), so nothing is added then.
 
-- **BR-39** Marking a plan item `done` resolves the issue it references (BR-12), if that issue is not already resolved; `resolved_on` is the item's `completed_on`. Reopening the plan item does not reopen the issue — reopening an issue is always done on the issue.
+- **BR-39** A plan item becoming `done` (BR-45) resolves the issue it references (BR-12), if that issue is not already resolved; `resolved_on` is the item's `completed_on`. Reopening the plan item does not reopen the issue — reopening an issue is always done on the issue.
 
 - **BR-40** An issue shows its history: when it was assigned, every plan item that references it (with status and due date), every log entry linked to it (with date, people and PR), and when and how it was resolved (on time or late, resolving PR). A resolved issue also shows a summary: resolved date and deadline state, days from assignment to resolution, the people who logged work on it, and the pull requests involved.
-- **BR-41** Logging work can **resolve the issues the entry is linked to** in the same step ("Resolve the linked issues" in the log form). Each linked issue that is not already resolved becomes `resolved`, with the entry's date as `resolved_on` and the entry's pull request (if any) as the resolving PR (BR-30). Issues already resolved keep their resolution. Editing or deleting the entry later does not reopen them.
+- BR-41 (retired — replaced by BR-44: issues are resolved per link, with a cause and fix, not all at once.)
 
 - **BR-42** The first screen is an **overview across every active project**: each project's overdue count and today's progress; everything that needs attention (overdue plan items and issues, and urgent issues) from all projects, oldest first, each naming its project; what is due soon; and what was finished (plan items done, issues resolved) in the last 7 days.
 - **BR-43** The People screen shows each active person's **workload** across active projects: open plan items, open issues, overdue and blocked work, work finished in the last 30 days, and the projects they have open work in. These are counts of recorded assignments, never presented as a measure of productivity.
+- **BR-44** **A log entry closes issues.** An issue is resolved only by a log entry linked to it with **"This fixes it"** ticked — there is no resolving on the issue itself. Each issue linked to an entry carries three short summaries — **Issue** (what was wrong), **Cause**, **Fix** — each at most 1,000 characters; the full story lives on the pull requests. "This fixes it" needs a Fix. The issue becomes `resolved` on the entry's work date, by the entry's first pull request (BR-29, BR-30). An issue linked without the tick is worked on and stays open (a fix may need a front-end and a back-end change). An issue already resolved keeps its resolution; unticking or deleting the entry never reopens it — reopening is done on the issue. Ticking an issue in the log form shows its description, priority and deadline. The issue's history and the reports show the cause and fix of the entry that closed it.
+- **BR-45** **A log entry finishes plan items.** A plan item becomes `done` only through a log entry linked to it with **"This finishes it"** ticked, with the entry's work date as `completed_on` (BR-16); finishing an item made from an issue resolves that issue (BR-39). An item already done keeps its completion date.
+- **BR-46** A log entry may link **several pull requests** (up to five; one link per line) — the same work often spans a front-end and a back-end PR. Reports list the entry under each of its PRs.
 
 ### 4.7 Releases and notes
 
@@ -168,8 +171,8 @@ Colours are semantic and identical in the UI and in PDF exports. Colour is never
 | **Project dashboard** | Urgent (overdue plan items and issues, oldest first) · Due soon · Today's plan (issues can be dragged onto it, BR-38) · Open issues by deadline · Recent entries. |
 | **Plans** | Day / week / month view; create items; change status; move (carry-over) with history visible. |
 | **Log** | Entries by date, newest first; quick-add form; filter by area, person, PR. |
-| **Quick log** | Reachable from every project page. Fields: date (default today), description, area, people, PR URL, plan item, issue. Submits with keyboard only. |
-| **Issues** | Issue page with its history (BR-40). Table with priority, assignees, deadline state, link out; filter and sort by priority; resolve / reopen. |
+| **Quick log** | Reachable from every project page. A wide two-column form. Left: description, then issues — ticking one shows its context and its Issue / Cause / Fix and "This fixes it" (BR-44). Right: date (default today), area, PR links one per line (BR-46), people, plan items with "This finishes it" (BR-45). Submits with keyboard only. |
+| **Issues** | Issue page with its history (BR-40). Table with priority, assignees, deadline state, link out; filter and sort by priority; reopen (resolving is done from the log, BR-44). |
 | **Releases** | List and detail with linked PRs and notes. |
 | **Notes** | List, editor, rendered view. |
 | **Reports** | Choose type and period → preview → export PDF / Markdown. Report note editable here. |

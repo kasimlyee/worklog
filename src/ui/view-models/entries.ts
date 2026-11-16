@@ -8,10 +8,24 @@ export type EntryVM = {
   readonly description: string;
   readonly area: string | null;
   readonly people: readonly string[];
-  readonly pullRequest: PullRequestVM | null;
-  /** BR-17: any number of each. */
-  readonly planItems: readonly { readonly id: string; readonly title: string }[];
-  readonly issues: readonly { readonly id: string; readonly title: string }[];
+  /** BR-46 */
+  readonly pullRequests: readonly PullRequestVM[];
+  /** BR-17: any number of each; BR-44/BR-45: what this entry closed. */
+  readonly planItems: readonly EntryPlanItemLinkVM[];
+  readonly issues: readonly EntryIssueLinkVM[];
+};
+
+/** BR-45 */
+export type EntryPlanItemLinkVM = { readonly id: string; readonly title: string; readonly completes: boolean };
+
+/** BR-44: short summaries; the full story is on the pull requests. */
+export type EntryIssueLinkVM = {
+  readonly id: string;
+  readonly title: string;
+  readonly summary: string;
+  readonly cause: string;
+  readonly fix: string;
+  readonly resolves: boolean;
 };
 
 /** Values to prefill the entry form when editing. */
@@ -20,9 +34,11 @@ export type EntryFormValues = {
   readonly description: string;
   readonly areaId: string;
   readonly personIds: readonly string[];
-  readonly prUrl: string;
-  readonly planItemIds: readonly string[];
-  readonly issueIds: readonly string[];
+  /** BR-46: one link per line. */
+  readonly prUrls: string;
+  /** Linked already — offered even when no longer open, so editing never drops a link. */
+  readonly planItems: readonly EntryPlanItemLinkVM[];
+  readonly issues: readonly EntryIssueLinkVM[];
 };
 
 export type LogDayVM = { readonly date: string; readonly label: string; readonly isWeekend: boolean; readonly entries: readonly EntryVM[] };

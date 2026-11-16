@@ -22,8 +22,8 @@ const entry = (overrides: Partial<Entry> = {}): Entry => ({
   description: 'Hotfix',
   area: { id: 'a1', name: 'Backend' },
   people: [grace],
-  pullRequest: pr,
-  planItems: [{ id: 'i1', title: 'Ship login' }],
+  pullRequests: [pr],
+  planItems: [{ id: 'i1', title: 'Ship login', completes: false }],
   issues: [],
   ...overrides,
 });
@@ -80,21 +80,23 @@ describe('view-model mappers', () => {
       description: 'Hotfix',
       area: 'Backend',
       people: ['Grace'],
-      pullRequest: { id: 'pr1', number: 12, repo: 'app', title: 'Add login', url: pr.url, state: { tone: 'success', label: 'Merged' } },
-      planItems: [{ id: 'i1', title: 'Ship login' }],
+      pullRequests: [{ id: 'pr1', number: 12, repo: 'app', title: 'Add login', url: pr.url, state: { tone: 'success', label: 'Merged' } }],
+      planItems: [{ id: 'i1', title: 'Ship login', completes: false }],
       issues: [],
     });
   });
 
-  it('prefills the entry form with ids and the PR link', () => {
-    expect(toEntryFormValues(entry({ area: null, pullRequest: null, planItems: [], issues: [{ id: 's1', title: 'x' }, { id: 's2', title: 'y' }] }))).toEqual({
+  it('prefills the entry form with its links, their notes and the PR links, one per line', () => {
+    const fixed = { id: 's1', title: 'x', summary: 'Broke', cause: 'Bad data', fix: 'Cleaned it', resolves: true };
+    const second = { ...pr, id: 'pr2', number: 3, repo: 'api', url: 'https://github.com/acme/api/pull/3' };
+    expect(toEntryFormValues(entry({ area: null, pullRequests: [pr, second], planItems: [], issues: [fixed] }))).toEqual({
       workDate: '2026-11-14',
       description: 'Hotfix',
       areaId: '',
       personIds: ['p1'],
-      prUrl: '',
-      planItemIds: [],
-      issueIds: ['s1', 's2'],
+      prUrls: `${pr.url}\nhttps://github.com/acme/api/pull/3`,
+      planItems: [],
+      issues: [fixed],
     });
   });
 
@@ -188,7 +190,7 @@ describe('view-model mappers', () => {
       areas: [{ id: 'a1', name: 'Web' }],
       people: [{ id: 'p1', name: 'Grace' }],
       planItems: [{ id: 'i1', title: 'Ship login', dueDate: d('2026-11-06') }],
-      issues: [{ id: 's1', title: 'Crash' }],
+      issues: [{ id: 's1', title: 'Crash', description: 'On save', priority: 'urgent', deadline: d('2026-11-09') }],
       pullRequests: [{ id: 'pr1', repo: 'app', number: 12, title: 'Add login' }],
       releases: [],
     });
@@ -197,7 +199,7 @@ describe('view-model mappers', () => {
       areas: [{ value: 'a1', label: 'Web' }],
       people: [{ value: 'p1', label: 'Grace' }],
       planItems: [{ value: 'i1', label: 'Ship login (due Fri 6 Nov)' }],
-      issues: [{ value: 's1', label: 'Crash' }],
+      issues: [{ value: 's1', label: 'Crash', description: 'On save', priority: { tone: 'danger', label: 'Urgent' }, deadlineLabel: 'Deadline Mon 9 Nov' }],
       pullRequests: [{ value: 'pr1', label: 'app #12 Add login' }],
       releases: [],
     });
@@ -290,7 +292,7 @@ describe('issue history', () => {
   it('BR-40: orders assignment, plan items, log entries and resolution by date', () => {
     const vm = toIssueHistoryVM(resolvedIssue, {
       planItems: [doneItem],
-      entries: [entry({ id: 'e2', workDate: d('2026-11-06'), description: 'Shipped fix' }), entry({ id: 'e1', workDate: d('2026-11-03'), description: 'Found cause', pullRequest: null })],
+      entries: [entry({ id: 'e2', workDate: d('2026-11-06'), description: 'Shipped fix' }), entry({ id: 'e1', workDate: d('2026-11-03'), description: 'Found cause', pullRequests: [] })],
     });
 
     expect(vm.events.map((e) => [e.dateLabel, e.kind, e.title])).toEqual([
@@ -301,7 +303,7 @@ describe('issue history', () => {
       ['6 Nov 2026', 'resolved', 'Resolved'],
     ]);
     expect(vm.events.find((e) => e.kind === 'planned')).toMatchObject({ detail: 'Planned for Thu 5 Nov, done Fri 6 Nov', planItemId: 'i2', tags: [{ label: 'Done' }] });
-    expect(vm.events.find((e) => e.kind === 'resolved')).toMatchObject({ tags: [{ tone: 'danger', label: 'Resolved 1 day late' }], pullRequest: { number: 12 } });
+    expect(vm.events.find((e) => e.kind === 'resolved')).toMatchObject({ tags: [{ tone: 'danger', label: 'Resolved 1 day late' }], pullRequests: [{ number: 12 }] });
   });
 
   it('BR-40: a resolved issue summarises how it was resolved', () => {
@@ -315,6 +317,32 @@ describe('issue history', () => {
       { label: 'Log entries', value: '1' },
       { label: 'Worked on by', value: 'Ali, Grace' },
       { label: 'Pull requests', value: 'app #12' },
+    ]);
+  });
+
+  it('BR-44: the cause and fix of the log that closed the issue lead its summary and annotate the timeline', () => {
+    const closing = { id: resolvedIssue.id, title: resolvedIssue.title, summary: 'Links broke', cause: 'Old server', fix: 'Moved the domain', resolves: true };
+    const looking = { ...closing, summary: '', cause: 'Maybe DNS', fix: '', resolves: false };
+    const vm = toIssueHistoryVM(resolvedIssue, {
+      planItems: [],
+      entries: [entry({ id: 'e1', workDate: d('2026-11-03'), issues: [looking] }), entry({ id: 'e2', workDate: d('2026-11-06'), issues: [closing] })],
+    });
+
+    expect(vm.summary.slice(-2)).toEqual([
+      { label: 'Cause', value: 'Old server' },
+      { label: 'Fix', value: 'Moved the domain' },
+    ]);
+    const logged = vm.events.filter((e) => e.kind === 'logged');
+    expect(logged.map((e) => [e.notes, e.tags])).toEqual([
+      [[{ label: 'Cause', text: 'Maybe DNS' }], []],
+      [
+        [
+          { label: 'Issue', text: 'Links broke' },
+          { label: 'Cause', text: 'Old server' },
+          { label: 'Fix', text: 'Moved the domain' },
+        ],
+        [{ tone: 'success', label: 'Fixed it' }],
+      ],
     ]);
   });
 

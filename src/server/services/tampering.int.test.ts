@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import { isoDate as d } from '#src/server/domain/calendar.ts';
 import type { Db } from '#src/server/db/client.ts';
 import { testDb } from '#tests/setup/test-db.ts';
 import { fakeGitHub, prDeps } from '#tests/fixtures/github.ts';
@@ -7,7 +6,7 @@ import {
   aPerson, aPlan, aPlanItem, aProject, aPullRequest, aRelease, anArea, anEntry, anIssue,
 } from '#tests/fixtures/builders.ts';
 import { deleteEntry, updateEntry } from './entries.ts';
-import { deleteIssue, resolveIssue, setIssueStatus, updateIssue } from './issues.ts';
+import { deleteIssue, setIssueStatus, updateIssue } from './issues.ts';
 import { createNote, deleteNote, updateNote } from './notes.ts';
 import { deletePlanItem, movePlanItem, setPlanItemStatus, updatePlanItem } from './plans.ts';
 import { renameArea, setAreaArchived } from './projects.ts';
@@ -38,18 +37,16 @@ describe('cross-project tampering', () => {
     const note = await createNote(db, theirs.id, { title: 'Theirs' });
     const noteId = note.ok ? note.value.id : '';
     const before = await snapshot(db, theirs.id);
-    const today = d('2026-11-10');
     const deps = prDeps(db, fakeGitHub());
 
     const attempts: readonly (readonly [string, () => Promise<ServiceResult<unknown>>])[] = [
       ['updateEntry', () => updateEntry(deps, mine.id, entry.id, { workDate: '2026-11-10', description: 'x', personIds: [person.id] })],
       ['deleteEntry', () => deleteEntry(db, mine.id, entry.id)],
       ['updatePlanItem', () => updatePlanItem(db, mine.id, item.id, { title: 'x' })],
-      ['setPlanItemStatus', () => setPlanItemStatus(db, mine.id, item.id, { status: 'done' }, today)],
+      ['setPlanItemStatus', () => setPlanItemStatus(db, mine.id, item.id, { status: 'blocked' })],
       ['movePlanItem', () => movePlanItem(db, mine.id, item.id, { dueDate: '2026-11-20' })],
       ['deletePlanItem', () => deletePlanItem(db, mine.id, item.id)],
       ['updateIssue', () => updateIssue(db, mine.id, issue.id, { title: 'x', personIds: [person.id], assignedOn: '2026-11-01', deadline: '2026-11-02' })],
-      ['resolveIssue', () => resolveIssue(db, mine.id, issue.id, {}, today)],
       ['setIssueStatus', () => setIssueStatus(db, mine.id, issue.id, { status: 'in_progress' })],
       ['deleteIssue', () => deleteIssue(db, mine.id, issue.id)],
       ['updateRelease', () => updateRelease(db, mine.id, release.id, { version: 'x', status: 'planned' })],

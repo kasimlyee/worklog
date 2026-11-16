@@ -14,16 +14,34 @@ export type EntryRow = {
   readonly createdAt: string;
   readonly areaId: string | null;
   readonly areaName: string | null;
-  readonly pullRequestId: string | null;
-  readonly prOwner: string | null;
-  readonly prRepo: string | null;
-  readonly prNumber: number | null;
-  readonly prTitle: string | null;
-  readonly prState: PrState | null;
-  /** BR-17: the plan items this entry fulfils and the issues it relates to — any number. */
-  readonly planItems: readonly { readonly id: string; readonly title: string }[];
-  readonly issues: readonly { readonly id: string; readonly title: string }[];
+  /** BR-46: every pull request the work went into, in the order they were given. */
+  readonly pullRequests: readonly EntryPullRequestRow[];
+  /** BR-17: the plan items this entry works on and the issues it works on — any number. */
+  readonly planItems: readonly EntryPlanItemRow[];
+  readonly issues: readonly EntryIssueRow[];
   readonly people: readonly NamedRef[];
+};
+
+export type EntryPullRequestRow = {
+  readonly id: string;
+  readonly owner: string;
+  readonly repo: string;
+  readonly number: number;
+  readonly title: string;
+  readonly state: PrState;
+};
+
+/** BR-45: `completes` — this entry finished the item. */
+export type EntryPlanItemRow = { readonly id: string; readonly title: string; readonly completes: boolean };
+
+/** BR-44: short Issue / Cause / Fix summaries, and whether this entry fixed it. */
+export type EntryIssueRow = {
+  readonly id: string;
+  readonly title: string;
+  readonly summary: string;
+  readonly cause: string;
+  readonly fix: string;
+  readonly resolves: boolean;
 };
 
 export type EntryFilter = {
@@ -50,7 +68,6 @@ export async function selectEntries(db: Db, projectId: string, filter: EntryFilt
   return await db
     .selectFrom('entries as e')
     .leftJoin('areas as a', 'a.id', 'e.areaId')
-    .leftJoin('pullRequests as pr', 'pr.id', 'e.pullRequestId')
     .select([
       'e.id',
       'e.workDate',
@@ -59,19 +76,22 @@ export async function selectEntries(db: Db, projectId: string, filter: EntryFilt
       sql<string>`e.created_at::text`.as('createdAt'),
       'e.areaId',
       'a.name as areaName',
-      'e.pullRequestId',
-      'pr.owner as prOwner',
-      'pr.repo as prRepo',
-      'pr.number as prNumber',
-      'pr.title as prTitle',
-      'pr.state as prState',
     ])
     .select((eb) => [
       jsonArrayFrom(
         eb
+          .selectFrom('entryPullRequests as epr')
+          .innerJoin('pullRequests as pr', 'pr.id', 'epr.pullRequestId')
+          .select(['pr.id', 'pr.owner', 'pr.repo', 'pr.number', 'pr.title', 'pr.state'])
+          .whereRef('epr.entryId', '=', 'e.id')
+          .orderBy('pr.repo')
+          .orderBy('pr.number'),
+      ).as('pullRequests'),
+      jsonArrayFrom(
+        eb
           .selectFrom('entryPlanItems as epi')
           .innerJoin('planItems as pi', 'pi.id', 'epi.planItemId')
-          .select(['pi.id', 'pi.title'])
+          .select(['pi.id', 'pi.title', 'epi.completes'])
           .whereRef('epi.entryId', '=', 'e.id')
           .orderBy('pi.dueDate')
           .orderBy('pi.title'),
@@ -80,7 +100,7 @@ export async function selectEntries(db: Db, projectId: string, filter: EntryFilt
         eb
           .selectFrom('entryIssues as ei')
           .innerJoin('issues as i', 'i.id', 'ei.issueId')
-          .select(['i.id', 'i.title'])
+          .select(['i.id', 'i.title', 'ei.summary', 'ei.cause', 'ei.fix', 'ei.resolves'])
           .whereRef('ei.entryId', '=', 'e.id')
           .orderBy('i.deadline')
           .orderBy('i.title'),
@@ -112,7 +132,12 @@ export async function selectEntries(db: Db, projectId: string, filter: EntryFilt
         conditions.push(eb('e.areaId', '=', filter.areaId));
       }
       if (filter.pullRequestId !== undefined) {
-        conditions.push(eb('e.pullRequestId', '=', filter.pullRequestId));
+        const pullRequestId = filter.pullRequestId;
+        conditions.push(
+          eb.exists(
+            eb.selectFrom('entryPullRequests as fr').select('fr.entryId').whereRef('fr.entryId', '=', 'e.id').where('fr.pullRequestId', '=', pullRequestId),
+          ),
+        );
       }
       if (filter.planItemId !== undefined) {
         const planItemId = filter.planItemId;
@@ -155,54 +180,71 @@ export type EntryValues = {
   readonly workDate: IsoDate;
   readonly description: string;
   readonly areaId: string | null;
-  readonly pullRequestId: string | null;
 };
+
+/** BR-44 */
+export type IssueLink = { readonly issueId: string; readonly summary: string; readonly cause: string; readonly fix: string; readonly resolves: boolean };
+/** BR-45 */
+export type PlanItemLink = { readonly planItemId: string; readonly completes: boolean };
 
 export type EntryLinks = {
   readonly personIds: readonly string[];
-  readonly planItemIds: readonly string[];
-  readonly issueIds: readonly string[];
+  /** BR-46: the first is also kept in the legacy entries.pull_request_id column. */
+  readonly pullRequestIds: readonly string[];
+  readonly planItems: readonly PlanItemLink[];
+  readonly issues: readonly IssueLink[];
 };
 
 async function replaceLinks(db: Db, projectId: string, entryId: string, links: EntryLinks): Promise<void> {
   await db.deleteFrom('entryPeople').where('entryId', '=', entryId).execute();
+  await db.deleteFrom('entryPullRequests').where('entryId', '=', entryId).execute();
   await db.deleteFrom('entryPlanItems').where('entryId', '=', entryId).execute();
   await db.deleteFrom('entryIssues').where('entryId', '=', entryId).execute();
   await db.insertInto('entryPeople').values(links.personIds.map((personId) => ({ entryId, personId }))).execute();
-  if (links.planItemIds.length > 0) {
-    await db.insertInto('entryPlanItems').values(links.planItemIds.map((planItemId) => ({ projectId, entryId, planItemId }))).execute();
+  if (links.pullRequestIds.length > 0) {
+    await db
+      .insertInto('entryPullRequests')
+      .values(links.pullRequestIds.map((pullRequestId) => ({ projectId, entryId, pullRequestId })))
+      .execute();
   }
-  if (links.issueIds.length > 0) {
-    await db.insertInto('entryIssues').values(links.issueIds.map((issueId) => ({ projectId, entryId, issueId }))).execute();
+  if (links.planItems.length > 0) {
+    await db.insertInto('entryPlanItems').values(links.planItems.map((link) => ({ projectId, entryId, ...link }))).execute();
+  }
+  if (links.issues.length > 0) {
+    await db.insertInto('entryIssues').values(links.issues.map((link) => ({ projectId, entryId, ...link }))).execute();
   }
 }
 
 // The single-link columns plan_item_id / issue_id are superseded by the link tables
-// (migration 0005) and always written as NULL.
-const noLegacyLinks = { planItemId: null, issueId: null } as const;
-
-export async function insertEntry(db: Db, projectId: string, values: EntryValues, links: EntryLinks): Promise<string> {
-  return await db.transaction().execute(async (trx) => {
-    const { id } = await trx.insertInto('entries').values({ projectId, ...values, ...noLegacyLinks }).returning('id').executeTakeFirstOrThrow();
-    await replaceLinks(trx, projectId, id, links);
-    return id;
-  });
+// (migration 0005) and always written as NULL; pull_request_id keeps the first PR (0006).
+function legacyColumns(links: EntryLinks) {
+  return { planItemId: null, issueId: null, pullRequestId: links.pullRequestIds[0] ?? null } as const;
 }
 
+/** Call inside a transaction. */
+export async function insertEntry(db: Db, projectId: string, values: EntryValues, links: EntryLinks): Promise<string> {
+  const { id } = await db
+    .insertInto('entries')
+    .values({ projectId, ...values, ...legacyColumns(links) })
+    .returning('id')
+    .executeTakeFirstOrThrow();
+  await replaceLinks(db, projectId, id, links);
+  return id;
+}
+
+/** Call inside a transaction. */
 export async function updateEntryRow(db: Db, projectId: string, id: string, values: EntryValues, links: EntryLinks): Promise<boolean> {
-  return await db.transaction().execute(async (trx) => {
-    const updated = await trx
-      .updateTable('entries')
-      .set({ ...values, ...noLegacyLinks, updatedAt: new Date() })
-      .where('id', '=', id)
-      .where('projectId', '=', projectId)
-      .executeTakeFirst();
-    if (updated.numUpdatedRows === 0n) {
-      return false;
-    }
-    await replaceLinks(trx, projectId, id, links);
-    return true;
-  });
+  const updated = await db
+    .updateTable('entries')
+    .set({ ...values, ...legacyColumns(links), updatedAt: new Date() })
+    .where('id', '=', id)
+    .where('projectId', '=', projectId)
+    .executeTakeFirst();
+  if (updated.numUpdatedRows === 0n) {
+    return false;
+  }
+  await replaceLinks(db, projectId, id, links);
+  return true;
 }
 
 /** How many entries fall within [from, to] — for the dashboard's pulse. */

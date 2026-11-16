@@ -31,9 +31,17 @@ test('plan the week and the day', async ({ signedIn: page }) => {
   await addDay.getByRole('button', { name: 'Add item' }).click();
   await expect(page.getByRole('link', { name: 'Review PRs' })).toBeVisible();
 
-  // BR-16: mark it done.
-  await page.getByLabel('Status of Review PRs').selectOption('done');
-  await page.getByRole('listitem').filter({ hasText: 'Review PRs' }).getByRole('button', { name: 'Update' }).click();
+  // BR-45: “Done” is not a status to pick — a log finishes the item (BR-16 records the date).
+  await expect(page.getByLabel('Status of Review PRs').locator('option[value="done"]')).toHaveCount(0);
+  await page.getByRole('link', { name: 'Review PRs' }).click();
+  await page.getByRole('link', { name: 'Log work on this' }).click();
+  const log = page.getByRole('form', { name: 'Quick log' });
+  await log.getByLabel(/This finishes it — Review PRs/).check();
+  await log.getByLabel('What was done').fill('Reviewed the open PRs');
+  await log.getByLabel('Ali').check();
+  await log.getByRole('button', { name: 'Log work' }).click();
+  await expect(log.getByRole('status')).toHaveText('Work logged.');
+  await page.goto(`/projects/${projectId}/plans?horizon=day&date=${day}`);
   await expect(page.getByRole('listitem').filter({ hasText: 'Review PRs' }).locator('[data-tone="success"]')).toHaveText('Done');
 });
 

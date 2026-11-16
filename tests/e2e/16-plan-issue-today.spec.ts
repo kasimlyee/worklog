@@ -32,7 +32,7 @@ test('BR-38: drag an issue onto Today’s plan, and use the button for another',
   await expect(todaysPlan.getByRole('link', { name: 'Slow export' })).toHaveCount(2);
 });
 
-test('BR-39: marking the plan item done resolves the issue', async ({ signedIn: page }) => {
+test('BR-39: finishing the plan item from the log resolves the issue', async ({ signedIn: page }) => {
   const { projectId } = await seedProject();
   const issue = await anIssue(e2eDb(), projectId, { title: 'Broken share links', deadline: '2099-01-01' });
   await page.goto(`/projects/${projectId}`);
@@ -40,7 +40,16 @@ test('BR-39: marking the plan item done resolves the issue', async ({ signedIn: 
   await page.getByRole('region', { name: 'Open issues' }).getByRole('button', { name: 'Plan today: Broken share links' }).click();
   const todaysPlan = page.getByRole('region', { name: 'Today’s plan' });
   await expect(todaysPlan.getByRole('link', { name: 'Broken share links' }).first()).toBeVisible();
-  await todaysPlan.getByLabel('Status of Broken share links').selectOption('done');
+  // BR-45: finish it by logging the work.
+  await page.getByText('Quick log').click();
+  const log = page.getByRole('form', { name: 'Quick log' });
+  await log.getByRole('group', { name: 'Plan items' }).getByLabel(/^Broken share links/).check();
+  await log.getByLabel(/This finishes it — Broken share links/).check();
+  await log.getByLabel('What was done').fill('Moved the short-link domain');
+  await log.getByLabel('Grace').check();
+  await log.getByRole('button', { name: 'Log work' }).click();
+  await expect(log.getByRole('status')).toHaveText('Work logged.');
+  await page.reload();
   await expect(todaysPlan.locator('[data-tone="success"]').filter({ hasText: 'Done' })).toBeVisible();
 
   await page.goto(`/projects/${projectId}/issues/${issue.id}`);

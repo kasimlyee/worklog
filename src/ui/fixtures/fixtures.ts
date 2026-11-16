@@ -48,7 +48,16 @@ export const pickers: Pickers = {
     { value: 'p3', label: 'Wanjiru' },
   ],
   planItems: [{ value: 'i1', label: 'Ship login (due Thu 12 Nov)' }],
-  issues: [{ value: 's1', label: 'Crash on save' }],
+  issues: [
+    {
+      value: 's1',
+      label: 'Crash on save',
+      description: 'Saving a listing with more than 10 photos crashes the app on Android 13.',
+      priority: { tone: 'danger', label: 'Urgent' },
+      deadlineLabel: 'Deadline Fri 6 Nov',
+    },
+    { value: 's2', label: 'Slow dashboard query', description: '', priority: { tone: 'neutral', label: 'Medium' }, deadlineLabel: 'Deadline Mon 16 Nov' },
+  ],
   pullRequests: [{ value: 'pr12', label: 'app #12 Add login' }],
   releases: [{ value: 'r1', label: '1.4.0' }],
 };
@@ -72,8 +81,8 @@ const loginEntry: EntryVM = {
   description: 'Wired the login form to the session API',
   area: 'Frontend',
   people: ['Ali', 'Grace'],
-  pullRequest,
-  planItems: [{ id: 'i1', title: 'Ship login' }],
+  pullRequests: [pullRequest, { ...pullRequest, id: 'pr40', number: 40, repo: 'api', title: 'Session endpoint', url: 'https://github.com/acme/api/pull/40' }],
+  planItems: [{ id: 'i1', title: 'Ship login', completes: true }],
   issues: [],
 };
 const weekendEntry: EntryVM = {
@@ -84,11 +93,18 @@ const weekendEntry: EntryVM = {
   description: 'Hotfix for the payment webhook',
   area: null,
   people: ['Wanjiru'],
-  pullRequest: null,
+  pullRequests: [],
   planItems: [],
   issues: [
-    { id: 's1', title: 'Crash on save' },
-    { id: 's2', title: 'Slow dashboard query' },
+    {
+      id: 's1',
+      title: 'Crash on save',
+      summary: 'Saving with many photos crashed on Android 13',
+      cause: 'Images were decoded at full size',
+      fix: 'Decode thumbnails, upload originals in the background',
+      resolves: true,
+    },
+    { id: 's2', title: 'Slow dashboard query', summary: '', cause: '', fix: '', resolves: false },
   ],
 };
 const longEntry: EntryVM = {
@@ -99,7 +115,7 @@ const longEntry: EntryVM = {
   description: longText,
   area: 'Backend',
   people: ['Grace'],
-  pullRequest: { ...pullRequest, id: 'pr13', number: 13, title: 'Experiment: new cache', state: statuses.closed },
+  pullRequests: [{ ...pullRequest, id: 'pr13', number: 13, title: 'Experiment: new cache', state: statuses.closed }],
   planItems: [],
   issues: [],
 };
@@ -337,9 +353,9 @@ export const entryValues: EntryFormValues = {
   description: 'Wired the login form to the session API',
   areaId: 'a1',
   personIds: ['p1', 'p2'],
-  prUrl: 'https://github.com/acme/app/pull/12',
-  planItemIds: ['i1'],
-  issueIds: [],
+  prUrls: 'https://github.com/acme/app/pull/12',
+  planItems: [{ id: 'i1', title: 'Ship login', completes: false }],
+  issues: [{ id: 's1', title: 'Crash on save', summary: 'Crash when saving', cause: '', fix: '', resolves: false }],
 };
 
 export const issueDetail: IssueDetailVM = {
@@ -568,7 +584,8 @@ const event = (fields: Partial<TimelineEventVM> & Pick<TimelineEventVM, 'key' | 
   tags: [],
   planItemId: null,
   entryId: null,
-  pullRequest: null,
+  pullRequests: [],
+  notes: [],
   ...fields,
 });
 
@@ -592,12 +609,14 @@ export const resolvedIssueHistory: IssueHistoryVM = {
     { label: 'Log entries', value: '2' },
     { label: 'Worked on by', value: 'Ali, Grace' },
     { label: 'Pull requests', value: 'app #12' },
+    { label: 'Cause', value: 'Share links pointed at the old API server' },
+    { label: 'Fix', value: 'Moved the short-link domain to the new VM' },
   ],
   events: [
     assignedEvent,
     event({ key: 'entry-e7', date: '2026-11-03', dateLabel: '3 Nov 2026', kind: 'logged', title: 'Found the cause: the old API server', people: ['Ali'], entryId: 'e7' }),
     event({ key: 'plan-i9', date: '2026-11-05', dateLabel: '5 Nov 2026', kind: 'planned', title: 'Fix share links', detail: 'Planned for Wed 4 Nov, done Thu 5 Nov · moved 1×', people: ['Grace'], tags: [statuses.done], planItemId: 'i9' }),
-    event({ key: 'entry-e8', date: '2026-11-05', dateLabel: '5 Nov 2026', kind: 'logged', title: 'Moved go.nestlyhousing.org to the new VM', detail: 'Backend', people: ['Grace'], entryId: 'e8', pullRequest }),
-    event({ key: 'resolved', date: '2026-11-05', dateLabel: '5 Nov 2026', kind: 'resolved', title: 'Resolved', tags: [statuses.late], pullRequest }),
+    event({ key: 'entry-e8', date: '2026-11-05', dateLabel: '5 Nov 2026', kind: 'logged', title: 'Moved go.nestlyhousing.org to the new VM', detail: 'Backend', people: ['Grace'], entryId: 'e8', pullRequests: [pullRequest], tags: [{ tone: 'success', label: 'Fixed it' }], notes: [{ label: 'Cause', text: 'Share links pointed at the old API server' }, { label: 'Fix', text: 'Moved the short-link domain to the new VM' }] }),
+    event({ key: 'resolved', date: '2026-11-05', dateLabel: '5 Nov 2026', kind: 'resolved', title: 'Resolved', tags: [statuses.late], pullRequests: [pullRequest] }),
   ],
 };

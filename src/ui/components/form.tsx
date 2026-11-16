@@ -29,7 +29,18 @@ function fieldId(formId: string, name: string): string {
   return `${formId}-${name.replace(/[^a-zA-Z0-9_-]/g, '-')}`;
 }
 
-function useField(name: string): { readonly id: string; readonly errorId: string; readonly error: string | undefined; readonly echoed: string | readonly string[] | undefined; readonly key: string } {
+export type FormField = {
+  readonly id: string;
+  readonly errorId: string;
+  readonly error: string | undefined;
+  readonly echoed: string | readonly string[] | undefined;
+  /** True after a failed submit: `echoed` then holds what was sent (absent = unticked). */
+  readonly submitted: boolean;
+  readonly key: string;
+};
+
+/** Id, error and echoed value of a field — for custom fields inside an ActionForm. */
+export function useFormField(name: string): FormField {
   const context = use(FormContext);
   const id = fieldId(context.formId, name);
   return {
@@ -37,9 +48,12 @@ function useField(name: string): { readonly id: string; readonly errorId: string
     errorId: `${id}-error`,
     error: context.errors[name],
     echoed: context.values?.[name],
+    submitted: context.values !== null,
     key: `${name}-${String(context.version)}`,
   };
 }
+
+const useField = useFormField;
 
 function SubmitButton({ label, pendingLabel }: { readonly label: string; readonly pendingLabel: string }): React.JSX.Element {
   const { pending } = useFormStatus();

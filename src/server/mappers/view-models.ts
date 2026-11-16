@@ -50,7 +50,7 @@ export function toEntryVM(entry: Entry): EntryVM {
     description: entry.description,
     area: entry.area?.name ?? null,
     people: names(entry.people),
-    pullRequest: entry.pullRequest === null ? null : toPullRequestVM(entry.pullRequest),
+    pullRequests: entry.pullRequests.map(toPullRequestVM),
     planItems: entry.planItems,
     issues: entry.issues,
   };
@@ -62,9 +62,9 @@ export function toEntryFormValues(entry: Entry): EntryFormValues {
     description: entry.description,
     areaId: entry.area?.id ?? '',
     personIds: entry.people.map((person) => person.id),
-    prUrl: entry.pullRequest?.url ?? '',
-    planItemIds: entry.planItems.map((item) => item.id),
-    issueIds: entry.issues.map((issue) => issue.id),
+    prUrls: entry.pullRequests.map((pr) => pr.url).join('\n'),
+    planItems: entry.planItems,
+    issues: entry.issues,
   };
 }
 
@@ -284,10 +284,24 @@ export function toPickers(options: PickerOptions): Pickers {
     areas: options.areas.map((area) => ({ value: area.id, label: area.name })),
     people: options.people.map((person) => ({ value: person.id, label: person.name })),
     planItems: options.planItems.map((item) => ({ value: item.id, label: `${item.title} (due ${formatShortDate(item.dueDate)})` })),
-    issues: options.issues.map((issue) => ({ value: issue.id, label: issue.title })),
+    issues: options.issues.map((issue) => ({
+      value: issue.id,
+      label: issue.title,
+      description: issue.description,
+      priority: issuePriorityTag[issue.priority],
+      deadlineLabel: `Deadline ${formatShortDate(issue.deadline)}`,
+    })),
     pullRequests: options.pullRequests.map((pr) => ({ value: pr.id, label: `${pr.repo} #${String(pr.number)} ${pr.title}` })),
     releases: options.releases.map((release) => ({ value: release.id, label: release.version })),
   };
+}
+
+function closureNotes(link: { readonly summary: string; readonly cause: string; readonly fix: string }): TimelineEventVM['notes'] {
+  return [
+    ...(link.summary === '' ? [] : [{ label: 'Issue' as const, text: link.summary }]),
+    ...(link.cause === '' ? [] : [{ label: 'Cause' as const, text: link.cause }]),
+    ...(link.fix === '' ? [] : [{ label: 'Fix' as const, text: link.fix }]),
+  ];
 }
 
 const eventOrder: Readonly<Record<TimelineEventVM['kind'], number>> = { assigned: 0, planned: 1, logged: 2, resolved: 3 };
@@ -305,7 +319,8 @@ export function toIssueHistoryVM(issue: Issue, history: IssueHistory): IssueHist
     tags: [],
     planItemId: null,
     entryId: null,
-    pullRequest: null,
+    pullRequests: [],
+    notes: [],
     ...fields,
     date,
     dateLabel: formatDate(date),
@@ -328,17 +343,20 @@ export function toIssueHistoryVM(issue: Issue, history: IssueHistory): IssueHist
         planItemId: item.id,
       }),
     ),
-    ...history.entries.map((entry) =>
-      event(entry.workDate, {
+    ...history.entries.map((entry) => {
+      const link = entry.issues.find((linked) => linked.id === issue.id);
+      return event(entry.workDate, {
         key: `entry-${entry.id}`,
         kind: 'logged',
         title: entry.description,
         detail: entry.area?.name ?? null,
         people: names(entry.people),
         entryId: entry.id,
-        pullRequest: entry.pullRequest === null ? null : toPullRequestVM(entry.pullRequest),
-      }),
-    ),
+        pullRequests: entry.pullRequests.map(toPullRequestVM),
+        tags: link?.resolves === true ? [{ tone: 'success', label: 'Fixed it' }] : [],
+        notes: link === undefined ? [] : closureNotes(link),
+      });
+    }),
     ...(issue.resolvedOn === null
       ? []
       : [
@@ -347,7 +365,7 @@ export function toIssueHistoryVM(issue: Issue, history: IssueHistory): IssueHist
             kind: 'resolved',
             title: 'Resolved',
             tags: [deadlineTag(issue.deadlineState)],
-            pullRequest: issue.resolvedBy === null ? null : toPullRequestVM(issue.resolvedBy),
+            pullRequests: issue.resolvedBy === null ? [] : [toPullRequestVM(issue.resolvedBy)],
           }),
         ]),
   ];
@@ -358,11 +376,13 @@ export function toIssueHistoryVM(issue: Issue, history: IssueHistory): IssueHist
   }
   const people = [...new Set(history.entries.flatMap((entry) => names(entry.people)))].sort();
   const pullRequests = new Map<string, string>();
-  for (const pr of [...history.entries.map((entry) => entry.pullRequest), issue.resolvedBy]) {
-    if (pr !== null) {
-      pullRequests.set(pr.id, `${pr.repo} #${String(pr.number)}`);
-    }
+  for (const pr of [...history.entries.flatMap((entry) => entry.pullRequests), ...(issue.resolvedBy === null ? [] : [issue.resolvedBy])]) {
+    pullRequests.set(pr.id, `${pr.repo} #${String(pr.number)}`);
   }
+  // BR-44: the cause and fix come from the (latest) log that closed it.
+  const closing = history.entries
+    .flatMap((entry) => entry.issues.filter((linked) => linked.id === issue.id && linked.resolves))
+    .at(-1);
   const late = issue.deadlineState.state === 'late';
   return {
     isResolved: true,
@@ -373,6 +393,8 @@ export function toIssueHistoryVM(issue: Issue, history: IssueHistory): IssueHist
       { label: 'Log entries', value: String(history.entries.length) },
       { label: 'Worked on by', value: people.length === 0 ? 'Nobody logged work' : people.join(', ') },
       { label: 'Pull requests', value: pullRequests.size === 0 ? 'None' : [...pullRequests.values()].join(', ') },
+      ...(closing === undefined || closing.cause === '' ? [] : [{ label: 'Cause', value: closing.cause }]),
+      ...(closing === undefined || closing.fix === '' ? [] : [{ label: 'Fix', value: closing.fix }]),
     ],
     events,
   };

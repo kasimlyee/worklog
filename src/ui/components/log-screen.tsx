@@ -6,6 +6,7 @@ import { projectHref } from '#src/ui/routes.ts';
 import { ConfirmDialog } from './confirm-dialog.tsx';
 import { EmptyState } from './empty-state.tsx';
 import { EntryForm } from './entry-form.tsx';
+import { emptyEntryValues } from './entry-values.ts';
 import { EntryList } from './entry-list.tsx';
 import { PageHeader, Section } from './page-header.tsx';
 import { StatusTag } from './status-tag.tsx';
@@ -41,12 +42,11 @@ export function LogScreen({
   readonly createEntry: FormAction;
   readonly today: string;
 }): React.JSX.Element {
-  const blank: EntryFormValues = { workDate: today, description: '', areaId: '', personIds: [], prUrl: '', planItemIds: [], issueIds: [] };
   return (
     <div>
       <PageHeader title="Log" actions={<Link href={projectHref(projectId, 'pull-requests')}>Pull requests</Link>} />
       <Section title="Log work">
-        <EntryForm action={createEntry} pickers={pickers} values={blank} submitLabel="Log work" label="Log work" canResolve />
+        <EntryForm action={createEntry} pickers={pickers} values={emptyEntryValues(today)} submitLabel="Log work" label="Log work" />
       </Section>
       <Section title="Entries">
         {/* A GET form: filters live in the URL and work without JavaScript. */}

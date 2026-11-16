@@ -29,6 +29,9 @@ export type ReportIssueRow = {
   /** BR-30: the pull request that resolved it, when one was named. */
   readonly resolvedByNumber: number | null;
   readonly resolvedByTitle: string | null;
+  /** BR-44: the cause and fix from the log that closed it. */
+  readonly cause: string | null;
+  readonly fix: string | null;
   readonly assignees: readonly NamedRef[];
 };
 
@@ -126,7 +129,24 @@ export async function selectReportIssues(
   return await db
     .selectFrom('issues as i')
     .leftJoin('pullRequests as pr', 'pr.id', 'i.resolvedByPrId')
-    .select(['i.id', 'i.title', 'i.priority', 'i.assignedOn', 'i.deadline', 'i.resolvedOn', 'pr.number as resolvedByNumber', 'pr.title as resolvedByTitle'])
+    .leftJoinLateral(
+      (eb) =>
+        eb
+          .selectFrom('entryIssues as ei')
+          .innerJoin('entries as e', 'e.id', 'ei.entryId')
+          .select(['ei.cause', 'ei.fix'])
+          .whereRef('ei.issueId', '=', 'i.id')
+          .where('ei.resolves', '=', true)
+          .orderBy('e.workDate', 'desc')
+          .orderBy('e.createdAt', 'desc')
+          .limit(1)
+          .as('closing'),
+      (join) => join.onTrue(),
+    )
+    .select([
+      'i.id', 'i.title', 'i.priority', 'i.assignedOn', 'i.deadline', 'i.resolvedOn', 'pr.number as resolvedByNumber', 'pr.title as resolvedByTitle',
+      'closing.cause', 'closing.fix',
+    ])
     .select((eb) =>
       jsonArrayFrom(
         eb

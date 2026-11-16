@@ -27,7 +27,7 @@ describe('issue history', () => {
     });
 
     expect(history.planItems.map((i) => i.title)).toEqual(['Fix share links']);
-    expect(history.entries.map((e) => [e.workDate, e.description, e.pullRequest?.number ?? null, e.people.map((p) => p.name)])).toEqual([
+    expect(history.entries.map((e) => [e.workDate, e.description, e.pullRequests[0]?.number ?? null, e.people.map((p) => p.name)])).toEqual([
       ['2026-11-09', 'Found the cause', null, []],
       ['2026-11-10', 'Moved the domain', 12, ['Grace']],
     ]);

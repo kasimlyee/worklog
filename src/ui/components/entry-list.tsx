@@ -3,33 +3,46 @@ import type { EntryVM } from '#src/ui/view-models/entries.ts';
 import { projectItemHref } from '#src/ui/routes.ts';
 import { EmptyState } from './empty-state.tsx';
 import { ExternalLink } from './external-link.tsx';
+import { ClosureNotes } from './issue-history.tsx';
 import { PersonList } from './person-list.tsx';
 import { StatusTag } from './status-tag.tsx';
 import { lists as styles } from './lists.ts';
 
-/** "Issues: A, B" — each a link; nothing when empty. */
-function LinkedList({
-  label,
-  items,
-  href,
-}: {
-  readonly label: string;
-  readonly items: readonly { readonly id: string; readonly title: string }[];
-  readonly href: (id: string) => ReturnType<typeof projectItemHref>;
-}): React.JSX.Element | null {
-  if (items.length === 0) {
+const fixedTag = { tone: 'success', label: 'Fixed' } as const;
+const finishedTag = { tone: 'success', label: 'Finished' } as const;
+
+/** BR-44/BR-45: what the entry worked on, and what it closed, with the issue's short notes. */
+function Links({ entry, projectId }: { readonly entry: EntryVM; readonly projectId: string }): React.JSX.Element | null {
+  if (entry.issues.length === 0 && entry.planItems.length === 0) {
     return null;
   }
   return (
-    <span>
-      {label}:{' '}
-      {items.map((item, index) => (
-        <span key={item.id}>
-          {index > 0 ? ', ' : null}
-          <Link href={href(item.id)}>{item.title}</Link>
-        </span>
+    <ul className="grid list-none gap-2 text-sm">
+      {entry.issues.map((issue) => {
+        const notes = [
+          ...(issue.summary === '' ? [] : [{ label: 'Issue' as const, text: issue.summary }]),
+          ...(issue.cause === '' ? [] : [{ label: 'Cause' as const, text: issue.cause }]),
+          ...(issue.fix === '' ? [] : [{ label: 'Fix' as const, text: issue.fix }]),
+        ];
+        return (
+          <li key={`issue-${issue.id}`} className="grid gap-1">
+            <span className={styles.row}>
+              <span className="text-muted">Issue</span>
+              <Link href={projectItemHref(projectId, 'issues', issue.id)}>{issue.title}</Link>
+              {issue.resolves ? <StatusTag status={fixedTag} /> : null}
+            </span>
+            {notes.length === 0 ? null : <ClosureNotes notes={notes} />}
+          </li>
+        );
+      })}
+      {entry.planItems.map((item) => (
+        <li key={`plan-${item.id}`} className={styles.row}>
+          <span className="text-muted">Plan</span>
+          <Link href={projectItemHref(projectId, 'plans/items', item.id)}>{item.title}</Link>
+          {item.completes ? <StatusTag status={finishedTag} /> : null}
+        </li>
       ))}
-    </span>
+    </ul>
   );
 }
 
@@ -61,20 +74,19 @@ export function EntryList({
             {entry.isWeekend ? <StatusTag status={{ tone: 'neutral', label: 'Weekend' }} /> : null}
             <span>{entry.area ?? 'General'}</span>
             <PersonList people={entry.people} />
-            {entry.pullRequest === null ? null : (
-              <span className={styles.row}>
-                <ExternalLink href={entry.pullRequest.url}>
-                  #{entry.pullRequest.number} {entry.pullRequest.title}
+            {entry.pullRequests.map((pr) => (
+              <span key={pr.id} className={styles.row}>
+                <ExternalLink href={pr.url}>
+                  #{pr.number} {pr.title}
                 </ExternalLink>
-                <StatusTag status={entry.pullRequest.state} />
+                <StatusTag status={pr.state} />
               </span>
-            )}
-            <LinkedList label="Plan" items={entry.planItems} href={(id) => projectItemHref(projectId, 'plans/items', id)} />
-            <LinkedList label={entry.issues.length > 1 ? 'Issues' : 'Issue'} items={entry.issues} href={(id) => projectItemHref(projectId, 'issues', id)} />
+            ))}
             <Link href={projectItemHref(projectId, 'log', entry.id, 'edit')} aria-label={`Edit entry: ${entry.description}`}>
               Edit
             </Link>
           </div>
+          <Links entry={entry} projectId={projectId} />
         </li>
       ))}
     </ul>

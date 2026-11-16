@@ -6,6 +6,7 @@ import * as planItemsCompletedIndex from './migrations/0002_plan_items_completed
 import * as issuePriority from './migrations/0003_issue_priority.ts';
 import * as issueDescription from './migrations/0004_issue_description.ts';
 import * as entryLinks from './migrations/0005_entry_links.ts';
+import * as logClosesWork from './migrations/0006_log_closes_work.ts';
 
 // Listed explicitly (not read from disk) so the bundle and plain Node agree on the set.
 const migrations: Readonly<Record<string, Migration>> = {
@@ -14,6 +15,7 @@ const migrations: Readonly<Record<string, Migration>> = {
   '0003_issue_priority': issuePriority,
   '0004_issue_description': issueDescription,
   '0005_entry_links': entryLinks,
+  '0006_log_closes_work': logClosesWork,
 };
 
 export async function migrateToLatest(db: Db): Promise<MigrationResultSet> {

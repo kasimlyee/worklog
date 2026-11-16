@@ -226,6 +226,26 @@ export async function updatePlanItemStatus(
     .executeTakeFirst();
 }
 
+/**
+ * BR-45: mark an unfinished item done as of `completedOn`. Returns its linked issue (BR-39),
+ * or undefined when the item was already done — a later log never moves the completion date.
+ */
+export async function completePlanItemIfOpen(
+  db: Db,
+  projectId: string,
+  itemId: string,
+  completedOn: IsoDate,
+): Promise<{ readonly issueId: string | null } | undefined> {
+  return await db
+    .updateTable('planItems')
+    .set({ status: 'done', completedOn, updatedAt: new Date() })
+    .where('id', '=', itemId)
+    .where('projectId', '=', projectId)
+    .where('status', '<>', 'done')
+    .returning('issueId')
+    .executeTakeFirst();
+}
+
 /** BR-15: new due date, new plan, and a history row. Call inside a transaction. */
 export async function moveItem(
   db: Db,

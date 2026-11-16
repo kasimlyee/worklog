@@ -65,6 +65,18 @@ describe('work done', () => {
     expect(texts(sectionOf(buildReportModel(data, today), 'Work done'))).toEqual([['Backend', ['#3 PR 3', '#9 PR 9', 'loose Mon', 'loose Tue']]]);
   });
 
+  it('BR-46: work that went into two PRs appears under each, and both count as touched', () => {
+    const data = reportData({
+      kind: 'weekly',
+      entries: [entry('login, front and back', { pr: pr(12, 'merged'), morePrs: [{ ...pr(40, 'open'), repo: 'api' }], area: areas.backend })],
+    });
+    const model = buildReportModel(data, today);
+
+    expect(texts(sectionOf(model, 'Work done'))).toEqual([['Backend', ['#12 PR 12', '#40 PR 40']]]);
+    expect(sectionOf(model, 'Summary').summary.find((item) => item.label === 'PRs touched')?.value).toBe(2);
+    expect(sectionOf(model, 'Summary').summary.find((item) => item.label === 'PRs merged')?.value).toBe(1);
+  });
+
   it('R-07: PR groups show #number title with the PR state', () => {
     const data = reportData({ kind: 'daily', entries: [entry('x', { pr: pr(12, 'merged', 'Fix login') })] });
 
@@ -341,8 +353,11 @@ describe('monthly sections', () => {
   it('BR-17: an entry carries the issues and plan items it is linked to into the report', () => {
     const linked = {
       ...entry('fixed the crash', { date: '2026-11-03' }),
-      issues: [{ id: 'i1', title: 'Crash on save' }, { id: 'i2', title: 'Slow query' }],
-      planItems: [{ id: 'p1', title: 'Ship login' }],
+      issues: [
+        { id: 'i1', title: 'Crash on save', summary: '', cause: '', fix: '', resolves: true },
+        { id: 'i2', title: 'Slow query', summary: '', cause: '', fix: '', resolves: false },
+      ],
+      planItems: [{ id: 'p1', title: 'Ship login', completes: false }],
     };
 
     const monthly = buildReportModel(reportData({ kind: 'monthly', entries: [linked] }), today);
@@ -399,6 +414,17 @@ describe('monthly sections', () => {
     ]);
     expect(issues.groups[1]?.lines[0]?.detail).toBe('Assigned Mon 9 Nov · deadline Fri 13 Nov · resolved Thu 12 Nov · by #12 Add login');
     expect(issues.groups[0]?.lines.map((l) => l.tags.map((t) => t.label))).toEqual([['Resolved on time'], ['Open']]);
+  });
+
+  it('BR-44: a resolved issue carries the cause and fix from the log that closed it', () => {
+    const data = reportData({
+      kind: 'weekly',
+      issues: [issue('Share links broken', '2026-11-13', '2026-11-12', undefined, 'medium', { cause: 'Old API server', fix: 'Moved the domain' })],
+    });
+
+    const resolved = sectionOf(buildReportModel(data, today), 'Issues').groups.find((group) => group.title === 'Resolved');
+
+    expect(resolved?.lines[0]?.children.map((line) => line.text)).toEqual(['Cause: Old API server', 'Fix: Moved the domain']);
   });
 
   it('§7.4: the month summary also counts days worked, issues opened and still open, and completed plan items', () => {

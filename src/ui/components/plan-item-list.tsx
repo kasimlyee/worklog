@@ -8,12 +8,14 @@ import { DeadlineLabel, StatusTag } from './status-tag.tsx';
 import { AutoSubmitSelect, PendingSubmit } from './pending.tsx';
 import { lists as styles } from './lists.ts';
 
+/* BR-45: no "Done" to choose — a log that finishes the item closes it. A done item shows
+   "Done" and can be reopened by picking another status. */
 const statusOptions = [
   { value: 'planned', label: 'Planned' },
   { value: 'in_progress', label: 'In progress' },
-  { value: 'done', label: 'Done' },
   { value: 'blocked', label: 'Blocked' },
 ] as const;
+const doneOption = { value: 'done', label: 'Done', disabled: true } as const;
 
 /* The status at a glance, before the title; the tag beside the title says it in words. */
 const glyphs: Readonly<Record<PlanItemVM['status'], { readonly colour: string; readonly path: string; readonly filled?: boolean }>> = {
@@ -43,7 +45,7 @@ export function StatusForm({ item, action }: { readonly item: PlanItemVM; readon
       <label className="visually-hidden" htmlFor={`status-${item.id}`}>
         Status of {item.title}
       </label>
-      <AutoSubmitSelect id={`status-${item.id}`} name="status" defaultValue={item.status} className={styles.statusSelect} options={statusOptions} />
+      <AutoSubmitSelect id={`status-${item.id}`} name="status" defaultValue={item.status} className={styles.statusSelect} options={item.status === 'done' ? [doneOption, ...statusOptions] : statusOptions} />
       <PendingSubmit label="Update" />
     </form>
   );

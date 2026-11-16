@@ -10,7 +10,7 @@ import {
   deleteIssueRow, insertIssue, selectIssues, updateIssueRow, updateIssueStatus, type IssueRow,
 } from '#src/server/repositories/issues.ts';
 import { invalid, notFound, parseInput, type ServiceResult } from './errors.ts';
-import { idList, isUuid, oneOf, optionalDate, optionalId, optionalText, optionalWebUrl, requiredDate, requiredText } from './fields.ts';
+import { idList, isUuid, oneOf, optionalId, optionalText, optionalWebUrl, requiredDate, requiredText } from './fields.ts';
 import { toPullRequest, type PullRequest } from './pull-requests.ts';
 import { referenceErrors } from './references.ts';
 
@@ -120,39 +120,12 @@ export async function updateIssue(db: Db, projectId: string, issueId: string, in
   return updated ? ok({ id: issueId }) : notFound;
 }
 
-const resolveInput = z.object({ resolvedOn: optionalDate('Resolved date'), resolvedByPrId: optionalId });
-
-/** BR-29: resolved_on defaults to today and is editable. BR-30: optionally the PR that resolved it. */
-export async function resolveIssue(
-  db: Db,
-  projectId: string,
-  issueId: string,
-  input: unknown,
-  today: IsoDate,
-): Promise<ServiceResult<{ readonly id: string }>> {
-  if (!isUuid(issueId)) {
-    return notFound;
-  }
-  const parsed = parseInput(resolveInput, input);
-  if (!parsed.ok) {
-    return parsed;
-  }
-  const resolvedOn = parsed.value.resolvedOn ?? today;
-  if (resolvedOn > today) {
-    return invalid({ resolvedOn: 'The resolved date cannot be in the future.' });
-  }
-  const { resolvedByPrId } = parsed.value;
-  const errors = await referenceErrors(db, projectId, { pullRequestId: resolvedByPrId });
-  if (Object.keys(errors).length > 0) {
-    return invalid({ resolvedByPrId: errors['pullRequestId'] ?? '' });
-  }
-  const updated = await updateIssueStatus(db, projectId, issueId, { status: 'resolved', resolvedOn, resolvedByPrId });
-  return updated ? ok({ id: issueId }) : notFound;
-}
-
 const statusInput = z.object({ status: oneOf(['open', 'in_progress'], 'status') });
 
-/** Open or in progress. Moving away from resolved is reopening: BR-29 clears resolved_on. */
+/**
+ * Open or in progress. Moving away from resolved is reopening: BR-29 clears resolved_on.
+ * BR-44: there is no way to resolve here — an issue is closed only by a log that fixes it.
+ */
 export async function setIssueStatus(db: Db, projectId: string, issueId: string, input: unknown): Promise<ServiceResult<{ readonly id: string }>> {
   if (!isUuid(issueId)) {
     return notFound;

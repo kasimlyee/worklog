@@ -124,9 +124,14 @@ export async function aPlanItem(
 export async function anEntry(
   db: Db,
   projectId: string,
-  overrides: Partial<Insertable<EntriesTable>> & { readonly planItemIds?: readonly string[]; readonly issueIds?: readonly string[] } = {},
+  overrides: Partial<Insertable<EntriesTable>> & {
+    readonly planItemIds?: readonly string[];
+    readonly issueIds?: readonly string[];
+    /** BR-46: extra pull requests; `pullRequestId` is linked too. */
+    readonly pullRequestIds?: readonly string[];
+  } = {},
 ): Promise<Selectable<EntriesTable>> {
-  const { planItemId, issueId, planItemIds = [], issueIds = [], ...values } = overrides;
+  const { planItemId, issueId, planItemIds = [], issueIds = [], pullRequestIds = [], ...values } = overrides;
   const entry = await db
     .insertInto('entries')
     .values({ projectId, workDate: '2026-11-10', description: `Work ${String(next())}`, ...values })
@@ -134,6 +139,10 @@ export async function anEntry(
     .executeTakeFirstOrThrow();
   const plans = [...planItemIds, ...(planItemId === undefined || planItemId === null ? [] : [planItemId])];
   const issues = [...issueIds, ...(issueId === undefined || issueId === null ? [] : [issueId])];
+  const prs = [...new Set([...(values.pullRequestId === undefined || values.pullRequestId === null ? [] : [values.pullRequestId]), ...pullRequestIds])];
+  if (prs.length > 0) {
+    await db.insertInto('entryPullRequests').values(prs.map((id) => ({ projectId, entryId: entry.id, pullRequestId: id }))).execute();
+  }
   if (plans.length > 0) {
     await db.insertInto('entryPlanItems').values(plans.map((id) => ({ projectId, entryId: entry.id, planItemId: id }))).execute();
   }

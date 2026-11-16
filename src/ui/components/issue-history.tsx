@@ -33,6 +33,20 @@ function EventTitle({ event, projectId }: { readonly event: TimelineEventVM; rea
   return <>{event.title}</>;
 }
 
+/** BR-44: the short Issue / Cause / Fix a log entry recorded. */
+export function ClosureNotes({ notes }: { readonly notes: TimelineEventVM['notes'] }): React.JSX.Element {
+  return (
+    <dl className="mt-1 grid gap-1 border-l-2 border-line pl-3 text-sm sm:grid-cols-[4rem_1fr] sm:gap-x-3">
+      {notes.map((note) => (
+        <div key={note.label} className="contents">
+          <dt className={smallLabel}>{note.label}</dt>
+          <dd className="wrap-anywhere">{note.text}</dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
 /** BR-40: how an issue was worked on and resolved, from assignment to resolution. */
 export function IssueHistory({ projectId, history }: { readonly projectId: string; readonly history: IssueHistoryVM }): React.JSX.Element {
   return (
@@ -69,15 +83,16 @@ export function IssueHistory({ projectId, history }: { readonly projectId: strin
               <div className="flex flex-wrap gap-x-3 gap-y-1 text-sm text-muted">
                 {event.detail === null ? null : <span>{event.detail}</span>}
                 {event.people.length === 0 ? null : <PersonList people={event.people} />}
-                {event.pullRequest === null ? null : (
-                  <span className="inline-flex items-center gap-2">
-                    <ExternalLink href={event.pullRequest.url}>
-                      #{event.pullRequest.number} {event.pullRequest.title}
+                {event.pullRequests.map((pr) => (
+                  <span key={pr.id} className="inline-flex items-center gap-2">
+                    <ExternalLink href={pr.url}>
+                      #{pr.number} {pr.title}
                     </ExternalLink>
-                    <StatusTag status={event.pullRequest.state} />
+                    <StatusTag status={pr.state} />
                   </span>
-                )}
+                ))}
               </div>
+              {event.notes.length === 0 ? null : <ClosureNotes notes={event.notes} />}
             </div>
           </li>
         ))}

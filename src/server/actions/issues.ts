@@ -1,9 +1,9 @@
 'use server';
 
 import { redirect } from 'next/navigation';
-import { appDatabase, appToday } from '#src/server/app-context.ts';
+import { appDatabase } from '#src/server/app-context.ts';
 import { requireSession } from '#src/server/auth/next-session.ts';
-import { createIssue, deleteIssue, resolveIssue, setIssueStatus, updateIssue } from '#src/server/services/issues.ts';
+import { createIssue, deleteIssue, setIssueStatus, updateIssue } from '#src/server/services/issues.ts';
 import type { FormState } from '#src/ui/view-models/forms.ts';
 import { field, formObject, projectExists, projectGone, revalidateProject, toFormState } from './support.ts';
 
@@ -27,16 +27,6 @@ export async function updateIssueAction(projectId: string, issueId: string, _pre
     revalidateProject(projectId);
   }
   return toFormState(result, formData, 'Issue saved.');
-}
-
-/** BR-29, BR-30 */
-export async function resolveIssueAction(projectId: string, issueId: string, _previous: FormState, formData: FormData): Promise<FormState> {
-  await requireSession();
-  const result = await resolveIssue(appDatabase(), projectId, issueId, formObject(formData), appToday());
-  if (result.ok) {
-    revalidateProject(projectId);
-  }
-  return toFormState(result, formData, 'Issue resolved.');
 }
 
 /** Open / in progress; from resolved this reopens (BR-29). */

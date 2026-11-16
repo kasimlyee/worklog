@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { appDatabase, appToday } from '#src/server/app-context.ts';
 import { requireSession } from '#src/server/auth/next-session.ts';
-import { deleteIssueAction, resolveIssueAction, setIssueStatusAction, updateIssueAction } from '#src/server/actions/issues.ts';
+import { deleteIssueAction, setIssueStatusAction, updateIssueAction } from '#src/server/actions/issues.ts';
 import { toIssueDetailVM, toIssueHistoryVM } from '#src/server/mappers/view-models.ts';
 import { getIssueHistory } from '#src/server/services/issue-history.ts';
 import { getIssue } from '#src/server/services/issues.ts';
@@ -31,10 +31,8 @@ export default async function IssuePage({ params }: PageProps<'/projects/[projec
       history={toIssueHistoryVM(issue, history)}
       pickers={pickers}
       update={updateIssueAction.bind(null, project.id, issue.id)}
-      resolve={resolveIssueAction.bind(null, project.id, issue.id)}
       setStatus={setIssueStatusAction.bind(null, project.id)}
       remove={deleteIssueAction.bind(null, project.id)}
-      today={today}
     />
   );
 }

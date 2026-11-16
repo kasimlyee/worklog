@@ -9,7 +9,6 @@ import {
   horizons, isInPeriod, isValidPeriodStart, periodLabel, planPeriod, planStartFor, type Horizon, type Period,
 } from '#src/server/domain/plans.ts';
 import type { NamedRef } from '#src/server/repositories/entries.ts';
-import { resolveIssueIfOpen } from '#src/server/repositories/issues.ts';
 import {
   deletePlanItemRow, getOrCreatePlan, insertPlanItem, moveItem, selectItemPlan, selectPlan, selectPlanItems,
   updatePlanItemRow, updatePlanItemStatus, type MoveRow, type PlanItemRow,
@@ -149,15 +148,17 @@ export async function updatePlanItem(db: Db, projectId: string, itemId: string, 
   return updated ? ok({ id: itemId }) : notFound;
 }
 
-const statusInput = z.object({ status: oneOf(planItemStatuses, 'status') });
+/** BR-45: "done" is not among them — a plan item is finished only by a log that finishes it. */
+export const settablePlanItemStatuses = ['planned', 'in_progress', 'blocked'] as const satisfies readonly PlanItemStatus[];
 
-/** BR-16: `completed_on` is today when done, cleared when reopened. */
+const statusInput = z.object({ status: oneOf(settablePlanItemStatuses, 'status') });
+
+/** BR-16: planned, in progress or blocked; from done this reopens and clears `completed_on`. */
 export async function setPlanItemStatus(
   db: Db,
   projectId: string,
   itemId: string,
   input: unknown,
-  today: IsoDate,
 ): Promise<ServiceResult<{ readonly id: string }>> {
   if (!isUuid(itemId)) {
     return notFound;
@@ -166,18 +167,8 @@ export async function setPlanItemStatus(
   if (!parsed.ok) {
     return parsed;
   }
-  const { status } = parsed.value;
-  return await db.transaction().execute(async (trx) => {
-    const updated = await updatePlanItemStatus(trx, projectId, itemId, status, status === 'done' ? today : null);
-    if (updated === undefined) {
-      return notFound;
-    }
-    // BR-39: finishing the work on an issue resolves the issue.
-    if (status === 'done' && updated.issueId !== null) {
-      await resolveIssueIfOpen(trx, projectId, updated.issueId, today);
-    }
-    return ok({ id: itemId });
-  });
+  const updated = await updatePlanItemStatus(db, projectId, itemId, parsed.value.status, null);
+  return updated === undefined ? notFound : ok({ id: itemId });
 }
 
 const moveInput = z.object({ dueDate: requiredDate('New due date') });

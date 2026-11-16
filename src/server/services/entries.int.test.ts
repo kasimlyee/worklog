@@ -38,40 +38,139 @@ describe('entries', () => {
       description: 'Fixed the token refresh',
       area: { id: area.id, name: 'Backend' },
       people: [{ id: ali.id, name: 'Ali' }, { id: grace.id, name: 'Grace' }],
-      pullRequest: objectContaining({ number: 12, title: 'PR 12', url: 'https://github.com/acme/app/pull/12' }),
-      planItems: [{ id: item.id, title: 'Ship login' }],
-      issues: [{ id: issue.id, title: 'Crash on save' }],
+      pullRequests: [objectContaining({ number: 12, title: 'PR 12', url: 'https://github.com/acme/app/pull/12' })],
+      planItems: [{ id: item.id, title: 'Ship login', completes: false }],
+      issues: [{ id: issue.id, title: 'Crash on save', summary: '', cause: '', fix: '', resolves: false }],
     });
   });
 
-  it('BR-41: logging work can resolve the linked issues — on the work date, by the entry’s pull request', async () => {
+  it('BR-44: a log closes the issues it fixes — on the work date, by its first pull request, with Issue / Cause / Fix', async () => {
     const { project, grace } = await setup();
     const crash = await anIssue(testDb(), project.id, { title: 'Crash on save' });
     const alreadyFixed = await anIssue(testDb(), project.id, { title: 'Old bug', status: 'resolved', resolvedOn: '2026-11-03' });
-    const untouched = await anIssue(testDb(), project.id, { title: 'Not linked' });
+    const partial = await anIssue(testDb(), project.id, { title: 'Partly done' });
+    await anIssue(testDb(), project.id, { title: 'Not linked' });
 
     const created = await createEntry(prDeps(testDb()), project.id, {
       workDate: '2026-11-10',
       description: 'Fixed the crash',
       personIds: [grace.id],
-      prUrl: 'https://github.com/acme/app/pull/12',
-      issueIds: [crash.id, alreadyFixed.id],
-      resolveIssues: 'on',
+      prUrls: 'https://github.com/acme/app/pull/12\nhttps://github.com/acme/api/pull/40',
+      issueIds: [crash.id, alreadyFixed.id, partial.id],
+      [`issue.${crash.id}.summary`]: 'Saving crashed',
+      [`issue.${crash.id}.cause`]: 'Full-size decode',
+      [`issue.${crash.id}.fix`]: 'Decode thumbnails',
+      [`issue.${crash.id}.resolves`]: 'on',
+      [`issue.${alreadyFixed.id}.fix`]: 'Again',
+      [`issue.${alreadyFixed.id}.resolves`]: 'on',
+      [`issue.${partial.id}.cause`]: 'Two causes; one fixed',
     });
 
     expect(created.ok).toBe(true);
-    const issues = await testDb().selectFrom('issues').select(['title', 'status', 'resolvedOn', 'resolvedByPrId']).where('projectId', '=', project.id).orderBy('title').execute();
     const entry = await getEntry(testDb(), project.id, created.ok ? created.value.id : '');
+    const issues = await testDb().selectFrom('issues').select(['title', 'status', 'resolvedOn', 'resolvedByPrId']).where('projectId', '=', project.id).orderBy('title').execute();
     expect(issues).toEqual([
-      { title: 'Crash on save', status: 'resolved', resolvedOn: '2026-11-10', resolvedByPrId: entry?.pullRequest?.id },
-      // Already resolved: its resolution is kept as it was.
+      { title: 'Crash on save', status: 'resolved', resolvedOn: '2026-11-10', resolvedByPrId: entry?.pullRequests.find((pr) => pr.number === 12)?.id },
       { title: 'Not linked', status: 'open', resolvedOn: null, resolvedByPrId: null },
+      // Already resolved: its resolution is kept as it was.
       { title: 'Old bug', status: 'resolved', resolvedOn: '2026-11-03', resolvedByPrId: null },
+      // Linked without “This fixes it”: worked on, still open.
+      { title: 'Partly done', status: 'open', resolvedOn: null, resolvedByPrId: null },
     ]);
-    expect(untouched.status).toBe('open');
+    expect(entry?.issues.find((issue) => issue.id === crash.id)).toEqual({
+      id: crash.id, title: 'Crash on save', summary: 'Saving crashed', cause: 'Full-size decode', fix: 'Decode thumbnails', resolves: true,
+    });
   });
 
-  it('BR-41: without the request, linking an issue leaves it open', async () => {
+  it('BR-44: closing an issue needs the fix; each note is at most 1000 characters', async () => {
+    const { project, grace } = await setup();
+    const crash = await anIssue(testDb(), project.id);
+
+    const result = await createEntry(prDeps(testDb()), project.id, {
+      workDate: '2026-11-10',
+      description: 'x',
+      personIds: [grace.id],
+      issueIds: [crash.id],
+      [`issue.${crash.id}.cause`]: 'c'.repeat(1001),
+      [`issue.${crash.id}.resolves`]: 'on',
+    });
+
+    expect(result.ok ? null : result.error).toEqual({
+      code: 'invalid',
+      fieldErrors: {
+        [`issue.${crash.id}.cause`]: 'Cause must be at most 1000 characters.',
+      },
+    });
+    const noFix = await createEntry(prDeps(testDb()), project.id, {
+      workDate: '2026-11-10', description: 'x', personIds: [grace.id], issueIds: [crash.id], [`issue.${crash.id}.resolves`]: 'on',
+    });
+    expect(noFix.ok ? null : noFix.error).toEqual({ code: 'invalid', fieldErrors: { [`issue.${crash.id}.fix`]: 'Say what the fix was before closing the issue.' } });
+    expect(await testDb().selectFrom('entries').selectAll().execute()).toEqual([]);
+  });
+
+  it('BR-45: a log finishes the plan items it says it finishes, as of the work date; BR-39 their issue resolves too', async () => {
+    const { project, grace } = await setup();
+    const issue = await anIssue(testDb(), project.id, { title: 'From an issue' });
+    const plan = await aPlan(testDb(), project.id);
+    const finished = await aPlanItem(testDb(), plan, { title: 'Finished', issueId: issue.id });
+    const touched = await aPlanItem(testDb(), plan, { title: 'Touched' });
+
+    await createEntry(prDeps(testDb()), project.id, {
+      workDate: '2026-11-09',
+      description: 'x',
+      personIds: [grace.id],
+      planItemIds: [finished.id, touched.id],
+      [`planItem.${finished.id}.completes`]: 'on',
+    });
+
+    const items = await testDb().selectFrom('planItems').select(['title', 'status', 'completedOn']).orderBy('title').execute();
+    expect(items).toEqual([
+      { title: 'Finished', status: 'done', completedOn: '2026-11-09' },
+      { title: 'Touched', status: 'planned', completedOn: null },
+    ]);
+    expect(await testDb().selectFrom('issues').select(['status', 'resolvedOn']).where('id', '=', issue.id).executeTakeFirst()).toEqual({
+      status: 'resolved',
+      resolvedOn: '2026-11-09',
+    });
+  });
+
+  it('BR-44/BR-45: editing a log can close work; unticking never reopens it', async () => {
+    const { project, grace } = await setup();
+    const crash = await anIssue(testDb(), project.id);
+    const created = await createEntry(prDeps(testDb()), project.id, { workDate: '2026-11-10', description: 'x', personIds: [grace.id], issueIds: [crash.id] });
+    const id = created.ok ? created.value.id : '';
+
+    await updateEntry(prDeps(testDb()), project.id, id, {
+      workDate: '2026-11-10', description: 'x', personIds: [grace.id], issueIds: [crash.id], [`issue.${crash.id}.fix`]: 'Done', [`issue.${crash.id}.resolves`]: 'on',
+    });
+    expect(await testDb().selectFrom('issues').select('status').where('id', '=', crash.id).executeTakeFirst()).toEqual({ status: 'resolved' });
+
+    await updateEntry(prDeps(testDb()), project.id, id, { workDate: '2026-11-10', description: 'x', personIds: [grace.id], issueIds: [crash.id] });
+    expect(await testDb().selectFrom('issues').select('status').where('id', '=', crash.id).executeTakeFirst()).toEqual({ status: 'resolved' });
+  });
+
+  it('BR-46: a log carries several pull requests, one per line; at most five', async () => {
+    const { project, grace } = await setup();
+
+    const created = await createEntry(prDeps(testDb()), project.id, {
+      workDate: '2026-11-10',
+      description: 'Front end and back end',
+      personIds: [grace.id],
+      prUrls: ' https://github.com/acme/web/pull/7 \n\nhttps://github.com/acme/api/pull/3\nhttps://github.com/acme/web/pull/7',
+    });
+
+    const entry = await getEntry(testDb(), project.id, created.ok ? created.value.id : '');
+    expect(entry?.pullRequests.map((pr) => `${pr.repo}#${String(pr.number)}`)).toEqual(['api#3', 'web#7']);
+    const tooMany = await createEntry(prDeps(testDb()), project.id, {
+      workDate: '2026-11-10',
+      description: 'x',
+      personIds: [grace.id],
+      prUrls: [1, 2, 3, 4, 5, 6].map((n) => `https://github.com/acme/app/pull/${String(n)}`).join('\n'),
+    });
+    expect(tooMany.ok ? null : tooMany.error).toEqual({ code: 'invalid', fieldErrors: { prUrls: 'Link at most 5 pull requests.' } });
+  });
+
+  it('BR-20: linking an issue without “This fixes it” leaves it open', async () => {
     const { project, grace } = await setup();
     const crash = await anIssue(testDb(), project.id, { title: 'Crash on save' });
 
@@ -191,10 +290,10 @@ describe('entries', () => {
     });
 
     const entry = await getEntry(testDb(), project.id, created.ok ? created.value.id : '');
-    expect(entry?.pullRequest?.id).not.toBe(foreign.id);
+    expect(entry?.pullRequests[0]?.id).not.toBe(foreign.id);
   });
 
-  it('BR-26: a GitHub failure on the PR link stops the entry and reports on prUrl', async () => {
+  it('BR-26: a GitHub failure on the PR link stops the entry and reports on prUrls', async () => {
     const { project, grace } = await setup();
 
     const result = await createEntry(prDeps(testDb()), project.id, {
@@ -204,7 +303,7 @@ describe('entries', () => {
       prUrl: 'https://github.com/other/app/pull/5',
     });
 
-    expect(result.ok || Object.keys(result.error.code === 'invalid' ? result.error.fieldErrors : {})).toEqual(['prUrl']);
+    expect(result.ok || Object.keys(result.error.code === 'invalid' ? result.error.fieldErrors : {})).toEqual(['prUrls']);
     expect(await testDb().selectFrom('entries').selectAll().execute()).toEqual([]);
   });
 
@@ -235,7 +334,7 @@ describe('entries', () => {
       workDate: '2026-11-11',
       description: 'new',
       people: [{ name: 'Ali' }],
-      pullRequest: null,
+      pullRequests: [],
     });
   });
 

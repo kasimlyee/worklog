@@ -18,7 +18,7 @@ test('quick log three entries across two PRs', async ({ signedIn: page }) => {
   await expect(form.getByLabel('What was done')).toBeFocused();
   for (const entry of entries) {
     await page.keyboard.type(entry.text);
-    await form.getByLabel('Pull request link').fill(entry.pr);
+    await form.getByLabel('Pull request links').fill(entry.pr);
     await form.getByLabel('Grace').check();
     await form.getByLabel('What was done').press('Control+Enter');
     // A saved entry resets the form; then the cursor goes back to the description.
@@ -47,7 +47,7 @@ test('BR-26: a PR GitHub cannot find stops the entry and says why', async ({ sig
 
   const form = page.getByRole('form', { name: 'Log work' });
   await form.getByLabel('What was done').fill('Work on a missing PR');
-  await form.getByLabel('Pull request link').fill('https://github.com/acme/app/pull/404');
+  await form.getByLabel('Pull request links').fill('https://github.com/acme/app/pull/404');
   await form.getByLabel('Ali').check();
   await form.getByRole('button', { name: 'Log work' }).click();
 
@@ -61,7 +61,7 @@ test('BR-22: a PR from another organisation is refused', async ({ signedIn: page
 
   const form = page.getByRole('form', { name: 'Log work' });
   await form.getByLabel('What was done').fill('x');
-  await form.getByLabel('Pull request link').fill('https://github.com/evil/app/pull/1');
+  await form.getByLabel('Pull request links').fill('https://github.com/evil/app/pull/1');
   await form.getByLabel('Ali').check();
   await form.getByRole('button', { name: 'Log work' }).click();
 
