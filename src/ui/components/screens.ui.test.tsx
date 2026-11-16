@@ -463,7 +463,9 @@ describe('settings, people, pull requests', () => {
       />,
     );
 
-    expect(screen.getAllByLabelText('Area name').map((input) => (input instanceof HTMLInputElement ? input.value : ''))).toEqual(['Frontend', 'Backend', 'Mobile', '']);
+    expect(screen.getAllByLabelText('Area name').map((input) => (input instanceof HTMLInputElement ? input.value : ''))).toEqual(['Frontend', 'Backend', 'Mobile']);
+    expect(screen.getByLabelText<HTMLInputElement>('New area name').value).toBe('');
+    expect(screen.getByRole('table', { name: 'Areas' })).toBeDefined();
     expect(screen.getByRole('button', { name: 'Restore Legacy' })).toBeDefined();
     expect(screen.getByRole('button', { name: 'Move Frontend up' })).toBeDefined();
     expect(screen.getByRole('button', { name: 'Archive project' })).toBeDefined();

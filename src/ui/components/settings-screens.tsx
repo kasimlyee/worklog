@@ -43,25 +43,44 @@ export function SettingsScreen({
         </ActionForm>
       </Section>
       <Section title="Areas">
-        {active.length === 0 ? <EmptyState>No areas yet. Entries without an area appear under “General”.</EmptyState> : null}
-        <ul className={styles.list}>
-          {active.map((area) => (
-            <li key={area.id} className={styles.item}>
-              <ActionForm action={renameArea} submitLabel="Rename" label={`Rename ${area.name}`} layout="inline">
-                <HiddenField name="areaId" value={area.id} />
-                <TextField name="name" label="Area name" defaultValue={area.name} required maxLength={60} />
-              </ActionForm>
-              {/* A sibling, never inside the rename form: forms cannot nest. */}
-              <div className={styles.actions}>
-                <ActionButton action={setAreaArchived} label="Archive" fields={{ areaId: area.id, archived: 'true' }} accessibleLabel={`Archive ${area.name}`} />
-              </div>
-            </li>
-          ))}
-        </ul>
-        <h3 className={styles.dayHeading}>Add an area</h3>
-        <ActionForm action={createArea} submitLabel="Add area" label="Add area" layout="inline">
-          <TextField name="name" label="Area name" required maxLength={60} />
+        <ActionForm action={createArea} submitLabel="Add area" label="Add area" layout="row">
+          <TextField name="name" label="New area name" hideLabel required maxLength={60} placeholder="New area, e.g. Backend" />
         </ActionForm>
+        {active.length === 0 ? (
+          <div className="mt-4">
+            <EmptyState>No areas yet. Entries without an area appear under “General”.</EmptyState>
+          </div>
+        ) : (
+          <div className={`${styles.tableWrap} mt-4`}>
+            <table>
+              <caption className="visually-hidden">Areas</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Area name</th>
+                  <th scope="col" className="w-0">
+                    <span className="visually-hidden">Actions</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {active.map((area) => (
+                  <tr key={area.id}>
+                    <td>
+                      <ActionForm action={renameArea} submitLabel="Rename" label={`Rename ${area.name}`} layout="row" submitVariant="secondary">
+                        <HiddenField name="areaId" value={area.id} />
+                        <TextField name="name" label="Area name" hideLabel defaultValue={area.name} required maxLength={60} />
+                      </ActionForm>
+                    </td>
+                    {/* A sibling cell, never inside the rename form: forms cannot nest. */}
+                    <td className="text-right">
+                      <ActionButton action={setAreaArchived} label="Archive" fields={{ areaId: area.id, archived: 'true' }} accessibleLabel={`Archive ${area.name}`} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
         {active.length > 1 ? (
           <>
             <h3 className={styles.dayHeading}>Order in reports</h3>
@@ -72,16 +91,13 @@ export function SettingsScreen({
         {archived.length === 0 ? null : (
           <>
             <h3 className={styles.dayHeading}>Archived areas</h3>
-            <ul className={styles.list}>
-              {archived.map((area) => (
-                <li key={area.id} className={styles.item}>
-                  <div className={styles.row}>
-                    <span>{area.name}</span>
-                    <ActionButton action={setAreaArchived} label="Restore" fields={{ areaId: area.id, archived: 'false' }} accessibleLabel={`Restore ${area.name}`} />
-                  </div>
-                </li>
-              ))}
-            </ul>
+            <ArchivedTable
+              caption="Archived areas"
+              rows={archived.map((area) => ({ id: area.id, name: area.name }))}
+              restore={(row) => (
+                <ActionButton action={setAreaArchived} label="Restore" fields={{ areaId: row.id, archived: 'false' }} accessibleLabel={`Restore ${row.name}`} />
+              )}
+            />
           </>
         )}
       </Section>
@@ -133,7 +149,7 @@ function WorkloadTable({ workload }: { readonly workload: readonly WorkloadVM[] 
         <tbody>
           {workload.map((person) => (
             <tr key={person.id}>
-              <th scope="row" className="font-semibold text-fg normal-case tracking-normal">
+              <th scope="row">
                 {person.name}
               </th>
               <td>{cell(person.openItems)}</td>
@@ -172,41 +188,91 @@ export function PeopleScreen({
         <p className="mb-3 text-sm text-muted">Assignments recorded in Worklog, across all active projects. A count of work, not a measure of anyone’s productivity.</p>
         <WorkloadTable workload={workload} />
       </Section>
-      <Section title="Add a person">
-        <ActionForm action={create} submitLabel="Add person" label="Add person" layout="inline">
-          <TextField name="name" label="Name" required maxLength={80} />
-        </ActionForm>
-      </Section>
       <Section title="People">
-        {active.length === 0 ? <EmptyState>No people yet.</EmptyState> : null}
-        <ul className={styles.list}>
-          {active.map((person) => (
-            <li key={person.id} className={styles.item}>
-              <ActionForm action={rename} submitLabel="Rename" label={`Rename ${person.name}`} layout="inline">
-                <HiddenField name="personId" value={person.id} />
-                <TextField name="name" label="Name" defaultValue={person.name} required maxLength={80} />
-              </ActionForm>
-              <div className={styles.actions}>
-                <ActionButton action={setArchived} label="Archive" fields={{ personId: person.id, archived: 'true' }} accessibleLabel={`Archive ${person.name}`} />
-              </div>
-            </li>
-          ))}
-        </ul>
+        <ActionForm action={create} submitLabel="Add person" label="Add person" layout="row">
+          <TextField name="name" label="New person’s name" hideLabel required maxLength={80} placeholder="Add a person by name" />
+        </ActionForm>
+        {active.length === 0 ? (
+          <div className="mt-4">
+            <EmptyState>No people yet.</EmptyState>
+          </div>
+        ) : (
+          <div className={`${styles.tableWrap} mt-4`}>
+            <table>
+              <caption className="visually-hidden">People</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Name</th>
+                  <th scope="col" className="w-0">
+                    <span className="visually-hidden">Actions</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {active.map((person) => (
+                  <tr key={person.id}>
+                    <td>
+                      <ActionForm action={rename} submitLabel="Rename" label={`Rename ${person.name}`} layout="row" submitVariant="secondary">
+                        <HiddenField name="personId" value={person.id} />
+                        <TextField name="name" label="Name" hideLabel defaultValue={person.name} required maxLength={80} />
+                      </ActionForm>
+                    </td>
+                    <td className="text-right">
+                      <ActionButton action={setArchived} label="Archive" fields={{ personId: person.id, archived: 'true' }} accessibleLabel={`Archive ${person.name}`} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </Section>
       {archived.length === 0 ? null : (
         <Section title="Archived">
-          <ul className={styles.list}>
-            {archived.map((person) => (
-              <li key={person.id} className={styles.item}>
-                <div className={styles.row}>
-                  <span>{person.name}</span>
-                  <ActionButton action={setArchived} label="Restore" fields={{ personId: person.id, archived: 'false' }} accessibleLabel={`Restore ${person.name}`} />
-                </div>
-              </li>
-            ))}
-          </ul>
+          <ArchivedTable
+            caption="Archived people"
+            rows={archived.map((person) => ({ id: person.id, name: person.name }))}
+            restore={(row) => (
+              <ActionButton action={setArchived} label="Restore" fields={{ personId: row.id, archived: 'false' }} accessibleLabel={`Restore ${row.name}`} />
+            )}
+          />
         </Section>
       )}
+    </div>
+  );
+}
+
+/** Archived areas or people: a name and a Restore button per row. */
+function ArchivedTable({
+  caption,
+  rows,
+  restore,
+}: {
+  readonly caption: string;
+  readonly rows: readonly { readonly id: string; readonly name: string }[];
+  readonly restore: (row: { readonly id: string; readonly name: string }) => React.ReactNode;
+}): React.JSX.Element {
+  return (
+    <div className={styles.tableWrap}>
+      <table>
+        <caption className="visually-hidden">{caption}</caption>
+        <thead>
+          <tr>
+            <th scope="col">Name</th>
+            <th scope="col" className="w-0">
+              <span className="visually-hidden">Actions</span>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row) => (
+            <tr key={row.id}>
+              <td className="text-muted">{row.name}</td>
+              <td className="text-right">{restore(row)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
@@ -236,38 +302,60 @@ export function PullRequestsScreen({
           {notice}
         </p>
       )}
-      <Section title="Add a pull request">
-        <ActionForm action={add} submitLabel="Add" label="Add pull request" layout="inline">
-          <TextField name="url" label="Pull request link" type="url" required placeholder="https://github.com/org/repo/pull/123" wide />
-        </ActionForm>
-      </Section>
       <Section title="Pull requests">
+        <ActionForm action={add} submitLabel="Add" label="Add pull request" layout="row">
+          <TextField name="url" label="Pull request link" hideLabel type="url" required placeholder="Paste a link: https://github.com/org/repo/pull/123" />
+        </ActionForm>
         {pullRequests.length === 0 ? (
-          <EmptyState>No pull requests yet. Paste a link above or in the quick log.</EmptyState>
+          <div className="mt-4">
+            <EmptyState>No pull requests yet. Paste a link above or in the quick log.</EmptyState>
+          </div>
         ) : (
-          <ul className={styles.list}>
-            {pullRequests.map((pr) => (
-              <li key={pr.id} className={styles.item}>
-                <div className={styles.row}>
-                  <ExternalLink href={pr.url}>
-                    {pr.owner}/{pr.repo} #{pr.number} {pr.title}
-                  </ExternalLink>
-                  <StatusTag status={pr.state} />
-                </div>
-                <div className={styles.actions}>
-                  <ActionButton action={refresh} label="Refresh from GitHub" fields={{ pullRequestId: pr.id }} accessibleLabel={`Refresh from GitHub: #${String(pr.number)}`} />
-                  <ConfirmDialog
-                    action={remove}
-                    triggerLabel="Delete"
-                    title="Delete this pull request?"
-                    message="Only possible when no entry, issue, release or note uses it."
-                    confirmLabel="Delete"
-                    fields={{ pullRequestId: pr.id }}
-                  />
-                </div>
-              </li>
-            ))}
-          </ul>
+          <div className={`${styles.tableWrap} mt-4`} tabIndex={0} role="region" aria-label="Pull requests, scrollable">
+            <table>
+              <caption className="visually-hidden">Pull requests of this project</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Pull request</th>
+                  <th scope="col">Repository</th>
+                  <th scope="col">State</th>
+                  <th scope="col" className="w-0">
+                    <span className="visually-hidden">Actions</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {pullRequests.map((pr) => (
+                  <tr key={pr.id}>
+                    <td>
+                      <ExternalLink href={pr.url}>
+                        #{pr.number} {pr.title}
+                      </ExternalLink>
+                    </td>
+                    <td className="whitespace-nowrap text-muted">
+                      {pr.owner}/{pr.repo}
+                    </td>
+                    <td>
+                      <StatusTag status={pr.state} />
+                    </td>
+                    <td>
+                      <div className="flex justify-end gap-2 whitespace-nowrap">
+                        <ActionButton action={refresh} label="Refresh" fields={{ pullRequestId: pr.id }} accessibleLabel={`Refresh from GitHub: #${String(pr.number)}`} />
+                        <ConfirmDialog
+                          action={remove}
+                          triggerLabel="Delete"
+                          title="Delete this pull request?"
+                          message="Only possible when no entry, issue, release or note uses it."
+                          confirmLabel="Delete"
+                          fields={{ pullRequestId: pr.id }}
+                        />
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </Section>
     </div>

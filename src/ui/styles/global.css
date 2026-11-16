@@ -333,15 +333,28 @@
     padding-right: 0;
   }
 
-  tbody tr:last-child td {
+  tbody tr:last-child td,
+  tbody tr:last-child th {
     border-bottom: 0;
+  }
+
+  /* Rows read across: text, tags and buttons line up on one centre line. */
+  tbody td,
+  tbody th {
+    vertical-align: middle;
+  }
+
+  /* A row header (a person's name) reads as the row's title, not as a column label. */
+  tbody th {
+    font-weight: 600;
+    color: var(--text);
   }
 
   tbody tr:hover {
     background: color-mix(in srgb, var(--surface-sunken) 55%, transparent);
   }
 
-  th {
+  thead th {
     font-family: var(--font-mono);
     font-weight: 500;
     color: var(--text-muted);

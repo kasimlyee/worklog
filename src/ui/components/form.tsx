@@ -55,10 +55,18 @@ export function useFormField(name: string): FormField {
 
 const useField = useFormField;
 
-function SubmitButton({ label, pendingLabel }: { readonly label: string; readonly pendingLabel: string }): React.JSX.Element {
+function SubmitButton({
+  label,
+  pendingLabel,
+  variant = 'primary',
+}: {
+  readonly label: string;
+  readonly pendingLabel: string;
+  readonly variant?: 'primary' | 'secondary';
+}): React.JSX.Element {
   const { pending } = useFormStatus();
   return (
-    <button type="submit" data-variant="primary" disabled={pending} aria-disabled={pending}>
+    <button type="submit" data-variant={variant === 'primary' ? 'primary' : undefined} disabled={pending} aria-disabled={pending}>
       {pending ? pendingLabel : label}
     </button>
   );
@@ -102,9 +110,12 @@ type ActionFormProps = {
   readonly children: React.ReactNode;
   /** Accessible name for the form landmark. */
   readonly label: string;
-  readonly layout?: 'stack' | 'inline';
+  /** `row`: field and button on one line — for a table cell or a one-field form. */
+  readonly layout?: 'stack' | 'inline' | 'row';
   readonly extraActions?: React.ReactNode;
   readonly onKeyDown?: React.KeyboardEventHandler<HTMLFormElement>;
+  /** Secondary for a button repeated on every row (Rename). */
+  readonly submitVariant?: 'primary' | 'secondary';
 };
 
 export function ActionForm({
@@ -116,6 +127,7 @@ export function ActionForm({
   layout = 'stack',
   extraActions,
   onKeyDown,
+  submitVariant = 'primary',
 }: ActionFormProps): React.JSX.Element {
   const [{ state, version }, formAction] = useActionState(
     async (previous: Versioned, formData: FormData): Promise<Versioned> => ({
@@ -131,6 +143,23 @@ export function ActionForm({
     values: state.status === 'error' ? state.values : null,
     version,
   };
+  if (layout === 'row') {
+    return (
+      <form action={formAction} aria-label={label} className="flex flex-wrap items-start gap-2" data-layout={layout} noValidate onKeyDown={onKeyDown}>
+        <FormContext value={context}>
+          <div className="grid min-w-40 flex-1 gap-2 sm:max-w-sm">{children}</div>
+        </FormContext>
+        <div className="flex flex-wrap gap-2">
+          <SubmitButton label={submitLabel} pendingLabel={pendingLabel} variant={submitVariant} />
+          {extraActions}
+        </div>
+        {/* Field errors show under the field; this announces the outcome. */}
+        <p className="visually-hidden" role="status">
+          {state.status === 'error' ? state.message : state.status === 'success' ? (state.message ?? '') : ''}
+        </p>
+      </form>
+    );
+  }
   return (
     <form action={formAction} aria-label={label} className="group grid gap-5" data-layout={layout} noValidate onKeyDown={onKeyDown}>
       <ErrorSummary formId={formId} state={state} />
@@ -160,6 +189,7 @@ function FieldShell({
   error,
   children,
   wide,
+  hideLabel,
 }: {
   readonly id: string;
   readonly errorId: string;
@@ -168,10 +198,13 @@ function FieldShell({
   readonly error: string | undefined;
   readonly children: React.ReactNode;
   readonly wide: boolean | undefined;
+  readonly hideLabel?: boolean | undefined;
 }): React.JSX.Element {
   return (
     <div className={fieldBox} data-wide={wide === true ? 'true' : undefined}>
-      <label htmlFor={id}>{label}</label>
+      <label htmlFor={id} className={hideLabel === true ? 'visually-hidden' : undefined}>
+        {label}
+      </label>
       {hint === undefined ? null : (
         <p id={`${id}-hint`} className={hintText}>
           {hint}
@@ -209,12 +242,14 @@ type TextFieldProps = {
   readonly min?: string;
   readonly max?: string;
   readonly wide?: boolean;
+  /** The label is read by screen readers only — when a table header already says it. */
+  readonly hideLabel?: boolean;
 };
 
-export function TextField({ name, label, defaultValue = '', type = 'text', hint, wide, ...rest }: TextFieldProps): React.JSX.Element {
+export function TextField({ name, label, defaultValue = '', type = 'text', hint, wide, hideLabel, ...rest }: TextFieldProps): React.JSX.Element {
   const field = useField(name);
   return (
-    <FieldShell id={field.id} errorId={field.errorId} label={label} hint={hint} error={field.error} wide={wide}>
+    <FieldShell id={field.id} errorId={field.errorId} label={label} hint={hint} error={field.error} wide={wide} hideLabel={hideLabel}>
       <input
         key={field.key}
         id={field.id}
