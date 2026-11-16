@@ -1,112 +1,69 @@
 import { PDFDocument, StandardFonts, rgb, type PDFFont, type RGB } from 'pdf-lib';
-import { emptyReportMessage, type ReportLine, type ReportModel, type Tone } from './model.ts';
-import { a4, layoutBlocks, type Block, type FontKey, type Ink, type PageLayout, type Run } from './pdf-layout.ts';
+import type { ReportModel, Tone } from './model.ts';
+import { a4, layoutReport, type Colour, type FontKey, type PageLayout } from './pdf-layout.ts';
 import { sanitizeForPdf } from './pdf-sanitize.ts';
 
-/* §7.5: A4 portrait, plain typography, status labels as coloured tags, page numbers. */
+/* §7.5, D-19: A4 portrait, a status-report layout, status labels as coloured pills, page numbers. */
 
-const ink: Readonly<Record<Ink, RGB>> = { text: rgb(0.11, 0.11, 0.09), muted: rgb(0.38, 0.36, 0.31) };
-const ruleColour = rgb(0.85, 0.83, 0.78);
-
-// The same semantic colours as the UI tokens (product spec §5).
-const tagColours: Readonly<Record<Tone, { readonly fill: RGB; readonly text: RGB }>> = {
-  success: { fill: rgb(0.86, 0.95, 0.88), text: rgb(0.09, 0.4, 0.2) },
-  warning: { fill: rgb(1, 0.95, 0.76), text: rgb(0.48, 0.33, 0) },
-  danger: { fill: rgb(0.99, 0.89, 0.89), text: rgb(0.6, 0.11, 0.11) },
-  neutral: { fill: rgb(0.92, 0.93, 0.94), text: rgb(0.3, 0.32, 0.36) },
+const colours: Readonly<Record<Colour, RGB>> = {
+  ink: rgb(0.106, 0.122, 0.153),
+  ink2: rgb(0.29, 0.318, 0.376),
+  muted: rgb(0.54, 0.57, 0.63),
+  navy: rgb(0.114, 0.169, 0.31),
+  white: rgb(1, 1, 1),
+  bandMuted: rgb(0.78, 0.81, 0.9),
+  rule: rgb(0.89, 0.9, 0.925),
+  tile: rgb(0.957, 0.961, 0.973),
+  note: rgb(0.957, 0.961, 0.973),
 };
 
-const run = (text: string, font: FontKey, size: number, color: Ink = 'text', tag?: Tone): Run => ({
-  text: sanitizeForPdf(text),
-  font,
-  size,
-  ink: color,
-  ...(tag === undefined ? {} : { tag }),
-});
-
-function lineBlocks(item: ReportLine, depth: number): readonly Block[] {
-  const runs: Run[] = [run('•  ', 'regular', 10, 'muted'), run(item.text, 'regular', 10)];
-  for (const tag of item.tags) {
-    runs.push(run(' ', 'regular', 10), run(tag.label, 'bold', 8, 'text', tag.tone));
-  }
-  if (item.detail !== null) {
-    runs.push(run(`  ${item.detail}`, 'italic', 9, 'muted'));
-  }
-  if (item.people.length > 0) {
-    runs.push(run(`  — ${item.people.join(', ')}`, 'regular', 9, 'muted'));
-  }
-  return [{ runs, indent: depth * 14, spaceBefore: 3 }, ...item.children.flatMap((child) => lineBlocks(child, depth + 1))];
-}
-
-/** The report as layout blocks — the PDF's content, in order. */
-export function reportBlocks(model: ReportModel): readonly Block[] {
-  const blocks: Block[] = [
-    { runs: [run(`${model.projectName} — ${model.typeLabel}`, 'bold', 18)], indent: 0, spaceBefore: 0 },
-    {
-      runs: [
-        run(model.periodLabel, 'bold', 11),
-        run(`  ·  Prepared by ${model.author}  ·  Generated ${model.generatedLabel}`, 'regular', 10, 'muted'),
-      ],
-      indent: 0,
-      spaceBefore: 4,
-      ruleBelow: true,
-    },
-  ];
-  if (model.note !== null) {
-    blocks.push(
-      ...model.note.split(/\r?\n/).map((noteLine, index) => ({ runs: [run(noteLine, 'italic', 10, 'muted')], indent: 10, spaceBefore: index === 0 ? 10 : 2 })),
-    );
-  }
-  if (model.sections.length === 0) {
-    blocks.push({ runs: [run(model.emptyMessage ?? emptyReportMessage, 'regular', 11)], indent: 0, spaceBefore: 18 });
-  }
-  for (const section of model.sections) {
-    blocks.push({ runs: [run(section.title, 'bold', 14)], indent: 0, spaceBefore: 22, keepWithNext: true, ruleBelow: true });
-    if (section.summary.length > 0) {
-      blocks.push({
-        runs: section.summary.flatMap((item, index) => [
-          run(`${index === 0 ? '' : '   ·   '}${item.label}: `, 'regular', 10, 'muted'),
-          run(String(item.value), 'bold', 11),
-        ]),
-        indent: 0,
-        spaceBefore: 6,
-      });
-    }
-    for (const group of section.groups) {
-      if (group.title !== null) {
-        blocks.push({ runs: [run(group.title, 'bold', 11)], indent: 0, spaceBefore: 12, keepWithNext: true });
-      }
-      blocks.push(...group.lines.flatMap((item) => lineBlocks(item, 0)));
-    }
-  }
-  return blocks;
-}
+// The same semantic colours as the UI tokens (product spec §5).
+const toneColours: Readonly<Record<Tone, { readonly fill: RGB; readonly text: RGB }>> = {
+  success: { fill: rgb(0.906, 0.961, 0.929), text: rgb(0.13, 0.48, 0.28) },
+  warning: { fill: rgb(1, 0.953, 0.839), text: rgb(0.54, 0.35, 0) },
+  danger: { fill: rgb(0.992, 0.91, 0.914), text: rgb(0.7, 0.14, 0.16) },
+  neutral: { fill: rgb(0.933, 0.941, 0.953), text: rgb(0.36, 0.38, 0.45) },
+};
 
 type Fonts = Readonly<Record<FontKey, PDFFont>>;
 
-function drawPage(doc: PDFDocument, layout: PageLayout, fonts: Fonts, footer: string, pageLabel: string): void {
-  const page = doc.addPage([a4.pageWidth, a4.pageHeight]);
-  for (const rule of layout.rules) {
-    page.drawLine({ start: { x: rule.x, y: rule.y }, end: { x: rule.x + rule.width, y: rule.y }, thickness: 0.6, color: ruleColour });
-  }
-  for (const item of layout.items) {
-    const font = fonts[item.font];
-    if (item.tag === undefined) {
-      page.drawText(item.text, { x: item.x, y: item.y, size: item.size, font, color: ink[item.ink] });
-      continue;
-    }
-    const colours = tagColours[item.tag];
-    const height = item.size + 2 * a4.tagPadding;
-    page.drawRectangle({ x: item.x, y: item.y - a4.tagPadding - 1, width: item.width, height, color: colours.fill });
-    page.drawText(item.text, { x: item.x + a4.tagPadding, y: item.y, size: item.size, font, color: colours.text });
-  }
-  const footerY = a4.margin.bottom / 2;
-  page.drawText(footer, { x: a4.margin.left, y: footerY, size: 8, font: fonts.regular, color: ink.muted });
-  const labelWidth = fonts.regular.widthOfTextAtSize(pageLabel, 8);
-  page.drawText(pageLabel, { x: a4.pageWidth - a4.margin.right - labelWidth, y: footerY, size: 8, font: fonts.regular, color: ink.muted });
+function colourOf(value: Colour | { readonly tone: Tone }, part: 'fill' | 'text'): RGB {
+  return typeof value === 'string' ? colours[value] : toneColours[value.tone][part];
 }
 
-/** The report as a PDF file (R-02: content only from the model). */
+function drawPage(doc: PDFDocument, layout: PageLayout, fonts: Fonts): void {
+  const page = doc.addPage([a4.width, a4.height]);
+  const flip = (top: number): number => a4.height - top;
+  for (const item of layout.items) {
+    switch (item.type) {
+      case 'rect':
+        page.drawRectangle({
+          x: item.x,
+          y: flip(item.top + item.height),
+          width: item.width,
+          height: item.height,
+          ...(item.fill === null ? {} : { color: colourOf(item.fill, 'fill') }),
+          ...(item.stroke === undefined ? {} : { borderColor: colours[item.stroke], borderWidth: 0.7 }),
+        });
+        break;
+      case 'line':
+        // A vertical divider has x1 === x2 and uses `width` as its height.
+        if (item.x1 === item.x2) {
+          page.drawLine({ start: { x: item.x1, y: flip(item.top) }, end: { x: item.x1, y: flip(item.top + item.width) }, thickness: 0.6, color: colours[item.colour] });
+        } else {
+          page.drawLine({ start: { x: item.x1, y: flip(item.top) }, end: { x: item.x2, y: flip(item.top) }, thickness: item.width, color: colours[item.colour] });
+        }
+        break;
+      case 'text':
+        page.drawText(item.text, { x: item.x, y: flip(item.top), size: item.size, font: fonts[item.font], color: colourOf(item.colour, 'text') });
+        break;
+      default:
+        item satisfies never;
+    }
+  }
+}
+
+/** The report or plan as a PDF file (R-02: content only from the model). */
 export async function renderPdf(model: ReportModel): Promise<Uint8Array> {
   const doc = await PDFDocument.create();
   const fonts: Fonts = {
@@ -114,11 +71,10 @@ export async function renderPdf(model: ReportModel): Promise<Uint8Array> {
     bold: await doc.embedFont(StandardFonts.HelveticaBold),
     italic: await doc.embedFont(StandardFonts.HelveticaOblique),
   };
-  const pages = layoutBlocks(reportBlocks(model), (text, font, size) => fonts[font].widthOfTextAtSize(text, size));
-  const footer = sanitizeForPdf(`${model.projectName} · ${model.typeLabel} · ${model.periodLabel}`);
-  pages.forEach((layout, index) => {
-    drawPage(doc, layout, fonts, footer, `Page ${String(index + 1)} of ${String(pages.length)}`);
-  });
+  const pages = layoutReport(model, (text, font, size) => fonts[font].widthOfTextAtSize(text, size));
+  for (const layout of pages) {
+    drawPage(doc, layout, fonts);
+  }
   doc.setTitle(sanitizeForPdf(`${model.projectName} — ${model.typeLabel} — ${model.periodLabel}`));
   doc.setAuthor(sanitizeForPdf(model.author));
   doc.setProducer('Worklog');

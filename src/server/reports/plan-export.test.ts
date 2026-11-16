@@ -37,10 +37,10 @@ const data = (kind: PlanExportData['kind'], start: string, items: readonly PlanI
 });
 
 describe('plan export', () => {
-  it('BR-47: a weekly plan lists the week plan by area, then every day Monday to Sunday, weekend included', () => {
+  it('BR-47: a weekly plan: key numbers, by area and by day, the week plan, then every deliverable Monday to Sunday', () => {
     const model = buildPlanExportModel(
       data('weekly', '2026-11-16', [
-        item('Similar houses (admin)', 'day', '2026-11-16', '2026-11-16', { areaName: 'Nestly', assignees: [{ id: 'p', name: 'Kasim Lyee' }], status: 'done' }),
+        item('Similar houses — catch mixed interiors', 'day', '2026-11-16', '2026-11-16', { areaName: 'Nestly', assignees: [{ id: 'p', name: 'Kasim Lyee' }], status: 'done' }),
         item('Roofs backend', 'day', '2026-11-17', '2026-11-17', { areaName: 'Roofs' }),
         item('Test Roofs (Admin)', 'month', '2026-11-01', '2026-11-21', { areaName: 'Roofs' }),
         item('Broker acquisition', 'week', '2026-11-16', '2026-11-20', { areaName: 'Nestly', status: 'in_progress' }),
@@ -48,26 +48,28 @@ describe('plan export', () => {
       today,
     );
 
-    expect([model.typeLabel, model.periodLabel]).toEqual(['Weekly plan', 'Week of 16–20 Nov 2026']);
-    expect(model.sections.map((s) => s.title)).toEqual(['Summary', 'Week plan', 'Day by day']);
+    expect([model.typeLabel, model.title, model.periodLabel]).toEqual(['Weekly plan', 'Week 47 plan', 'Week of 16–20 Nov 2026']);
+    expect(model.sections.map((s) => s.title)).toEqual(['Summary', 'Week plan', 'Deliverables']);
     expect(model.sections[0]?.summary.map((s) => [s.label, s.value])).toEqual([
       ['Planned items', 4], ['Done', 1], ['In progress', 1], ['Blocked', 0], ['Not started', 2],
     ]);
-    expect(model.sections[1]?.groups.map((g) => [g.title, g.lines.map((l) => [l.text, l.detail, l.tags[0]?.label])])).toEqual([
-      ['Nestly', [['Broker acquisition', 'Due Fri 20 Nov', 'In progress']]],
+    expect(model.panels).toEqual([
+      { title: 'By area', items: ['Nestly: 2 items, 1 done', 'Roofs: 2 items, 0 done'] },
+      { title: 'By day', items: ['Mon 16 Nov: 1 item, 1 done', 'Tue 17 Nov: 1 item, 0 done', 'Sat 21 Nov: 1 item, 0 done'] },
     ]);
-    const days = model.sections[2]?.groups ?? [];
-    expect(days.map((g) => [g.title, g.lines.map((l) => l.text)])).toEqual([
-      ['Monday 16 Nov 2026', ['Similar houses (admin)']],
-      ['Tuesday 17 Nov 2026', ['Roofs backend']],
-      ['Saturday 21 Nov 2026', ['Test Roofs (Admin)']],
+    const goals = model.sections[1]?.groups[0]?.lines ?? [];
+    expect(goals.map((l) => [l.text, l.cells?.map((c) => c.text), l.tags[0]?.label])).toEqual([['Broker acquisition', ['Nestly', 'Fri 20 Nov'], 'In progress']]);
+    const deliverables = model.sections[2]?.groups[0]?.lines ?? [];
+    expect(deliverables.map((l) => [l.cells?.[0]?.text, l.text, l.detail])).toEqual([
+      ['Mon 16 Nov', 'Similar houses', 'catch mixed interiors'],
+      ['Tue 17 Nov', 'Roofs backend', null],
+      ['Sat 21 Nov', 'Test Roofs (Admin)', null],
     ]);
-    expect(days[0]?.lines[0]?.people).toEqual(['Kasim Lyee']);
-    expect(days[2]?.lines[0]?.detail).toBe('Roofs · Month plan');
+    expect(deliverables[0]?.people).toEqual(['Kasim Lyee']);
     expect(planFileName(model, 'pdf')).toBe('nestly_plan_weekly_2026-11-16.pdf');
   });
 
-  it('BR-47: a monthly plan lists the month plan by area, then each week: its week plan first, then its days', () => {
+  it('BR-47: a monthly plan: the month plan, then each week — its week plan first, then its days', () => {
     const model = buildPlanExportModel(
       data('monthly', '2026-11-01', [
         item('Roofs launch', 'month', '2026-11-01', '2026-11-30', { areaName: 'Roofs' }),
@@ -79,13 +81,14 @@ describe('plan export', () => {
       today,
     );
 
-    expect(model.sections[1]?.groups.map((g) => [g.title, g.lines.map((l) => l.text)])).toEqual([
-      ['Roofs', ['Roofs launch']],
-      ['General', ['Email provider']],
+    expect(model.title).toBe('November 2026 plan');
+    expect(model.sections[1]?.groups[0]?.lines.map((l) => [l.text, l.cells?.[0]?.text])).toEqual([
+      ['Roofs launch', 'Roofs'],
+      ['Email provider', 'General'],
     ]);
-    expect(model.sections[2]?.groups.map((g) => [g.title, g.lines.map((l) => [l.text, l.detail])])).toEqual([
-      ['Week of 9–13 Nov 2026', [['Earlier week', 'Week plan']]],
-      ['Week of 16–20 Nov 2026', [['Week work', 'Week plan'], ['Day work', 'Tue 17 Nov']]],
+    expect(model.sections[2]?.groups.map((g) => [g.title, g.lines.map((l) => [l.cells?.[0]?.text, l.text])])).toEqual([
+      ['Week of 9–13 Nov 2026', [['Week', 'Earlier week']]],
+      ['Week of 16–20 Nov 2026', [['Week', 'Week work'], ['Tue 17 Nov', 'Day work']]],
     ]);
   });
 

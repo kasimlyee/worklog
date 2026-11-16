@@ -1,49 +1,60 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
 exports[`Markdown export > R-02: renders a full weekly report (snapshot) 1`] = `
-"# Atlas — Weekly report
+"# Atlas — Week 46 report
 
-**Week of 9–13 Nov 2026** · Prepared by Kasim · Generated 20 Nov 2026
+**Week of 9–13 Nov 2026** · Weekly report · Prepared by Kasim · Generated 20 Nov 2026
 
 > Short week.
 > Public holiday on Friday.
 
 ## Summary
 
-Entries: **3** · PRs touched: **1** · PRs merged: **1** · Releases: **1** · Issues resolved: **1**
+| Entries | PRs touched | PRs merged | Releases | Issues resolved |
+| --- | --- | --- | --- | --- |
+| **3** | **1** | **1** | **1** | **1** |
+
+**Highlights**
+
+- Released 1.4.0
+- Resolved: Crash on save
+- Merged \\#12 Add login
 
 ## Work done
 
 ### Frontend
 
-- \\#12 Add login **[Merged]** _(2 entries)_ — Ali, Grace
+| Work | Status | People |
+| --- | --- | --- |
+| \\#12 Add login _(2 entries)_ | **[Merged]** | Ali, Grace |
 
 ### Backend
 
-- Hotfix on Saturday _(Sat 14 Nov · weekend work)_ — Grace
+| Work | People |
+| --- | --- |
+| Hotfix on Saturday _(Sat 14 Nov · weekend work)_ | Grace |
 
 ## Releases
 
-- 1.4.0 **[Released]** _(12 Nov 2026)_
-  - \\#12 Add login **[Merged]**
+| Release | Status |
+| --- | --- |
+| 1.4.0 _(12 Nov 2026)_ | **[Released]** |
+| ↳ \\#12 Add login | **[Merged]** |
 
 ## Issues
 
 ### Resolved
 
-- Crash on save **[Resolved 2 days late]** _(Assigned Thu 1 Oct · deadline Tue 10 Nov · resolved Thu 12 Nov)_ — Grace
+| Issue | Deadline | Resolved | Status | Assignees |
+| --- | --- | --- | --- | --- |
+| Crash on save | Tue 10 Nov | Thu 12 Nov | **[Resolved 2 days late]** | Grace |
 
 ## Per developer
 
-### Ali
-
-- Entries: 1
-- Plan items completed: 1
-
-### Grace
-
-- Entries: 3
-- Issues resolved: 1 **[1 late]**
+| Person | Entries | Plan items done | Issues resolved | Open overdue | Status |
+| --- | --- | --- | --- | --- | --- |
+| Ali | 1 | 1 | 0 | 0 |  |
+| Grace | 3 | 0 | 1 | 0 | **[1 late]** |
 
 ## Plan vs. actual
 
@@ -51,12 +62,16 @@ Planned: **1** · Done: **1** · Not done: **0** · Carried over: **0** · Unpla
 
 ### Done
 
-- Ship login **[Done]** _(Due Fri 13 Nov)_ — Ali
+| Plan item | Status | People |
+| --- | --- | --- |
+| Ship login _(Due Fri 13 Nov)_ | **[Done]** | Ali |
 
 ### Unplanned work
 
-- Wired the login form _(Tue 10 Nov)_ — Ali, Grace
-- Styled errors _(Tue 10 Nov)_ — Grace
-- Hotfix on Saturday _(Sat 14 Nov · weekend work)_ — Grace
+| Work | People |
+| --- | --- |
+| Wired the login form _(Tue 10 Nov)_ | Ali, Grace |
+| Styled errors _(Tue 10 Nov)_ | Grace |
+| Hotfix on Saturday _(Sat 14 Nov · weekend work)_ | Grace |
 "
 `;

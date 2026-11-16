@@ -1,114 +1,73 @@
 import { describe, expect, it } from 'vitest';
-import { layoutBlocks, type Block, type LayoutOptions, type Measure } from './pdf-layout.ts';
+import { isoDate as d } from '#src/server/domain/calendar.ts';
+import { entry, issue, person, pr, reportData } from '#tests/fixtures/report-data.ts';
+import { buildReportModel } from './build.ts';
+import { a4, layoutReport, layoutText, wrapText, type Item, type Measure } from './pdf-layout.ts';
 
-// Every character is half the font size wide: easy arithmetic.
+/* D-19: the status-report layout — band, tiles, boxes, tables — tested without pdf-lib. */
+
 const measure: Measure = (text, _font, size) => text.length * size * 0.5;
-
-// 100pt of content width, 100pt of content height, 10pt text → 14pt lines → 7 lines per page.
-const small: LayoutOptions = {
-  pageWidth: 120,
-  pageHeight: 120,
-  margin: { top: 10, right: 10, bottom: 10, left: 10 },
-  lineSpacing: 1.4,
-  tagPadding: 2,
-};
-
-const text = (value: string, extra: Partial<Block> = {}): Block => ({
-  runs: [{ text: value, font: 'regular', size: 10, ink: 'text' }],
-  indent: 0,
-  spaceBefore: 0,
-  ...extra,
-});
-
-const lineTexts = (pages: ReturnType<typeof layoutBlocks>) =>
-  pages.map((page) => {
-    const byLine = new Map<number, string[]>();
-    for (const item of page.items) {
-      byLine.set(item.y, [...(byLine.get(item.y) ?? []), item.text]);
-    }
-    return [...byLine.values()].map((parts) => parts.join(''));
-  });
+const today = d('2026-11-20');
+const texts = (items: readonly Item[]): readonly string[] => items.flatMap((item) => (item.type === 'text' ? [item.text] : []));
 
 describe('PDF layout', () => {
-  it('wraps words to the content width (20 characters of 5pt)', () => {
-    const pages = layoutBlocks([text('aaaa bbbb cccc dddd eeee ffff')], measure, small);
-
-    expect(lineTexts(pages)).toEqual([['aaaa bbbb cccc dddd', 'eeee ffff']]);
+  it('wraps words to the width and splits a word longer than a line', () => {
+    expect(wrapText('aaaa bbbb cccc', 'regular', 10, 40, measure)).toEqual(['aaaa', 'bbbb', 'cccc']);
+    expect(wrapText('aaaa bbbb cccc', 'regular', 10, 50, measure)).toEqual(['aaaa bbbb', 'cccc']);
+    expect(wrapText('abcdefghijkl', 'regular', 10, 50, measure)).toEqual(['abcdefghij', 'kl']);
+    expect(wrapText('', 'regular', 10, 50, measure)).toEqual(['']);
   });
 
-  it('starts every line at the left margin plus the block indent', () => {
-    const [page] = layoutBlocks([text('x', { indent: 15 })], measure, small);
+  it('opens with a dark title band naming the project, title, period and author', () => {
+    const model = buildReportModel(reportData({ kind: 'weekly', entries: [entry('Fixed login')] }), today);
+    const [first] = layoutReport(model, measure);
 
-    expect(page?.items[0]?.x).toBe(25);
+    expect(first?.items[0]).toMatchObject({ type: 'rect', x: 0, top: 0, width: a4.width, fill: 'navy' });
+    expect(texts(first?.items ?? [])).toEqual(expect.arrayContaining(['WEEKLY REPORT · ATLAS', 'Week 46 report', 'Week of 9–13 Nov 2026', 'Prepared by Kasim']));
   });
 
-  it('splits a word longer than a whole line', () => {
-    const pages = layoutBlocks([text('a'.repeat(45))], measure, small);
+  it('draws the summary as tiles and every group as a table with column headings', () => {
+    const model = buildReportModel(
+      reportData({ kind: 'weekly', entries: [entry('Fixed login', { pr: pr(12, 'merged'), people: [person('Grace')] })], issues: [issue('Crash', '2026-11-13', '2026-11-12')] }),
+      today,
+    );
+    const all = texts(layoutReport(model, measure).flatMap((page) => page.items));
 
-    expect(lineTexts(pages)).toEqual([['a'.repeat(20), 'a'.repeat(20), 'a'.repeat(5)]]);
+    expect(all).toEqual(expect.arrayContaining(['ENTRIES', 'ISSUE', 'DEADLINE', 'RESOLVED', 'STATUS']));
+    expect(all).toContain('Merged');
   });
 
-  it('breaks onto a new page when the page is full', () => {
-    const blocks = Array.from({ length: 9 }, (_, i) => text(`line ${String(i)}`));
+  it('repeats the column headings when a table continues on a new page, and numbers every page', () => {
+    const entries = Array.from({ length: 120 }, (_, i) => entry(`Entry number ${String(i)} with a reasonably long description that wraps`));
+    const pages = layoutReport(buildReportModel(reportData({ kind: 'daily', entries }), today), measure);
 
-    const pages = layoutBlocks(blocks, measure, small);
-
-    expect(lineTexts(pages).map((lines) => lines.length)).toEqual([7, 2]);
+    expect(pages.length).toBeGreaterThan(2);
+    for (const [index, page] of pages.entries()) {
+      expect(texts(page.items)).toContain(`Page ${String(index + 1)} of ${String(pages.length)}`);
+    }
+    // After the "continued" line, each later page starts with the table's column headings.
+    for (const page of pages.slice(1)) {
+      const [continued, heading] = texts(page.items);
+      expect(continued).toBe('Atlas · Daily report · continued');
+      expect(heading).toMatch(/^[A-Z ]+$/);
+    }
   });
 
-  it('moves a heading to the next page rather than leaving it alone at the bottom', () => {
-    const blocks = [...Array.from({ length: 6 }, (_, i) => text(`line ${String(i)}`)), text('Heading', { keepWithNext: true }), text('body')];
-
-    const pages = lineTexts(layoutBlocks(blocks, measure, small));
-
-    expect(pages[1]).toEqual(['Heading', 'body']);
+  it('keeps everything inside the page margins', () => {
+    const entries = Array.from({ length: 60 }, (_, i) => entry(`Entry ${String(i)} ${'word '.repeat(30)}`));
+    for (const page of layoutReport(buildReportModel(reportData({ kind: 'daily', entries }), today), measure)) {
+      for (const item of page.items) {
+        if (item.type === 'text' && !(item.top < 100 && item.colour === 'white')) {
+          expect(item.top).toBeLessThanOrEqual(a4.height - 10);
+        }
+      }
+    }
   });
 
-  it('drops the space before a block at the top of a page', () => {
-    const [page] = layoutBlocks([text('first', { spaceBefore: 30 })], measure, small);
+  it('an empty report shows its message on one page', () => {
+    const pages = layoutReport(buildReportModel(reportData({ kind: 'daily' }), today), measure);
 
-    expect(page?.items[0]?.y).toBeCloseTo(110 - 14 + 14 * 0.3);
-  });
-
-  it('adds the space before a block elsewhere', () => {
-    const [page] = layoutBlocks([text('a'), text('b', { spaceBefore: 6 })], measure, small);
-
-    const [a, b] = page?.items ?? [];
-    expect((a?.y ?? 0) - (b?.y ?? 0)).toBeCloseTo(20);
-  });
-
-  it('keeps tags whole and pads them', () => {
-    const block: Block = {
-      runs: [
-        { text: 'PR title', font: 'regular', size: 10, ink: 'text' },
-        { text: ' ', font: 'regular', size: 10, ink: 'text' },
-        { text: 'Merged soon', font: 'bold', size: 10, ink: 'text', tag: 'success' },
-      ],
-      indent: 0,
-      spaceBefore: 0,
-    };
-
-    const [page] = layoutBlocks([block], measure, small);
-
-    expect(page?.items.find((item) => item.tag === 'success')).toMatchObject({ text: 'Merged soon', width: 59 });
-  });
-
-  it('returns one empty page for no blocks, and a line for an empty block', () => {
-    expect(layoutBlocks([], measure, small)).toEqual([{ items: [], rules: [] }]);
-    expect(layoutBlocks([text('')], measure, small)).toEqual([{ items: [], rules: [] }]);
-  });
-
-  it('draws a rule under a heading across the content width, with the next block clear of it', () => {
-    const [page] = layoutBlocks([text('Heading', { ruleBelow: true }), text('Body')], measure, small);
-
-    // The heading's 14pt line ends at y = 96; the rule sits 4pt below it.
-    expect(page?.rules).toEqual([{ x: 10, y: 92, width: 100 }]);
-    expect(page?.items.find((item) => item.text === 'Body')?.y).toBeLessThan(92);
-  });
-
-  it('places a tall line on an empty page even if it does not fit', () => {
-    const huge: Block = { runs: [{ text: 'X', font: 'bold', size: 200, ink: 'text' }], indent: 0, spaceBefore: 0 };
-
-    expect(layoutBlocks([huge], measure, small)).toHaveLength(1);
+    expect(pages).toHaveLength(1);
+    expect(layoutText(pages)).toContain('No work recorded for this period.');
   });
 });

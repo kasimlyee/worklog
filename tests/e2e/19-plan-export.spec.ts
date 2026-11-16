@@ -19,7 +19,7 @@ test('BR-47: export the week plan and the month plan', async ({ signedIn: page }
   const weekFile = await markdown;
   expect(weekFile.suggestedFilename()).toBe(`atlas_plan_weekly_${monday}.md`);
   const text = await readFile(await weekFile.path(), 'utf8');
-  expect(text).toContain('Atlas — Weekly plan');
+  expect(text).toMatch(/^# Atlas — Week \d+ plan$/m);
   expect(text).toContain('Continuous broker acquisition');
 
   const pdf = page.waitForEvent('download');

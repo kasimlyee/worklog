@@ -27,13 +27,13 @@ describe('Markdown export', () => {
   it('R-08: an empty report still exports with the no-work message', () => {
     const markdown = renderMarkdown(buildReportModel(reportData({ kind: 'daily' }), today));
 
-    expect(markdown).toBe('# Atlas — Daily report\n\n**Tuesday 10 Nov 2026** · Prepared by Kasim · Generated 20 Nov 2026\n\nNo work recorded for this period.\n');
+    expect(markdown).toBe('# Atlas — Daily report\n\n**Tuesday 10 Nov 2026** · Daily report · Prepared by Kasim · Generated 20 Nov 2026\n\nNo work recorded for this period.\n');
   });
 
   it('R-10: status appears as a bold text label', () => {
     const markdown = renderMarkdown(buildReportModel(reportData({ kind: 'daily', entries: [entry('x', { pr: pr(1, 'closed') })] }), today));
 
-    expect(markdown).toContain('- \\#1 PR 1 **[Closed]**');
+    expect(markdown).toContain('| \\#1 PR 1 | **[Closed]** |');
   });
 
   it('escapes Markdown and HTML in user text so it stays literal', () => {

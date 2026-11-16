@@ -155,3 +155,10 @@ export function rangeLabel(start: IsoDate, end: IsoDate): string {
 export function monthLabel(date: IsoDate): string {
   return `${longMonthOf(date)} ${String(parts(date).year)}`;
 }
+
+/** ISO 8601 week number (weeks start on Monday; week 1 holds the year's first Thursday). */
+export function isoWeek(date: IsoDate): number {
+  const thursday = addDays(date, 4 - weekday(date));
+  const yearStart = `${thursday.slice(0, 4)}-01-01` as IsoDate;
+  return Math.floor((toUtcMs(thursday) - toUtcMs(yearStart)) / 86_400_000 / 7) + 1;
+}

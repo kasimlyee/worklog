@@ -15,7 +15,8 @@ test('R-02: preview and export every report kind', async ({ signedIn: page }) =>
 
   await page.goto(`/projects/${projectId}/reports?kind=daily&date=${today}`);
   const preview = page.getByRole('article', { name: 'Report preview' });
-  await expect(preview.getByRole('heading', { level: 2 })).toHaveText('Atlas — Daily report');
+  await expect(preview.getByRole('heading', { level: 2 })).toHaveText('Daily report');
+  await expect(preview).toContainText('Daily report · Atlas');
   await expect(preview).toContainText('#12 Add login');
   await expect(preview).toContainText('Wired the login form');
   await expect(preview).toContainText('Prepared by Kasim Test');
@@ -28,7 +29,7 @@ test('R-02: preview and export every report kind', async ({ signedIn: page }) =>
   const [markdown] = await Promise.all([page.waitForEvent('download'), page.getByRole('link', { name: 'Export Markdown' }).click()]);
   expect(markdown.suggestedFilename()).toBe(`atlas_daily_${today}.md`);
   const text = await readFile(await markdown.path(), 'utf8');
-  for (const expected of ['# Atlas — Daily report', '> Quiet day.', '### Frontend', '\\#12 Add login **[Merged]**', 'Wired the login form — Grace']) {
+  for (const expected of ['# Atlas — Daily report', '> Quiet day.', '### Frontend', '| \\#12 Add login | **[Merged]** |', '| ↳ Wired the login form |']) {
     expect(text).toContain(expected);
   }
 
@@ -37,14 +38,14 @@ test('R-02: preview and export every report kind', async ({ signedIn: page }) =>
   expect((await readFile(await pdf.path())).subarray(0, 5).toString()).toBe('%PDF-');
 
   await page.getByRole('navigation', { name: 'Report type' }).getByRole('link', { name: 'Weekly' }).click();
-  await expect(preview.getByRole('heading', { level: 2 })).toHaveText('Atlas — Weekly report');
-  await expect(preview.getByText('Summary')).toBeVisible();
+  await expect(preview.getByRole('heading', { level: 2 })).toHaveText(/^Week \d+ report$/);
+  await expect(preview.getByText('PRs touched')).toBeVisible();
   await expect(page).toHaveURL(new RegExp(`kind=weekly&date=${today}`));
   const [weekly] = await Promise.all([page.waitForEvent('download'), page.getByRole('link', { name: 'Export Markdown' }).click()]);
   expect(weekly.suggestedFilename()).toBe(`atlas_weekly_${weekStart(today)}.md`);
 
   await page.getByRole('navigation', { name: 'Report type' }).getByRole('link', { name: 'Monthly' }).click();
-  await expect(preview.getByRole('heading', { level: 2 })).toHaveText('Atlas — Monthly report');
+  await expect(preview.getByRole('heading', { level: 2 })).toHaveText(/^\w+ \d{4} report$/);
   await expect(preview).toContainText('Merged pull requests');
 });
 

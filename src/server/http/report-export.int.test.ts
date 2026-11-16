@@ -30,7 +30,7 @@ describe('report export', () => {
     expect(response.headers.get('content-type')).toBe('text/markdown; charset=utf-8');
     expect(response.headers.get('content-disposition')).toBe('attachment; filename="atlas_daily_2026-11-10.md"');
     expect(response.headers.get('cache-control')).toBe('no-store');
-    expect(await response.text()).toContain('- Fixed login — Grace');
+    expect(await response.text()).toContain('| Fixed login | Grace |');
   });
 
   it('downloads a PDF', async () => {

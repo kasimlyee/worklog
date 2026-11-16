@@ -38,10 +38,10 @@ describe('plan export', () => {
     expect(response?.status).toBe(200);
     expect(response?.headers.get('content-disposition')).toBe('attachment; filename="nestly_plan_weekly_2026-11-16.md"');
     expect(response?.headers.get('cache-control')).toBe('no-store');
-    expect(text).toContain('# Nestly — Weekly plan');
+    expect(text).toContain('# Nestly — Week 47 plan');
     expect(text).toContain('Drafts for admins');
     expect(text).toContain('Grace');
-    expect(text).toContain('### Sunday 22 Nov 2026');
+    expect(text).toContain('| Sun 22 Nov | Retest and release |');
     expect(text).not.toContain('next week');
     expect(text).not.toContain('other project');
     expect(queries).toBe(2);

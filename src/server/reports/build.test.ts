@@ -254,9 +254,10 @@ describe('weekly sections', () => {
 
     const devs = sectionOf(buildReportModel(data, today), 'Per developer');
 
-    expect(devs.groups.map((g) => [g.title, g.lines.map((l) => [l.text, l.tags.map((t) => t.label)])])).toEqual([
-      ['Ali', [['Entries: 1', []], ['Open overdue items: 2', ['Overdue']]]],
-      ['Grace', [['Entries: 2', []], ['Issues resolved: 2', ['1 on time', '1 late']]]],
+    // D-19: one table, a row per person, counts in their own columns.
+    expect(devs.groups[0]?.lines.map((l) => [l.text, l.cells?.map((c) => c.text), l.tags.map((t) => t.label)])).toEqual([
+      ['Ali', ['1', '0', '0', '2'], ['Overdue']],
+      ['Grace', ['2', '0', '2', '0'], ['1 on time', '1 late']],
     ]);
   });
 

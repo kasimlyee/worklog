@@ -95,7 +95,7 @@ test('NF-07: keyboard only — switch report type and download (journey 9)', asy
 
   await page.getByRole('navigation', { name: 'Report type' }).getByRole('link', { name: 'Monthly' }).focus();
   await page.keyboard.press('Enter');
-  await expect(page.getByRole('article', { name: 'Report preview' }).getByRole('heading', { level: 2 })).toContainText('Monthly report');
+  await expect(page.getByRole('article', { name: 'Report preview' })).toContainText('Monthly report ·');
   await page.getByRole('link', { name: 'Export Markdown' }).focus();
   const [download] = await Promise.all([page.waitForEvent('download'), page.keyboard.press('Enter')]);
   expect(download.suggestedFilename()).toMatch(/^atlas_monthly_\d{4}-\d{2}-01\.md$/);

@@ -436,10 +436,12 @@ describe('reports', () => {
     render(<ReportsScreen projectId={f.projectId} vm={f.reports} saveNote={formAction} />);
 
     const preview = screen.getByRole('article', { name: 'Report preview' });
-    expect(within(preview).getByRole('heading', { level: 2 }).textContent).toBe('Atlas — Weekly report');
+    expect(within(preview).getByRole('heading', { level: 2 }).textContent).toBe('Weekly report');
     expect(within(preview).getByText('Short week: public holiday on Friday.')).toBeDefined();
     expect(tagsIn(preview)).toEqual(['success:Merged']);
-    expect(within(preview).getByText('— Ali, Grace')).toBeDefined();
+    // D-19: sections are tables.
+    expect(within(preview).getAllByRole('table').length).toBeGreaterThan(0);
+    expect(within(preview).getByRole('cell', { name: 'Ali, Grace' })).toBeDefined();
     expect(screen.getByRole('link', { name: 'Export PDF' }).getAttribute('href')).toBe(f.reports.pdfHref);
     expect(screen.getByRole('link', { name: 'Export Markdown' }).getAttribute('href')).toBe(f.reports.markdownHref);
     expectHeadingOrder();

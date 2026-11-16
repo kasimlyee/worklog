@@ -1,7 +1,8 @@
 import type { PlanItemStatus, PrState } from '#src/server/db/types.ts';
-import { addDays, formatDate, formatShortDate, isWorkingDay, rangeLabel, weekStart, type IsoDate } from '#src/server/domain/calendar.ts';
+import { addDays, formatDate, formatShortDate, isoWeek, isWorkingDay, rangeLabel, weekStart, type IsoDate } from '#src/server/domain/calendar.ts';
 import { issueDeadline, openDeadline, overdueCutoff, overdueFrom } from '#src/server/domain/deadlines.ts';
 import { reportPeriodLabel } from '#src/server/domain/report-periods.ts';
+import { splitEntryText } from '#src/lib/entry-text.ts';
 import type { EntryRow } from '#src/server/repositories/entries.ts';
 import type { ReportIssueRow, ReportPlanItemRow } from '#src/server/repositories/reports.ts';
 import type { ReportData } from './load.ts';
@@ -125,10 +126,27 @@ function entryLinks(entry: EntryRow): readonly string[] {
   ];
 }
 
+/**
+ * BR-44: an entry's notes become rows under it — the structured Issue / Cause / Fix of its
+ * links, or "Issue: … Cause: … Fix: …" typed into older descriptions.
+ */
 function entryLine(entry: EntryRow, withDate: boolean): ReportLine {
   const weekend = !isWorkingDay(entry.workDate);
   const parts = [...(withDate ? [`${formatShortDate(entry.workDate)}${weekend ? ' · weekend work' : ''}`] : []), ...entryLinks(entry)];
-  return line(entry.description, { detail: parts.length === 0 ? null : parts.join(' · '), people: names(entry.people) });
+  const inline = splitEntryText(entry.description);
+  const structured = entry.issues.flatMap((issue) => [
+    ...(issue.cause === '' ? [] : [`Cause: ${issue.cause}`]),
+    ...(issue.fix === '' ? [] : [`Fix: ${issue.fix}`]),
+  ]);
+  const [firstNote, ...otherNotes] = inline.notes;
+  // An entry written as notes only reads by its first note ("Issue: …").
+  const text = inline.notes.length === 0 ? entry.description : inline.lead !== '' ? inline.lead : (firstNote?.text ?? entry.description);
+  const notes = inline.notes.length === 0 ? [] : (inline.lead !== '' ? inline.notes : otherNotes).map((note) => `${note.label}: ${note.text}`);
+  return line(text, {
+    detail: parts.length === 0 ? null : parts.join(' · '),
+    people: names(entry.people),
+    children: [...notes, ...structured].map((note) => line(note)),
+  });
 }
 
 function count(value: number, one: string, many = `${one}s`): string {
@@ -225,13 +243,30 @@ function closureLines(issue: ReportIssueRow, asOf: IsoDate): readonly ReportLine
 
 function issueLine(issue: ReportIssueRow, state: StatusTag, asOf: IsoDate): ReportLine {
   const closure = closureLines(issue, asOf);
+  const resolvedOn = issue.resolvedOn !== null && issue.resolvedOn <= asOf ? issue.resolvedOn : null;
   return line(issue.title, {
     tags: [...priorityTags(issue), state],
     detail: issueDetail(issue, asOf),
     people: names(issue.assignees),
+    cells: [
+      { label: 'Assigned', text: formatShortDate(issue.assignedOn) },
+      { label: 'Deadline', text: formatShortDate(issue.deadline) },
+      { label: 'Resolved', text: resolvedOn === null ? '' : formatShortDate(resolvedOn) },
+      { label: 'Fixed by', text: resolvedOn !== null && issue.resolvedByNumber !== null ? `#${String(issue.resolvedByNumber)}` : '' },
+    ],
     ...(closure.length === 0 ? {} : { children: closure }),
   });
 }
+
+/** The issue tables' columns: dates and the fixing PR get their own columns (D-19). */
+const issueColumns: NonNullable<ReportGroup['columns']> = [
+  { label: 'Issue', from: 'text' },
+  { label: 'Deadline', from: { cell: 'Deadline' } },
+  { label: 'Resolved', from: { cell: 'Resolved' } },
+  { label: 'Fixed by', from: { cell: 'Fixed by' } },
+  { label: 'Status', from: 'tags' },
+  { label: 'Assignees', from: 'people' },
+];
 
 /** How an issue stood at the reference date: resolved (on time or late), overdue, or simply open. */
 function stateAt(issue: ReportIssueRow, asOf: IsoDate): StatusTag {
@@ -241,6 +276,10 @@ function stateAt(issue: ReportIssueRow, asOf: IsoDate): StatusTag {
   return issue.deadline < overdueCutoff(asOf) ? overdueTag(issue.deadline, asOf) : openTag;
 }
 
+function issueTables([title, groups]: readonly [string, readonly ReportGroup[]]): ReportSection {
+  return section(title, groups.map((group) => ({ ...group, columns: issueColumns })));
+}
+
 function issuesSection(data: ReportData): ReportSection {
   const resolved = resolvedIssues(data).map((issue) => issueLine(issue, resolvedTag(issue), data.range.to));
   if (data.kind === 'daily') {
@@ -248,15 +287,15 @@ function issuesSection(data: ReportData): ReportSection {
     const became = data.issues
       .filter((issue) => isOpenAt(issue.resolvedOn, data.start) && overdueFrom(issue.deadline) === data.start)
       .map((issue) => issueLine(issue, overdueTag(issue.deadline, data.start), data.start));
-    return section('Issues', [
+    return issueTables(['Issues', [
       { title: 'Resolved', lines: resolved },
       { title: 'Became overdue', lines: became },
-    ]);
+    ]]);
   }
   const overdue = openOverdueIssues(data);
   const overdueIds = new Set(overdue.map((issue) => issue.id));
   const monthly = data.kind === 'monthly';
-  return section('Issues', [
+  return issueTables(['Issues', [
     { title: 'Opened', lines: monthly ? openedIssues(data).map((issue) => issueLine(issue, stateAt(issue, data.asOf), data.asOf)) : [] },
     { title: 'Resolved', lines: resolved },
     { title: 'Still open and overdue', lines: overdue.map((issue) => issueLine(issue, overdueTag(issue.deadline, data.asOf), data.asOf)) },
@@ -264,7 +303,7 @@ function issuesSection(data: ReportData): ReportSection {
       title: 'Still open',
       lines: monthly ? openIssues(data).filter((issue) => !overdueIds.has(issue.id)).map((issue) => issueLine(issue, openTag, data.asOf)) : [],
     },
-  ]);
+  ]]);
 }
 
 function touchedPullRequests(data: ReportData): ReadonlyMap<string, PrState> {
@@ -373,27 +412,38 @@ function perDeveloperSection(data: ReportData): ReportSection {
       tally(name).overdue += 1;
     }
   }
-  const groups = [...tallies.entries()]
+  // One row per person; counts in their own columns (D-19).
+  const lines = [...tallies.entries()]
     .sort(([a], [b]) => a.localeCompare(b))
-    .map(([name, t]): ReportGroup => ({
-      title: name,
-      lines: [
-        ...(t.entries > 0 ? [line(`Entries: ${String(t.entries)}`)] : []),
-        ...(t.planDone > 0 ? [line(`Plan items completed: ${String(t.planDone)}`)] : []),
-        ...(t.onTime + t.late > 0
-          ? [
-              line(`Issues resolved: ${String(t.onTime + t.late)}`, {
-                tags: [
-                  ...(t.onTime > 0 ? [{ tone: 'success', label: `${String(t.onTime)} on time` } as const] : []),
-                  ...(t.late > 0 ? [{ tone: 'danger', label: `${String(t.late)} late` } as const] : []),
-                ],
-              }),
-            ]
-          : []),
-        ...(t.overdue > 0 ? [line(`Open overdue items: ${String(t.overdue)}`, { tags: [{ tone: 'danger', label: 'Overdue' }] })] : []),
+    .map(([name, t]): ReportLine =>
+      line(name, {
+        cells: [
+          { label: 'Entries', text: String(t.entries) },
+          { label: 'Plan items done', text: String(t.planDone) },
+          { label: 'Issues resolved', text: String(t.onTime + t.late) },
+          { label: 'Open overdue', text: String(t.overdue) },
+        ],
+        tags: [
+          ...(t.onTime > 0 ? [{ tone: 'success', label: `${String(t.onTime)} on time` } as const] : []),
+          ...(t.late > 0 ? [{ tone: 'danger', label: `${String(t.late)} late` } as const] : []),
+          ...(t.overdue > 0 ? [{ tone: 'danger', label: 'Overdue' } as const] : []),
+        ],
+      }),
+    );
+  return section('Per developer', [
+    {
+      title: null,
+      lines,
+      columns: [
+        { label: 'Person', from: 'text' },
+        { label: 'Entries', from: { cell: 'Entries' } },
+        { label: 'Plan items done', from: { cell: 'Plan items done' } },
+        { label: 'Issues resolved', from: { cell: 'Issues resolved' } },
+        { label: 'Open overdue', from: { cell: 'Open overdue' } },
+        { label: 'Status', from: 'tags' },
       ],
-    }));
-  return section('Per developer', groups);
+    },
+  ]);
 }
 
 /** Why an unfinished item is unfinished, when its status says so. */
@@ -504,6 +554,58 @@ function sectionsFor(data: ReportData): readonly ReportSection[] {
   }
 }
 
+/** The header band's title: "Week 46 report", "November 2026 report", "Daily report". */
+function reportTitle(data: ReportData): string {
+  switch (data.kind) {
+    case 'daily':
+      return 'Daily report';
+    case 'weekly':
+      return `Week ${String(isoWeek(data.start))} report`;
+    case 'monthly':
+      return `${reportPeriodLabel('monthly', data.start)} report`;
+    default:
+      return data.kind satisfies never;
+  }
+}
+
+const panelLimit = 5;
+
+function limited(items: readonly string[], more: (n: number) => string): readonly string[] {
+  return items.length <= panelLimit ? items : [...items.slice(0, panelLimit - 1), more(items.length - panelLimit + 1)];
+}
+
+/**
+ * D-19: two boxes under the key numbers, derived from the data by fixed rules — what was
+ * finished (issues resolved, PRs merged, releases) and what needs attention (open PRs,
+ * overdue issues, plan items not done). Empty boxes are left out.
+ */
+function reportPanels(data: ReportData): NonNullable<ReportModel['panels']> {
+  const prs = new Map<string, { readonly number: number; readonly title: string; readonly state: PrState }>();
+  for (const entry of data.entries) {
+    for (const pr of entry.pullRequests) {
+      prs.set(pr.id, pr);
+    }
+  }
+  const merged = [...prs.values()].filter((pr) => pr.state === 'merged');
+  const open = [...prs.values()].filter((pr) => pr.state === 'open');
+  const highlights = [
+    ...data.releases.map((release) => `Released ${release.version}`),
+    ...resolvedIssues(data).map((issue) => `Resolved: ${issue.title}`),
+    ...merged.map((pr) => `Merged #${String(pr.number)} ${pr.title}`),
+  ];
+  const overdue = openOverdueIssues(data);
+  const notDone = data.kind === 'daily' ? [] : data.planItems.filter((item) => !isDoneBy(item, data.range.to));
+  const attention = [
+    ...(open.length === 0 ? [] : [`${count(open.length, 'pull request')} still open: ${open.map((pr) => `#${String(pr.number)}`).join(', ')}`]),
+    ...(overdue.length === 0 ? [] : [`${count(overdue.length, 'issue')} overdue at the end of the period`]),
+    ...(notDone.length === 0 ? [] : [`${count(notDone.length, 'plan item')} not done`]),
+  ];
+  return [
+    ...(highlights.length === 0 ? [] : [{ title: 'Highlights', items: limited(highlights, (n) => `and ${String(n)} more below`) }]),
+    ...(attention.length === 0 ? [] : [{ title: 'Needs attention', items: attention }]),
+  ];
+}
+
 /** Pure: applies R-01…R-10 and the sections of product spec §7. */
 export function buildReportModel(data: ReportData, today: IsoDate): ReportModel {
   const note = data.note.trim();
@@ -512,6 +614,8 @@ export function buildReportModel(data: ReportData, today: IsoDate): ReportModel 
     projectName: data.project.name,
     projectSlug: data.project.slug,
     typeLabel: typeLabels[data.kind],
+    title: reportTitle(data),
+    panels: reportPanels(data),
     periodLabel: reportPeriodLabel(data.kind, data.start),
     periodStart: data.start,
     author: data.author,

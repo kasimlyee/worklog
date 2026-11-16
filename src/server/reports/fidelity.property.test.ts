@@ -7,7 +7,9 @@ import { buildReportModel } from './build.ts';
 import type { ReportLine, ReportModel } from './model.ts';
 import { pdfFallbackCharacter, sanitizeForPdf } from './pdf-sanitize.ts';
 import { renderMarkdown } from './render-markdown.ts';
-import { reportBlocks } from './render-pdf.ts';
+import { layoutReport, layoutText } from './pdf-layout.ts';
+
+const measure = (text: string, _font: unknown, size: number): number => text.length * size * 0.5;
 
 /* docs/04 §4.1 and §4.7: report grouping properties and export fidelity. */
 
@@ -92,11 +94,14 @@ function markdownSequence(model: ReportModel): readonly string[] {
 }
 
 function pdfSequence(model: ReportModel): readonly string[] {
-  return reportBlocks(model).flatMap((block) => block.runs.filter((run) => run.tag !== undefined).map((run) => run.text));
+  return layoutReport(model, measure).flatMap((page) =>
+    page.items.flatMap((item) => (item.type === 'text' && typeof item.colour !== 'string' ? [item.text] : [])),
+  );
 }
 
+/** The leading Summary shows as the key-number tiles, without a heading of its own. */
 function plainTexts(model: ReportModel): readonly string[] {
-  return model.sections.flatMap((section) => [section.title, ...section.groups.flatMap((group) => [group.title ?? '', ...flatten(group.lines).map((line) => line.text)])]);
+  return model.sections.flatMap((section) => [section.title === 'Summary' ? '' : section.title, ...section.groups.flatMap((group) => [group.title ?? '', ...flatten(group.lines).map((line) => line.text)])]);
 }
 
 describe('export fidelity', () => {
@@ -126,9 +131,7 @@ describe('export fidelity', () => {
 
   it.each(fixtures.map((model) => [model.kind, model] as const))('R-02: %s — every heading and item text appears in both exports', (_kind, model) => {
     const markdown = renderMarkdown(model).replace(/\\/g, '');
-    const pdfText = reportBlocks(model)
-      .map((block) => block.runs.map((run) => run.text).join(''))
-      .join('\n');
+    const pdfText = layoutText(layoutReport(model, measure)).join('\n');
     for (const text of plainTexts(model).filter((t) => t !== '')) {
       expect(markdown, text).toContain(text);
       expect(pdfText, text).toContain(sanitizeForPdf(text));

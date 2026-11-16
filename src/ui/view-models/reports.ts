@@ -5,6 +5,7 @@ import type { StatusVM } from './common.ts';
 export type ReportKind = 'daily' | 'weekly' | 'monthly';
 
 export type ReportLineVM = {
+  readonly cells?: readonly { readonly label: string; readonly text: string }[];
   readonly text: string;
   readonly tags: readonly StatusVM[];
   readonly detail: string | null;
@@ -15,16 +16,27 @@ export type ReportLineVM = {
 export type ReportSectionVM = {
   readonly title: string;
   readonly summary: readonly { readonly label: string; readonly value: number }[];
-  readonly groups: readonly { readonly title: string | null; readonly lines: readonly ReportLineVM[] }[];
+  readonly groups: readonly {
+    readonly title: string | null;
+    readonly lines: readonly ReportLineVM[];
+    readonly columns?: readonly {
+      readonly label: string;
+      readonly from: 'text' | 'tags' | 'people' | { readonly cell: string };
+      readonly withDetail?: boolean;
+    }[];
+  }[];
 };
 
 export type ReportModelVM = {
   readonly projectName: string;
   readonly typeLabel: string;
+  readonly title?: string;
   readonly periodLabel: string;
   readonly author: string;
   readonly generatedLabel: string;
   readonly note: string | null;
+  readonly emptyMessage?: string;
+  readonly panels?: readonly { readonly title: string; readonly items: readonly string[] }[];
   readonly sections: readonly ReportSectionVM[];
 };
 

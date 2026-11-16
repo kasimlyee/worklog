@@ -4,7 +4,7 @@ import { projectItemHref } from '#src/ui/routes.ts';
 import { EmptyState } from './empty-state.tsx';
 import { ExternalLink } from './external-link.tsx';
 import { ClosureNotes } from './issue-history.tsx';
-import { splitEntryText } from './entry-text.ts';
+import { splitEntryText } from '#src/lib/entry-text.ts';
 import { PersonList } from './person-list.tsx';
 import { StatusTag } from './status-tag.tsx';
 import { lists as styles } from './lists.ts';
