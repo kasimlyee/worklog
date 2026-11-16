@@ -114,11 +114,12 @@ export function DashboardScreen({
           <Section title="Due soon" count={vm.dueSoon.length}>
             <TrackedList items={vm.dueSoon} projectId={projectId} empty="Nothing due today or on the next working day." />
           </Section>
-          <Section title="Recent entries" actions={<Link href={projectHref(projectId, 'log')}>Full log</Link>}>
-            <EntryList entries={vm.recentEntries} projectId={projectId} />
-          </Section>
         </div>
       </div>
+      {/* Full width: entries carry long descriptions and notes, which a side column squeezes. */}
+      <Section title="Recent entries" actions={<Link href={projectHref(projectId, 'log')}>Full log</Link>}>
+        <EntryList entries={vm.recentEntries} projectId={projectId} />
+      </Section>
       <Section title="Open issues" count={vm.openIssues.length} actions={<Link href={projectHref(projectId, 'issues')}>All issues</Link>}>
         {/* At the weekend there is no day plan, so no dragging and no "Plan today". */}
         <IssueTable

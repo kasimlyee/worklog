@@ -4,6 +4,7 @@ import { projectItemHref } from '#src/ui/routes.ts';
 import { EmptyState } from './empty-state.tsx';
 import { ExternalLink } from './external-link.tsx';
 import { ClosureNotes } from './issue-history.tsx';
+import { splitEntryText } from './entry-text.ts';
 import { PersonList } from './person-list.tsx';
 import { StatusTag } from './status-tag.tsx';
 import { lists as styles } from './lists.ts';
@@ -62,33 +63,49 @@ export function EntryList({
   }
   return (
     <ul className={styles.list}>
-      {entries.map((entry) => (
-        // A timeline: a dot for each piece of work, joined by a line down the side.
-        <li
-          key={entry.id}
-          className="relative grid gap-1 pb-5 pl-6 before:absolute before:top-2 before:left-0 before:size-2.5 before:rounded-full before:bg-accent before:ring-4 before:ring-accent-soft after:absolute after:top-6 after:bottom-1 after:left-1 after:w-px after:bg-line last:pb-0 last:after:hidden"
-        >
-          <p className={styles.text}>{entry.description}</p>
-          <div className={styles.meta}>
-            {showDate ? <span>{entry.dateLabel}</span> : null}
-            {entry.isWeekend ? <StatusTag status={{ tone: 'neutral', label: 'Weekend' }} /> : null}
-            <span>{entry.area ?? 'General'}</span>
-            <PersonList people={entry.people} />
-            {entry.pullRequests.map((pr) => (
-              <span key={pr.id} className={styles.row}>
-                <ExternalLink href={pr.url}>
-                  #{pr.number} {pr.title}
-                </ExternalLink>
-                <StatusTag status={pr.state} />
-              </span>
-            ))}
-            <Link href={projectItemHref(projectId, 'log', entry.id, 'edit')} aria-label={`Edit entry: ${entry.description}`}>
-              Edit
-            </Link>
-          </div>
-          <Links entry={entry} projectId={projectId} />
-        </li>
-      ))}
+      {entries.map((entry) => {
+        const text = splitEntryText(entry.description);
+        return (
+          // A timeline: a dot for each piece of work, joined by a line down the side.
+          <li
+            key={entry.id}
+            className="relative grid gap-2 pb-6 pl-6 before:absolute before:top-[0.4rem] before:left-0 before:size-2.5 before:rounded-full before:bg-accent before:ring-4 before:ring-accent-soft after:absolute after:top-6 after:bottom-1 after:left-1 after:w-px after:bg-line last:pb-0 last:after:hidden"
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div className="grid min-w-0 gap-2">
+                {text.lead === '' ? null : <p className="max-w-[75ch] leading-relaxed font-medium text-fg wrap-anywhere">{text.lead}</p>}
+                {text.notes.length === 0 ? null : <ClosureNotes notes={text.notes} />}
+              </div>
+              <Link
+                className="shrink-0 text-sm text-muted"
+                href={projectItemHref(projectId, 'log', entry.id, 'edit')}
+                aria-label={`Edit entry: ${entry.description}`}
+              >
+                Edit
+              </Link>
+            </div>
+            <div className={styles.meta}>
+              {showDate ? <span>{entry.dateLabel}</span> : null}
+              {entry.isWeekend ? <StatusTag status={{ tone: 'neutral', label: 'Weekend' }} /> : null}
+              <span>{entry.area ?? 'General'}</span>
+              <PersonList people={entry.people} />
+            </div>
+            {entry.pullRequests.length === 0 ? null : (
+              <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
+                {entry.pullRequests.map((pr) => (
+                  <span key={pr.id} className="inline-flex min-w-0 items-center gap-2">
+                    <ExternalLink href={pr.url}>
+                      #{pr.number} {pr.title}
+                    </ExternalLink>
+                    <StatusTag status={pr.state} />
+                  </span>
+                ))}
+              </div>
+            )}
+            <Links entry={entry} projectId={projectId} />
+          </li>
+        );
+      })}
     </ul>
   );
 }

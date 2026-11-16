@@ -36,9 +36,10 @@ function EventTitle({ event, projectId }: { readonly event: TimelineEventVM; rea
 /** BR-44: the short Issue / Cause / Fix a log entry recorded. */
 export function ClosureNotes({ notes }: { readonly notes: TimelineEventVM['notes'] }): React.JSX.Element {
   return (
-    <dl className="mt-1 grid gap-1 border-l-2 border-line pl-3 text-sm sm:grid-cols-[4rem_1fr] sm:gap-x-3">
-      {notes.map((note) => (
-        <div key={note.label} className="contents">
+    <dl className="grid max-w-[75ch] gap-1 border-l-2 border-line pl-3 text-sm sm:grid-cols-[3.5rem_1fr] sm:gap-x-3">
+      {notes.map((note, index) => (
+        // The same label can repeat (one entry, two issues).
+        <div key={`${note.label}-${String(index)}`} className="contents">
           <dt className={smallLabel}>{note.label}</dt>
           <dd className="wrap-anywhere">{note.text}</dd>
         </div>
