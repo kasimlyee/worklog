@@ -171,7 +171,7 @@ Colours are semantic and identical in the UI and in PDF exports. Colour is never
 | **Overview** (project switcher) | All active projects, each with a red count of overdue items + issues if any; needs attention, due soon and recently done across projects (BR-42). |
 | **Project dashboard** | Urgent (overdue plan items and issues, oldest first) · Due soon · Today's plan (issues can be dragged onto it, BR-38) · Open issues by deadline · Recent entries. |
 | **Plans** | Day / week / month view; create items; change status; move (carry-over) with history visible. |
-| **Log** | Entries by date, newest first; quick-add form; filter by area, person, PR. |
+| **Log** | A list of entries by date, newest first, beside the selected entry in full (its What / Why / Change notes, pull requests, the issues it closes and plan items it finishes). The selection is in the URL, so it can be shared. Search across descriptions, notes, issue titles and PR titles; filter by area, person, PR. New work is logged from the quick log. Labels say What / Why / Change because work may be a fix or a new feature. |
 | **Quick log** | Reachable from every project page. A wide two-column form. Left: description, then issues — ticking one shows its context and its Issue / Cause / Fix and "This fixes it" (BR-44). Right: date (default today), area, PR links one per line (BR-46), people, plan items with "This finishes it" (BR-45). Submits with keyboard only. |
 | **Issues** | Issue page with its history (BR-40). Table with priority, assignees, deadline state, link out; filter and sort by priority; reopen (resolving is done from the log, BR-44). |
 | **Releases** | List and detail with linked PRs and notes. |

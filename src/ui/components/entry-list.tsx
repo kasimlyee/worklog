@@ -32,7 +32,7 @@ function Links({ entry, projectId }: { readonly entry: EntryVM; readonly project
               <Link href={projectItemHref(projectId, 'issues', issue.id)}>{issue.title}</Link>
               {issue.resolves ? <StatusTag status={fixedTag} /> : null}
             </span>
-            {notes.length === 0 ? null : <ClosureNotes notes={notes} />}
+            {notes.length === 0 ? null : <ClosureNotes notes={notes} neutral />}
           </li>
         );
       })}
@@ -74,7 +74,7 @@ export function EntryList({
             <div className="flex items-start justify-between gap-4">
               <div className="grid min-w-0 gap-2">
                 {text.lead === '' ? null : <p className="max-w-[75ch] leading-relaxed font-medium text-fg wrap-anywhere">{text.lead}</p>}
-                {text.notes.length === 0 ? null : <ClosureNotes notes={text.notes} />}
+                {text.notes.length === 0 ? null : <ClosureNotes notes={text.notes} neutral />}
               </div>
               <Link
                 className="shrink-0 text-sm text-muted"

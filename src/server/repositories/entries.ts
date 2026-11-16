@@ -53,6 +53,8 @@ export type EntryFilter = {
   readonly pullRequestId?: string;
   readonly planItemId?: string;
   readonly issueId?: string;
+  /** Words to find in the description, the Issue / Cause / Fix notes, linked issue titles or PR titles. */
+  readonly search?: string;
   /** Keyset: rows strictly before this position in newest-first order. */
   readonly before?: { readonly workDate: IsoDate; readonly createdAt: string; readonly id: string };
   readonly limit?: number;
@@ -149,6 +151,32 @@ export async function selectEntries(db: Db, projectId: string, filter: EntryFilt
         const issueId = filter.issueId;
         conditions.push(
           eb.exists(eb.selectFrom('entryIssues as fi').select('fi.entryId').whereRef('fi.entryId', '=', 'e.id').where('fi.issueId', '=', issueId)),
+        );
+      }
+      if (filter.search !== undefined) {
+        const like = `%${filter.search.replace(/[\\%_]/g, (char) => `\\${char}`)}%`;
+        conditions.push(
+          eb.or([
+            eb('e.description', 'ilike', like),
+            eb.exists(
+              eb
+                .selectFrom('entryIssues as si')
+                .innerJoin('issues as sx', 'sx.id', 'si.issueId')
+                .select('si.entryId')
+                .whereRef('si.entryId', '=', 'e.id')
+                .where((inner) =>
+                  inner.or([inner('si.summary', 'ilike', like), inner('si.cause', 'ilike', like), inner('si.fix', 'ilike', like), inner('sx.title', 'ilike', like)]),
+                ),
+            ),
+            eb.exists(
+              eb
+                .selectFrom('entryPullRequests as sp')
+                .innerJoin('pullRequests as spr', 'spr.id', 'sp.pullRequestId')
+                .select('sp.entryId')
+                .whereRef('sp.entryId', '=', 'e.id')
+                .where('spr.title', 'ilike', like),
+            ),
+          ]),
         );
       }
       if (filter.personId !== undefined) {

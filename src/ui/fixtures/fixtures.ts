@@ -345,12 +345,24 @@ export const log: LogVM = {
     { date: '2026-11-08', label: 'Sunday 8 Nov 2026', isWeekend: true, entries: [weekendEntry] },
     { date: '2026-11-06', label: 'Friday 6 Nov 2026', isWeekend: false, entries: [longEntry] },
   ],
-  filters: { areaId: '', personId: '', pullRequestId: '', issueId: '', planItemId: '' },
+  filters: { areaId: '', personId: '', pullRequestId: '', issueId: '', planItemId: '', q: '' },
   isFiltered: false,
   nextPageQuery: 'cursor=abc',
+  // The weekend hotfix, picked from the list: it carries Issue / Cause / Fix notes.
+  selected: weekendEntry,
+  isSelectionExplicit: true,
+  listQuery: '',
 };
 
-export const emptyLog: LogVM = { days: [], filters: { areaId: 'a1', personId: '', pullRequestId: '', issueId: '', planItemId: '' }, isFiltered: true, nextPageQuery: null };
+export const emptyLog: LogVM = {
+  days: [],
+  filters: { areaId: 'a1', personId: '', pullRequestId: '', issueId: '', planItemId: '', q: 'nothing here' },
+  isFiltered: true,
+  nextPageQuery: null,
+  selected: null,
+  isSelectionExplicit: false,
+  listQuery: 'areaId=a1&q=nothing+here',
+};
 
 export const entryValues: EntryFormValues = {
   workDate: '2026-11-10',

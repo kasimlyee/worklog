@@ -28,13 +28,27 @@ test('quick log three entries across two PRs', async ({ signedIn: page }) => {
   }
 
   await page.goto(`/projects/${projectId}/log`);
-  await expect(page.getByRole('heading', { level: 3 }).first()).toBeVisible();
-  // Titles come from the (fake) GitHub API: even PRs are merged, odd ones open.
-  await expect(page.getByRole('link', { name: /#12 Fix rounding in invoice totals \(#12\)/ })).toHaveCount(2);
-  await expect(page.getByRole('link', { name: /#7 Add sign-in page \(#7\)/ })).toHaveCount(1);
+  // Option B: every entry in the list; the newest shown in full beside it.
+  const list = page.getByRole('navigation', { name: 'Entries by day' });
   for (const entry of entries) {
-    await expect(page.getByText(entry.text)).toBeVisible();
+    await expect(list.getByRole('link', { name: new RegExp(entry.text) })).toBeVisible();
   }
+  // Titles come from the (fake) GitHub API: even PRs are merged, odd ones open.
+  const detail = page.getByRole('article');
+  await expect(detail.getByRole('heading', { level: 2 })).toHaveText('Fixed the API timeout');
+  await expect(detail.getByRole('link', { name: /#7 Add sign-in page \(#7\)/ })).toBeVisible();
+
+  // Picking another entry shows it, and the URL can be shared.
+  await list.getByRole('link', { name: /Wired the login form/ }).click();
+  await expect(page).toHaveURL(/entry=/);
+  await expect(detail.getByRole('heading', { level: 2 })).toHaveText('Wired the login form');
+  await expect(detail.getByRole('link', { name: /#12 Fix rounding in invoice totals \(#12\)/ })).toBeVisible();
+
+  // Search finds work by PR title too.
+  await page.getByLabel('Search').fill('sign-in page');
+  await page.getByRole('button', { name: 'Search' }).click();
+  await expect(list.getByRole('link')).toHaveCount(1);
+  await expect(list.getByRole('link', { name: /Fixed the API timeout/ })).toBeVisible();
 
   // BR-25: two PR records, not three.
   await page.goto(`/projects/${projectId}/pull-requests`);
@@ -44,8 +58,9 @@ test('quick log three entries across two PRs', async ({ signedIn: page }) => {
 test('BR-26: a PR GitHub cannot find stops the entry and says why', async ({ signedIn: page }) => {
   const { projectId } = await seedProject();
   await page.goto(`/projects/${projectId}/log`);
+  await page.getByText('Quick log').click();
 
-  const form = page.getByRole('form', { name: 'Log work' });
+  const form = page.getByRole('form', { name: 'Quick log' });
   await form.getByLabel('What was done').fill('Work on a missing PR');
   await form.getByLabel('Pull request links').fill('https://github.com/acme/app/pull/404');
   await form.getByLabel('Ali').check();
@@ -58,8 +73,9 @@ test('BR-26: a PR GitHub cannot find stops the entry and says why', async ({ sig
 test('BR-22: a PR from another organisation is refused', async ({ signedIn: page }) => {
   const { projectId } = await seedProject();
   await page.goto(`/projects/${projectId}/log`);
+  await page.getByText('Quick log').click();
 
-  const form = page.getByRole('form', { name: 'Log work' });
+  const form = page.getByRole('form', { name: 'Quick log' });
   await form.getByLabel('What was done').fill('x');
   await form.getByLabel('Pull request links').fill('https://github.com/evil/app/pull/1');
   await form.getByLabel('Ali').check();

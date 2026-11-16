@@ -49,6 +49,12 @@ export function formObject(formData: FormData, arrays: readonly string[] = []): 
   return result;
 }
 
+/**
+ * The entry form's checkbox lists (BR-17): every ticked person, plan item and issue.
+ * Without them only the last ticked box of each list would reach the service.
+ */
+export const entryListFields = ['personIds', 'planItemIds', 'issueIds'] as const;
+
 /** What was submitted, echoed back so fields keep their values after an error. */
 export function echoValues(formData: FormData): FormValues {
   const values: Record<string, string | string[]> = {};

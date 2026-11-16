@@ -37,8 +37,8 @@ export const screens: Readonly<Record<string, Preview>> = {
   'plan-item': {
     element: <PlanItemScreen projectId={id} item={f.planItemDetail} pickers={f.pickers} update={form} move={form} setStatus={plain} remove={plain} />,
   },
-  log: { element: <LogScreen projectId={id} vm={f.log} pickers={f.pickers} createEntry={form} today={f.today} /> },
-  'log-empty': { element: <LogScreen projectId={id} vm={f.emptyLog} pickers={f.emptyPickers} createEntry={form} today={f.today} /> },
+  log: { element: <LogScreen projectId={id} vm={f.log} pickers={f.pickers} /> },
+  'log-empty': { element: <LogScreen projectId={id} vm={f.emptyLog} pickers={f.emptyPickers} /> },
   'entry-edit': { element: <EntryEditScreen projectId={id} entryId="e1" values={f.entryValues} pickers={f.pickers} update={form} remove={plain} /> },
   issues: { element: <IssuesScreen projectId={id} open={f.issues.slice(0, 2)} resolved={f.issues.slice(2)} /> },
   'issue-new': { element: <NewIssueScreen projectId={id} pickers={f.pickers} create={form} today={f.today} /> },

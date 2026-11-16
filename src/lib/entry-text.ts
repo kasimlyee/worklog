@@ -21,3 +21,21 @@ export function splitEntryText(text: string): EntryText {
   });
   return { lead: text.slice(0, first).trim(), notes: notes.filter((note) => note.text !== '') };
 }
+
+export type NoteRow = { readonly issue: string; readonly cause: string; readonly fix: string };
+
+/** Notes as Issue / Cause / Fix rows: each "Issue" starts a row; a Cause or Fix fills the current one. */
+export function noteRows(notes: readonly EntryNote[]): readonly NoteRow[] {
+  const rows: { issue: string; cause: string; fix: string }[] = [];
+  for (const note of notes) {
+    const current = rows.at(-1);
+    if (note.label === 'Issue' || current === undefined || (note.label === 'Cause' ? current.cause : current.fix) !== '') {
+      rows.push({ issue: '', cause: '', fix: '' });
+    }
+    const row = rows.at(-1);
+    if (row !== undefined) {
+      row[note.label === 'Issue' ? 'issue' : note.label === 'Cause' ? 'cause' : 'fix'] = note.text;
+    }
+  }
+  return rows;
+}

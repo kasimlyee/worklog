@@ -247,6 +247,13 @@ const logQuery = z.object({
   pullRequestId: z.uuid().optional().catch(undefined),
   issueId: z.uuid().optional().catch(undefined),
   planItemId: z.uuid().optional().catch(undefined),
+  q: z
+    .string()
+    .trim()
+    .max(100)
+    .optional()
+    .catch(undefined)
+    .transform((value) => (value === '' ? undefined : value)),
   cursor: z.string().max(200).optional().catch(undefined),
 });
 
@@ -255,7 +262,7 @@ export type EntryPage = { readonly entries: readonly Entry[]; readonly nextCurso
 /** Log screen: newest first, keyset-paginated (docs/02 §13). Unknown filter values are ignored. */
 export async function listEntries(db: Db, projectId: string, query: unknown, pageSize = 50): Promise<EntryPage> {
   const parsed = logQuery.safeParse(query);
-  const { areaId, personId, pullRequestId, issueId, planItemId, cursor } = parsed.success ? parsed.data : {};
+  const { areaId, personId, pullRequestId, issueId, planItemId, q, cursor } = parsed.success ? parsed.data : {};
   const before = cursor === undefined ? undefined : decodeCursor(cursor);
   const rows = await selectEntries(db, projectId, {
     ...(areaId === undefined ? {} : { areaId }),
@@ -263,6 +270,7 @@ export async function listEntries(db: Db, projectId: string, query: unknown, pag
     ...(pullRequestId === undefined ? {} : { pullRequestId }),
     ...(issueId === undefined ? {} : { issueId }),
     ...(planItemId === undefined ? {} : { planItemId }),
+    ...(q === undefined ? {} : { search: q }),
     ...(before === undefined ? {} : { before }),
     limit: pageSize + 1,
   });

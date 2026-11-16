@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { echoValues, formObject, toFormState } from './support.ts';
+import { echoValues, entryListFields, formObject, toFormState } from './support.ts';
 
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }));
 
@@ -12,6 +12,15 @@ function form(entries: readonly (readonly [string, string])[]): FormData {
 }
 
 describe('formObject', () => {
+  it('BR-17: an entry keeps every ticked plan item and issue, not just the last one', () => {
+    const data = new FormData();
+    for (const [name, value] of [['planItemIds', 'i1'], ['planItemIds', 'i2'], ['issueIds', 's1'], ['issueIds', 's2'], ['personIds', 'p1']]) {
+      data.append(name ?? '', value ?? '');
+    }
+
+    expect(formObject(data, entryListFields)).toEqual({ personIds: ['p1'], planItemIds: ['i1', 'i2'], issueIds: ['s1', 's2'] });
+  });
+
   it('turns form fields into a plain object, with array fields always arrays', () => {
     const data = form([['title', 'x'], ['personIds', 'p1'], ['personIds', 'p2'], ['$ACTION_ID_abc', '']]);
 

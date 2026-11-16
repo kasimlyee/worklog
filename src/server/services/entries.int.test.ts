@@ -395,6 +395,30 @@ describe('log list', () => {
     expect(await ids({ personId: grace.id })).toEqual([byPerson.id]);
   });
 
+  it('option B: searches descriptions, Issue / Cause / Fix notes, linked issue titles and PR titles', async () => {
+    const { project, grace } = await setup();
+    const issue = await anIssue(testDb(), project.id, { title: 'Share links broken' });
+    const pr = await aPullRequest(testDb(), project.id, { title: 'feat: broker notifications' });
+    const byText = await anEntry(testDb(), project.id, { description: 'Moved the short-link domain' });
+    const byNote = await anEntry(testDb(), project.id, { description: 'Investigated' });
+    await testDb().insertInto('entryIssues').values({ projectId: project.id, entryId: byNote.id, issueId: issue.id, cause: 'DNS pointed at the OLD server' }).execute();
+    const byPr = await anEntry(testDb(), project.id, { description: 'Shipped', pullRequestId: pr.id });
+    await anEntry(testDb(), project.id, { description: 'Unrelated 100% done_now' });
+    for (const entry of [byText, byNote, byPr]) {
+      await withPeople(testDb(), 'entryPeople', entry.id, [grace.id]);
+    }
+    const found = async (q: string) => (await listEntries(testDb(), project.id, { q })).entries.map((entry) => entry.description).sort();
+
+    expect(await found('short-link')).toEqual(['Moved the short-link domain']);
+    expect(await found('old server')).toEqual(['Investigated']);
+    expect(await found('share links')).toEqual(['Investigated']);
+    expect(await found('NOTIFICATIONS')).toEqual(['Shipped']);
+    // LIKE wildcards are matched literally.
+    expect(await found('100%')).toEqual(['Unrelated 100% done_now']);
+    expect(await found('o_n')).toEqual([]);
+    expect((await listEntries(testDb(), project.id, { q: '   ' })).entries).toHaveLength(4);
+  });
+
   it('ignores malformed filters and cursors instead of failing', async () => {
     const { project } = await setup();
     await anEntry(testDb(), project.id);

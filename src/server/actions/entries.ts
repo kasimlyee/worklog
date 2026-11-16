@@ -5,14 +5,14 @@ import { appDatabase, appPullRequestDeps } from '#src/server/app-context.ts';
 import { requireSession } from '#src/server/auth/next-session.ts';
 import { createEntry, deleteEntry, updateEntry } from '#src/server/services/entries.ts';
 import type { FormState } from '#src/ui/view-models/forms.ts';
-import { field, formObject, projectExists, projectGone, revalidateProject, toFormState } from './support.ts';
+import { entryListFields, field, formObject, projectExists, projectGone, revalidateProject, toFormState } from './support.ts';
 
 export async function createEntryAction(projectId: string, _previous: FormState, formData: FormData): Promise<FormState> {
   await requireSession();
   if (!(await projectExists(projectId))) {
     return projectGone;
   }
-  const result = await createEntry(appPullRequestDeps(), projectId, formObject(formData, ['personIds']));
+  const result = await createEntry(appPullRequestDeps(), projectId, formObject(formData, entryListFields));
   if (result.ok) {
     revalidateProject(projectId);
   }
@@ -21,7 +21,7 @@ export async function createEntryAction(projectId: string, _previous: FormState,
 
 export async function updateEntryAction(projectId: string, entryId: string, _previous: FormState, formData: FormData): Promise<FormState> {
   await requireSession();
-  const result = await updateEntry(appPullRequestDeps(), projectId, entryId, formObject(formData, ['personIds']));
+  const result = await updateEntry(appPullRequestDeps(), projectId, entryId, formObject(formData, entryListFields));
   if (!result.ok) {
     return toFormState(result, formData, null);
   }

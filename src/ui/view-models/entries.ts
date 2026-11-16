@@ -45,7 +45,21 @@ export type LogDayVM = { readonly date: string; readonly label: string; readonly
 
 export type LogVM = {
   readonly days: readonly LogDayVM[];
-  readonly filters: { readonly areaId: string; readonly personId: string; readonly pullRequestId: string; readonly issueId: string; readonly planItemId: string };
+  readonly filters: {
+    readonly areaId: string;
+    readonly personId: string;
+    readonly pullRequestId: string;
+    readonly issueId: string;
+    readonly planItemId: string;
+    /** Search words. */
+    readonly q: string;
+  };
+  /** The entry shown in full beside the list: the one asked for, else the newest. */
+  readonly selected: EntryVM | null;
+  /** True when the URL named the entry (on a phone the detail then comes first). */
+  readonly isSelectionExplicit: boolean;
+  /** The current filters and page as a query string, kept when an entry is picked. */
+  readonly listQuery: string;
   readonly isFiltered: boolean;
   /** Query string for the next page, or null at the end. */
   readonly nextPageQuery: string | null;

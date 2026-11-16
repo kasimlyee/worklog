@@ -200,42 +200,60 @@ describe('plans', () => {
 });
 
 describe('log', () => {
-  it('BR-18: groups entries by day, newest first, labelling weekend work', () => {
-    render(<LogScreen projectId={f.projectId} vm={f.log} pickers={f.pickers} createEntry={formAction} today={f.today} />);
+  it('BR-18: lists entries by day, newest first, labelling weekend work', () => {
+    render(<LogScreen projectId={f.projectId} vm={f.log} pickers={f.pickers} />);
 
-    expect(screen.getAllByRole('heading', { level: 3 }).map((h) => h.textContent)).toEqual([
+    const list = screen.getByRole('navigation', { name: 'Entries by day' });
+    expect(within(list).getAllByRole('heading', { level: 2 }).map((h) => h.textContent)).toEqual([
       'Tuesday 10 Nov 2026',
       'Sunday 8 Nov 2026Weekend',
       'Friday 6 Nov 2026',
     ]);
-    expect(screen.getByRole('link', { name: 'Older entries' })).toBeDefined();
+    expect(within(list).getByRole('link', { name: 'Older entries' })).toBeDefined();
     expectHeadingOrder();
   });
 
-  it('BR-17: shows PR state, people, plan item and issue for an entry; long text wraps', () => {
-    render(<LogScreen projectId={f.projectId} vm={f.log} pickers={f.pickers} createEntry={formAction} today={f.today} />);
+  it('option B: each entry in the list links to itself, keeping filters; the picked one is marked and shown in full', () => {
+    render(<LogScreen projectId={f.projectId} vm={{ ...f.log, listQuery: 'areaId=a1' }} pickers={f.pickers} />);
 
-    expect(screen.getByText('Ali, Grace')).toBeDefined();
-    expect(screen.getByRole('link', { name: 'Ship login' }).getAttribute('href')).toBe(`/projects/${f.projectId}/plans/items/i1`);
+    const list = screen.getByRole('navigation', { name: 'Entries by day' });
+    const picked = within(list).getByRole('link', { current: true });
+    expect(picked.getAttribute('href')).toBe(`/projects/${f.projectId}/log?areaId=a1&entry=e2`);
+    expect(picked.textContent).toContain('Hotfix for the payment webhook');
+    expect(picked.textContent).toContain('1 change');
+    const detail = screen.getByRole('article');
+    expect(within(detail).getByRole('heading', { level: 2 }).textContent).toBe('Hotfix for the payment webhook');
+    expect(within(detail).getByRole('link', { name: 'Edit entry: Hotfix for the payment webhook' }).getAttribute('href')).toBe(`/projects/${f.projectId}/log/e2/edit`);
+  });
+
+  it('BR-44: the picked entry shows What / Why / Change — words that fit fixes and new features alike', () => {
+    render(<LogScreen projectId={f.projectId} vm={f.log} pickers={f.pickers} />);
+
+    const table = screen.getByRole('table', { name: 'What changed and why' });
+    expect(within(table).getAllByRole('columnheader').map((h) => h.textContent)).toEqual(['What', 'Why', 'Change']);
+    expect(within(table).getByText('Images were decoded at full size')).toBeDefined();
+    expect(within(table).getByText('Decode thumbnails, upload originals in the background')).toBeDefined();
     expect(screen.getByRole('link', { name: 'Crash on save' }).getAttribute('href')).toBe(`/projects/${f.projectId}/issues/s1`);
-    expect(tagsIn(document.body)).toEqual(expect.arrayContaining(['success:Merged', 'danger:Closed']));
-    expect(screen.getByText(f.longText)).toBeDefined();
+    expect(tagsIn(screen.getByRole('article'))).toContain('success:Fixed');
   });
 
-  it('BR-44…BR-46: an entry shows every PR, what it fixed or finished, and the issue notes', () => {
-    render(<LogScreen projectId={f.projectId} vm={f.log} pickers={f.pickers} createEntry={formAction} today={f.today} />);
+  it('BR-17, BR-45, BR-46: a picked entry shows every PR with its state and the plan items it finished', () => {
+    const login = f.log.days[0]?.entries[0] ?? null;
+    render(<LogScreen projectId={f.projectId} vm={{ ...f.log, selected: login }} pickers={f.pickers} />);
 
-    expect(screen.getByRole('link', { name: /#12 Add login/ })).toBeDefined();
-    expect(screen.getByRole('link', { name: /#40 Session endpoint/ })).toBeDefined();
-    expect(tagsIn(document.body)).toEqual(expect.arrayContaining(['success:Fixed', 'success:Finished']));
-    expect(screen.getByText('Images were decoded at full size')).toBeDefined();
-    expect(screen.getByText('Decode thumbnails, upload originals in the background')).toBeDefined();
+    const detail = screen.getByRole('article');
+    expect(within(detail).getByRole('link', { name: /#12 Add login/ })).toBeDefined();
+    expect(within(detail).getByRole('link', { name: /#40 Session endpoint/ })).toBeDefined();
+    expect(within(detail).getByRole('link', { name: 'Ship login' }).getAttribute('href')).toBe(`/projects/${f.projectId}/plans/items/i1`);
+    expect(tagsIn(detail)).toEqual(expect.arrayContaining(['success:Merged', 'success:Finished']));
+    expect(within(detail).getByText('Ali, Grace')).toBeDefined();
   });
 
-  it('filters by area, person and PR, and shows the filtered empty state', () => {
-    render(<LogScreen projectId={f.projectId} vm={f.emptyLog} pickers={f.pickers} createEntry={formAction} today={f.today} />);
+  it('searches and filters by area, person and PR, and shows the filtered empty state', () => {
+    render(<LogScreen projectId={f.projectId} vm={f.emptyLog} pickers={f.pickers} />);
 
     const filters = screen.getByRole('form', { name: 'Filter entries' });
+    expect(within(filters).getByLabelText<HTMLInputElement>('Search').value).toBe('nothing here');
     expect(within(filters).getByLabelText<HTMLSelectElement>('Area').value).toBe('a1');
     expect(within(filters).getByLabelText('Person')).toBeDefined();
     expect(within(filters).getByLabelText('Pull request')).toBeDefined();
