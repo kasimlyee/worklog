@@ -1,7 +1,7 @@
 import 'server-only';
 import type { Db } from '#src/server/db/client.ts';
 import type { ReportKind } from '#src/server/db/types.ts';
-import { addDays, type IsoDate } from '#src/server/domain/calendar.ts';
+import { addDays, monthStart, weekStart, type IsoDate } from '#src/server/domain/calendar.ts';
 import { reportRange } from '#src/server/domain/report-periods.ts';
 import { overdueCutoff } from '#src/server/domain/deadlines.ts';
 import { selectEntries, type EntryRow } from '#src/server/repositories/entries.ts';
@@ -40,14 +40,21 @@ export type ReportRequestData = {
   readonly author: string;
 };
 
+/** BR-49: a day also answers for the week and month items due that day; a week for the month's. */
 function planScopes(kind: ReportKind, start: IsoDate): readonly PlanScope[] {
+  const range = reportRange(kind, start);
   switch (kind) {
     case 'daily':
-      return [{ horizon: 'day', from: start, to: start }];
+      return [
+        { horizon: 'day', from: start, to: start },
+        { horizon: 'week', from: weekStart(start), to: weekStart(start), due: range },
+        { horizon: 'month', from: monthStart(start), to: monthStart(start), due: range },
+      ];
     case 'weekly':
       return [
         { horizon: 'week', from: start, to: start },
         { horizon: 'day', from: start, to: addDays(start, 4) },
+        { horizon: 'month', from: monthStart(range.from), to: monthStart(range.to), due: range },
       ];
     case 'monthly':
       return [{ horizon: 'month', from: start, to: start }];

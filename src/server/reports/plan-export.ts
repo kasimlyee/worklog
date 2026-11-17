@@ -153,7 +153,8 @@ function weekly(data: PlanExportData): Pick<ReportModel, 'sections' | 'panels'> 
       data.items,
       Array.from({ length: 7 }, (_, index) => addDays(data.start, index)).map((day) => ({
         label: formatShortDate(day),
-        items: deliverables.filter((item) => item.dueDate === day),
+        // BR-49: everything due that day, the week's goals included.
+        items: data.items.filter((item) => item.dueDate === day),
       })),
       'By day',
     ),

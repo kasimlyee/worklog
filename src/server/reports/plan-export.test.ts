@@ -56,7 +56,7 @@ describe('plan export', () => {
     ]);
     expect(model.panels).toEqual([
       { title: 'By area', items: ['Nestly: 2 items, 1 done', 'Roofs: 2 items, 0 done'] },
-      { title: 'By day', items: ['Mon 16 Nov: 1 item, 1 done', 'Tue 17 Nov: 1 item, 0 done', 'Sat 21 Nov: 1 item, 0 done'] },
+      { title: 'By day', items: ['Mon 16 Nov: 1 item, 1 done', 'Tue 17 Nov: 1 item, 0 done', 'Fri 20 Nov: 1 item, 0 done', 'Sat 21 Nov: 1 item, 0 done'] },
     ]);
     const goals = model.sections[1]?.groups[0]?.lines ?? [];
     expect(goals.map((l) => [l.text, l.cells?.map((c) => c.text), l.tags[0]?.label])).toEqual([['Broker acquisition', ['Nestly', 'Fri 20 Nov'], 'In progress']]);

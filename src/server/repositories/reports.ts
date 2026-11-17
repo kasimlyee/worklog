@@ -5,7 +5,13 @@ import type { IssuePriority, PlanHorizon, PlanItemStatus } from '#src/server/db/
 import type { IsoDate } from '#src/server/domain/calendar.ts';
 import type { NamedRef } from './entries.ts';
 
-export type PlanScope = { readonly horizon: PlanHorizon; readonly from: IsoDate; readonly to: IsoDate };
+/** Plans of one horizon starting in [from, to]; with `due`, only their items due in that range (BR-49). */
+export type PlanScope = {
+  readonly horizon: PlanHorizon;
+  readonly from: IsoDate;
+  readonly to: IsoDate;
+  readonly due?: { readonly from: IsoDate; readonly to: IsoDate };
+};
 
 export type ReportPlanItemRow = {
   readonly id: string;
@@ -64,7 +70,12 @@ export async function selectReportPlanItems(db: Db, projectId: string, query: It
             project,
             eb.or(
               query.scopes.map((scope) =>
-                eb.and([eb('p.horizon', '=', scope.horizon), eb('p.periodStart', '>=', scope.from), eb('p.periodStart', '<=', scope.to)]),
+                eb.and([
+                  eb('p.horizon', '=', scope.horizon),
+                  eb('p.periodStart', '>=', scope.from),
+                  eb('p.periodStart', '<=', scope.to),
+                  ...(scope.due === undefined ? [] : [eb('pi.dueDate', '>=', scope.due.from), eb('pi.dueDate', '<=', scope.due.to)]),
+                ]),
               ),
             ),
           ]);
@@ -105,7 +116,12 @@ export async function selectReportMoves(db: Db, projectId: string, scopes: reado
     .where((eb) =>
       eb.or(
         scopes.map((scope) =>
-          eb.and([eb('p.horizon', '=', scope.horizon), eb('p.periodStart', '>=', scope.from), eb('p.periodStart', '<=', scope.to)]),
+          eb.and([
+            eb('p.horizon', '=', scope.horizon),
+            eb('p.periodStart', '>=', scope.from),
+            eb('p.periodStart', '<=', scope.to),
+            ...(scope.due === undefined ? [] : [eb('m.fromDue', '>=', scope.due.from), eb('m.fromDue', '<=', scope.due.to)]),
+          ]),
         ),
       ),
     )

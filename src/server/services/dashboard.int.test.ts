@@ -67,6 +67,20 @@ describe('dashboard', () => {
     expect((await getDashboard(testDb(), project.id, d('2026-11-14'))).todaysPlan).toBeNull();
   });
 
+  it('BR-49: today’s plan also holds the week and month items due today, day items first', async () => {
+    const project = await aProject(testDb());
+    const week = await aPlan(testDb(), project.id, { horizon: 'week', periodStart: '2026-11-09' });
+    const month = await aPlan(testDb(), project.id, { horizon: 'month', periodStart: '2026-11-01' });
+    await aPlanItem(testDb(), week, { title: 'Week goal', dueDate: '2026-11-10', status: 'done', completedOn: '2026-11-10' });
+    await aPlanItem(testDb(), month, { title: 'Month goal', dueDate: '2026-11-10' });
+    await aPlanItem(testDb(), week, { title: 'Due tomorrow', dueDate: '2026-11-11' });
+    await aPlanItem(testDb(), await aPlan(testDb(), project.id, { horizon: 'day', periodStart: '2026-11-10' }), { title: 'Standup notes' });
+
+    const plan = (await getDashboard(testDb(), project.id, tuesday)).todaysPlan ?? [];
+    expect(plan[0]?.title).toBe('Standup notes');
+    expect(plan.map((i) => i.title).sort()).toEqual(['Month goal', 'Standup notes', 'Week goal']);
+  });
+
   it('lists open issues by deadline and the five most recent entries', async () => {
     const project = await aProject(testDb());
     await anIssue(testDb(), project.id, { title: 'b', deadline: '2026-11-20' });

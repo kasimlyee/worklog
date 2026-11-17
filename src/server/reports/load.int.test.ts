@@ -71,6 +71,23 @@ describe('report loading', () => {
     expect(data?.moves).toEqual([{ title: 'moved item', fromDue: '2026-11-10', toDue: '2026-11-16' }]);
   });
 
+  it('BR-49: a daily report counts the week and month items due that day; a weekly one the month items due that week', async () => {
+    const project = await aProject(testDb());
+    const week = await aPlan(testDb(), project.id, { horizon: 'week', periodStart: '2026-11-09' });
+    const month = await aPlan(testDb(), project.id, { horizon: 'month', periodStart: '2026-11-01' });
+    await aPlanItem(testDb(), await aPlan(testDb(), project.id, { horizon: 'day', periodStart: '2026-11-10' }), { title: 'day item' });
+    await aPlanItem(testDb(), week, { title: 'week goal Tuesday', dueDate: '2026-11-10' });
+    await aPlanItem(testDb(), week, { title: 'week goal Friday', dueDate: '2026-11-13' });
+    await aPlanItem(testDb(), month, { title: 'month goal Tuesday', dueDate: '2026-11-10' });
+    await aPlanItem(testDb(), month, { title: 'month goal later', dueDate: '2026-11-24' });
+
+    const daily = await loadReportData(testDb(), { projectId: project.id, kind: 'daily', start: d('2026-11-10'), today, author: 'K' });
+    expect(daily?.planItems.map((i) => i.title).sort()).toEqual(['day item', 'month goal Tuesday', 'week goal Tuesday']);
+
+    const weekly = await loadReportData(testDb(), { projectId: project.id, kind: 'weekly', start: d('2026-11-09'), today, author: 'K' });
+    expect(weekly?.planItems.map((i) => i.title).sort()).toEqual(['day item', 'month goal Tuesday', 'week goal Friday', 'week goal Tuesday']);
+  });
+
   it('§7.4: a monthly report also loads issues opened in the month and every issue still open, with the PR that resolved one', async () => {
     const project = await aProject(testDb());
     const pr = await aPullRequest(testDb(), project.id, { number: 12, title: 'Add login', state: 'merged' });

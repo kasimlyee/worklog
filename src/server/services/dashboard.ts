@@ -32,7 +32,10 @@ export type Dashboard = {
   /** Overdue plan items and issues, oldest first. */
   readonly urgent: readonly DashboardItem[];
   readonly dueSoon: readonly DashboardItem[];
-  /** Today's day plan; `null` on a weekend, when there is no day plan. */
+  /**
+   * Today's day plan, then (BR-49) the week and month plan items due today;
+   * `null` on a weekend, when there is no day plan.
+   */
   readonly todaysPlan: readonly PlanItem[] | null;
   readonly openIssues: readonly Issue[];
   readonly recentEntries: readonly Entry[];
@@ -51,7 +54,7 @@ export async function getDashboard(db: Db, projectId: string, today: IsoDate): P
   const [soonItems, openIssueRows, todayRows, entryRows, loggedThisWeek] = await Promise.all([
     selectPlanItems(db, projectId, { openDueOnOrBefore: nextWorkingDay(today) }),
     selectIssues(db, projectId, { openOnly: true }),
-    isWorkingDay(today) ? selectPlanItems(db, projectId, { plan: { horizon: 'day', periodStart: today } }) : Promise.resolve(null),
+    isWorkingDay(today) ? selectPlanItems(db, projectId, { dueBetween: { from: today, to: today } }) : Promise.resolve(null),
     selectEntries(db, projectId, { limit: recentEntryCount }),
     countEntries(db, projectId, weekStart(today), today),
   ]);
@@ -68,7 +71,8 @@ export async function getDashboard(db: Db, projectId: string, today: IsoDate): P
   return {
     urgent: tracked.filter(isUrgent),
     dueSoon: tracked.filter((entry) => !isUrgent(entry) && stateOf(entry) === 'due_soon'),
-    todaysPlan: todayRows === null ? null : todayRows.map((row) => toPlanItem(row, today)),
+    // The day plan's own items first.
+    todaysPlan: todayRows === null ? null : [...todayRows].sort((a, b) => Number(a.horizon !== 'day') - Number(b.horizon !== 'day')).map((row) => toPlanItem(row, today)),
     openIssues,
     recentEntries: entryRows.map(toEntry),
     loggedThisWeek,
