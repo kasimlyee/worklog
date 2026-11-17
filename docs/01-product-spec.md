@@ -141,6 +141,7 @@ These are deliberate. A feature request that falls here needs this document chan
 - **BR-46** A log entry may link **several pull requests** (up to five; one link per line) — the same work often spans a front-end and a back-end PR. Reports list the entry under each of its PRs.
 - **BR-47** A **week or month plan can be exported** as PDF or Markdown from the Plans screen, laid out like the reports. A week covers Monday to Sunday: a summary of item statuses, the week plan by area, then every other item day by day (weekend items from the month plan included). A month: a summary, the month plan by area, then each week — its week plan first, then its day items. Each item shows its status, area and assignees. An empty period says "Nothing planned for this period."
 - **BR-48** A plan item may have a **description** (optional, plain text, at most 2,000 characters, line breaks kept): what the item means or what done looks like. It shows under the title in plan lists (shortened), in full on the item's page, and in plan exports. Planning an issue for today (BR-38) copies the issue's description.
+- **BR-49** A day plan also shows the items of the week and month plans **due that day**, and a week plan the month plan's items due that week, each under "Also due from the week/month plan". They stay in their own plan; this only shows them.
 
 ### 4.7 Releases and notes
 

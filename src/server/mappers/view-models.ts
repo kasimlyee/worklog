@@ -129,6 +129,12 @@ export function toPlansVM(plan: PlanView | null, horizon: Horizon, start: IsoDat
             items: (plan?.items ?? []).filter((item) => item.dueDate === date).map((item) => toPlanItemVM(item, timeZone)),
           }))
         : null,
+    alsoDue: (['week', 'month'] as const)
+      .map((source) => ({
+        heading: `Also due from the ${source} plan`,
+        items: (plan?.alsoDue ?? []).filter((item) => item.horizon === source).map((item) => toPlanItemVM(item, timeZone)),
+      }))
+      .filter((group) => group.items.length > 0),
     exports: [
       { kind: 'weekly', start: weekStart(period.start), label: periodLabel('week', weekStart(period.start)) },
       { kind: 'monthly', start: monthStart(period.start), label: periodLabel('month', monthStart(period.start)) },

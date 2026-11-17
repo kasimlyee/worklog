@@ -46,6 +46,8 @@ export type PlansVM = {
   readonly items: readonly PlanItemVM[];
   /** Week plans: the items under each day, Monday to Friday (empty days included). */
   readonly days: readonly { readonly date: string; readonly label: string; readonly items: readonly PlanItemVM[] }[] | null;
+  /** BR-49: items of the longer plans due in this period, one group per plan. */
+  readonly alsoDue: readonly { readonly heading: string; readonly items: readonly PlanItemVM[] }[];
   /** BR-47: the week and the month around this period, to download as a file. */
   readonly exports: readonly { readonly kind: 'weekly' | 'monthly'; readonly start: string; readonly label: string }[];
 };

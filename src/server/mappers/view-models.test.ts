@@ -211,7 +211,7 @@ describe('view-model mappers', () => {
 describe('plans screen', () => {
   it('BR-08: a week plan with navigation and a default due date of today', () => {
     const vm = toPlansVM(
-      { horizon: 'week', period: { start: d('2026-11-09'), end: d('2026-11-13') }, label: 'Week of 9–13 Nov 2026', items: [planItem] },
+      { horizon: 'week', period: { start: d('2026-11-09'), end: d('2026-11-13') }, label: 'Week of 9–13 Nov 2026', items: [planItem], alsoDue: [] },
       'week',
       d('2026-11-09'),
       d('2026-11-10'),

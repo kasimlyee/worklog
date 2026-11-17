@@ -322,8 +322,31 @@ describe('plan view', () => {
       period: { start: '2026-11-09', end: '2026-11-13' },
       label: 'Week of 9–13 Nov 2026',
       items: [],
+      alsoDue: [],
     });
     expect(await getPlan(testDb(), project.id, 'day', d('2026-11-14'), today)).toBeNull();
+  });
+
+  it('BR-49: a day shows week and month items due that day; a week shows month items due that week', async () => {
+    const project = await aProject(testDb());
+    const day = await aPlan(testDb(), project.id, { horizon: 'day', periodStart: '2026-11-10' });
+    const week = await aPlan(testDb(), project.id, { horizon: 'week', periodStart: '2026-11-09' });
+    const month = await aPlan(testDb(), project.id, { horizon: 'month', periodStart: '2026-11-01' });
+    const own = await aPlanItem(testDb(), day, { title: 'Day item' });
+    await aPlanItem(testDb(), week, { title: 'Week, Tuesday', dueDate: '2026-11-10' });
+    await aPlanItem(testDb(), week, { title: 'Week, Wednesday', dueDate: '2026-11-11' });
+    await aPlanItem(testDb(), month, { title: 'Month, Tuesday', dueDate: '2026-11-10' });
+    await aPlanItem(testDb(), month, { title: 'Month, next week', dueDate: '2026-11-17' });
+
+    const dayView = await getPlan(testDb(), project.id, 'day', d('2026-11-10'), today);
+    expect(dayView?.items.map((item) => item.id)).toEqual([own.id]);
+    expect(dayView?.alsoDue.map((item) => item.title).sort()).toEqual(['Month, Tuesday', 'Week, Tuesday']);
+
+    const weekView = await getPlan(testDb(), project.id, 'week', d('2026-11-10'), today);
+    // The day item is not repeated in the week; only the month's items due this week are.
+    expect(weekView?.alsoDue.map((item) => item.title)).toEqual(['Month, Tuesday']);
+
+    expect((await getPlan(testDb(), project.id, 'month', d('2026-11-10'), today))?.alsoDue).toEqual([]);
   });
 
   it('BR-36: deletes an item', async () => {

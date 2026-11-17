@@ -185,6 +185,14 @@ describe('plans', () => {
     expect(screen.getByText('Email and password sign-in, with a session that survives a restart.')).toBeDefined();
   });
 
+  it('BR-49: a day plan lists the week plan items due that day under their own heading', () => {
+    render(<PlansScreen projectId={f.projectId} vm={f.dayPlanWithWeekItems} pickers={f.pickers} createItem={formAction} setStatus={plainAction} />);
+
+    expect(screen.getByRole('heading', { name: 'Also due from the week plan' })).toBeDefined();
+    expect(screen.getByRole('link', { name: 'Write release notes' })).toBeDefined();
+    expect(screen.getByText('Nothing on this plan itself.')).toBeDefined();
+  });
+
   it('BR-47: offers the week and the month plan as PDF or Markdown downloads', () => {
     render(<PlansScreen projectId={f.projectId} vm={f.plans} pickers={f.pickers} createItem={formAction} setStatus={plainAction} />);
 

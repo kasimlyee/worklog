@@ -103,7 +103,12 @@ export function PlansScreen({
       </div>
       <Section title={vm.label}>
         {vm.days === null ? (
-          <PlanItemList items={vm.items} projectId={projectId} setStatus={setStatus} empty="Nothing planned for this period yet." />
+          <PlanItemList
+            items={vm.items}
+            projectId={projectId}
+            setStatus={setStatus}
+            empty={vm.alsoDue.length > 0 ? 'Nothing on this plan itself.' : 'Nothing planned for this period yet.'}
+          />
         ) : (
           // Week plans read day by day, Monday to Friday.
           vm.days.map((day) => (
@@ -117,6 +122,13 @@ export function PlansScreen({
             </div>
           ))
         )}
+        {/* BR-49: what the longer plans have due in this period. */}
+        {vm.alsoDue.map((group) => (
+          <div key={group.heading} className={styles.weekDay}>
+            <h3 className={styles.weekDayHeading}>{group.heading}</h3>
+            <PlanItemList items={group.items} projectId={projectId} setStatus={setStatus} />
+          </div>
+        ))}
       </Section>
       <Section title="Add to this plan">
         {vm.canAdd ? (

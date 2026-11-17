@@ -316,6 +316,7 @@ export const plans: PlansVM = {
     { kind: 'weekly', start: '2026-11-09', label: 'Week of 9–13 Nov 2026' },
     { kind: 'monthly', start: '2026-11-01', label: 'November 2026' },
   ],
+  alsoDue: [],
   days: [
     { date: '2026-11-09', label: 'Monday 9 Nov 2026', items: [billing] },
     { date: '2026-11-10', label: 'Tuesday 10 Nov 2026', items: [releaseNotes] },
@@ -334,6 +335,18 @@ export const weekendDayPlan: PlansVM = {
   canAdd: false,
   items: [],
   days: null,
+};
+
+/** BR-49: a day with nothing of its own, but a week-plan item due that day. */
+export const dayPlanWithWeekItems: PlansVM = {
+  ...plans,
+  horizon: 'day',
+  label: 'Tuesday 10 Nov 2026',
+  periodStart: '2026-11-10',
+  periodEnd: '2026-11-10',
+  items: [],
+  days: null,
+  alsoDue: [{ heading: 'Also due from the week plan', items: [releaseNotes] }],
 };
 
 export const planItemDetail: PlanItemDetailVM = {

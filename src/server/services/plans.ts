@@ -41,7 +41,14 @@ export type PlanView = {
   readonly period: Period;
   readonly label: string;
   readonly items: readonly PlanItem[];
+  /**
+   * BR-49: items of longer plans (the week and month around a day, the month around a week)
+   * due inside this period, so a day shows everything due that day.
+   */
+  readonly alsoDue: readonly PlanItem[];
 };
+
+const horizonRank: Readonly<Record<Horizon, number>> = { day: 0, week: 1, month: 2 };
 
 export function toPlanItem(row: PlanItemRow, today: IsoDate): PlanItem {
   return {
@@ -70,12 +77,17 @@ export async function getPlan(db: Db, projectId: string, horizon: Horizon, date:
     return null;
   }
   const plan = await selectPlan(db, projectId, horizon, start.value);
-  const rows = plan === undefined ? [] : await selectPlanItems(db, projectId, { planIds: [plan.id] });
+  const period = planPeriod(horizon, start.value);
+  const [rows, dueRows] = await Promise.all([
+    plan === undefined ? [] : selectPlanItems(db, projectId, { planIds: [plan.id] }),
+    horizon === 'month' ? [] : selectPlanItems(db, projectId, { dueBetween: { from: period.start, to: period.end } }),
+  ]);
   return {
     horizon,
-    period: planPeriod(horizon, start.value),
+    period,
     label: periodLabel(horizon, start.value),
     items: rows.map((row) => toPlanItem(row, today)),
+    alsoDue: dueRows.filter((row) => horizonRank[row.horizon] > horizonRank[horizon]).map((row) => toPlanItem(row, today)),
   };
 }
 
