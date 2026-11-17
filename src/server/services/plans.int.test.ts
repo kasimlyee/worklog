@@ -8,6 +8,7 @@ import {
 } from './plans.ts';
 import type { Kysely } from 'kysely';
 import * as planItemDescription from '#src/server/db/migrations/0007_plan_item_description.ts';
+import * as finishItemsOfFixedIssues from '#src/server/db/migrations/0008_finish_items_of_fixed_issues.ts';
 import { prDeps } from '#tests/fixtures/github.ts';
 import { createEntry } from './entries.ts';
 
@@ -86,6 +87,24 @@ describe('plan items', () => {
       ['Drafts (admin)', 'List listings still in draft'],
       ['Review PRs', ''],
       ['Old — new', 'Already described'],
+    ]);
+  });
+
+  it('BR-50: the migration finishes items whose issue was already fixed, on the day it was fixed', async () => {
+    const project = await aProject(testDb());
+    const plan = await aPlan(testDb(), project.id);
+    const fixed = await anIssue(testDb(), project.id, { status: 'resolved', resolvedOn: '2026-11-12' });
+    const open = await anIssue(testDb(), project.id);
+    const stale = await aPlanItem(testDb(), plan, { issueId: fixed.id, status: 'in_progress' });
+    const untouched = await aPlanItem(testDb(), plan, { issueId: open.id });
+
+    await finishItemsOfFixedIssues.up(testDb() as unknown as Kysely<unknown>);
+
+    const rows = await testDb().selectFrom('planItems').select(['id', 'status', 'completedOn']).where('id', 'in', [stale.id, untouched.id]).execute();
+    const byId = new Map(rows.map((row) => [row.id, [row.status, row.completedOn]]));
+    expect([byId.get(stale.id), byId.get(untouched.id)]).toEqual([
+      ['done', '2026-11-12'],
+      ['planned', null],
     ]);
   });
 

@@ -82,6 +82,35 @@ describe('entries', () => {
     });
   });
 
+  it('BR-50: fixing an issue finishes the open plan items working on it, on the work date', async () => {
+    const { project, grace } = await setup();
+    const bug = await anIssue(testDb(), project.id, { title: 'Calendar empty' });
+    const unfixed = await anIssue(testDb(), project.id, { title: 'Still open' });
+    const plan = await aPlan(testDb(), project.id);
+    const today = await aPlanItem(testDb(), plan, { title: 'Calendar empty', issueId: bug.id });
+    const earlier = await aPlanItem(testDb(), plan, { title: 'Done before', issueId: bug.id, status: 'done', completedOn: '2026-11-09' });
+    const other = await aPlanItem(testDb(), plan, { title: 'Still open', issueId: unfixed.id });
+
+    const created = await createEntry(prDeps(testDb()), project.id, {
+      workDate: '2026-11-10',
+      description: 'Calendar shows new bookings',
+      personIds: [grace.id],
+      issueIds: [bug.id, unfixed.id],
+      [`issue.${bug.id}.fix`]: 'Count new bookings',
+      [`issue.${bug.id}.resolves`]: 'on',
+      [`issue.${unfixed.id}.cause`]: 'Looked into it',
+    });
+
+    expect(created.ok).toBe(true);
+    const rows = await testDb().selectFrom('planItems').select(['id', 'status', 'completedOn']).where('id', 'in', [today.id, earlier.id, other.id]).execute();
+    const byId = new Map(rows.map((row) => [row.id, [row.status, row.completedOn]]));
+    expect([byId.get(today.id), byId.get(earlier.id), byId.get(other.id)]).toEqual([
+      ['done', '2026-11-10'],
+      ['done', '2026-11-09'],
+      ['planned', null],
+    ]);
+  });
+
   it('BR-44: closing an issue needs the fix; each note is at most 1000 characters', async () => {
     const { project, grace } = await setup();
     const crash = await anIssue(testDb(), project.id);

@@ -255,6 +255,17 @@ export async function completePlanItemIfOpen(
     .executeTakeFirst();
 }
 
+/** BR-50: finishes every open plan item working on the issue. Call inside a transaction. */
+export async function completeIssuePlanItems(db: Db, projectId: string, issueId: string, completedOn: IsoDate): Promise<void> {
+  await db
+    .updateTable('planItems')
+    .set({ status: 'done', completedOn, updatedAt: new Date() })
+    .where('issueId', '=', issueId)
+    .where('projectId', '=', projectId)
+    .where('status', '<>', 'done')
+    .execute();
+}
+
 /** BR-15: new due date, new plan, and a history row. Call inside a transaction. */
 export async function moveItem(
   db: Db,

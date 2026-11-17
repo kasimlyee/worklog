@@ -7,7 +7,7 @@ import {
   deleteEntryRow, insertEntry, selectEntries, updateEntryRow,
   type EntryIssueRow, type EntryLinks, type EntryPlanItemRow, type EntryRow, type EntryValues, type IssueLink, type NamedRef, type PlanItemLink,
 } from '#src/server/repositories/entries.ts';
-import { completePlanItemIfOpen } from '#src/server/repositories/plans.ts';
+import { completeIssuePlanItems, completePlanItemIfOpen } from '#src/server/repositories/plans.ts';
 import { resolveIssueIfOpen } from '#src/server/repositories/issues.ts';
 import { invalid, notFound, parseInput, type ServiceResult } from './errors.ts';
 import { idList, isUuid, optionalId, optionalText, requiredDate, requiredText } from './fields.ts';
@@ -151,6 +151,8 @@ async function applyClosures(db: Db, projectId: string, values: EntryValues, lin
   for (const link of links.issues) {
     if (link.resolves) {
       await resolveIssueIfOpen(db, projectId, link.issueId, values.workDate, byPr);
+      // BR-50: the plan items working on it are finished with it.
+      await completeIssuePlanItems(db, projectId, link.issueId, values.workDate);
     }
   }
   for (const link of links.planItems) {
