@@ -69,7 +69,7 @@ test('BR-31: resolving after the deadline is red and says how late', async ({ si
   await expect(page.getByRole('button', { name: 'Mark in progress' })).toBeVisible();
 });
 
-test('BR-44: closing an issue from the log needs the fix', async ({ signedIn: page }) => {
+test('BR-44: closing an issue from the log needs only the tick; the fix is optional', async ({ signedIn: page }) => {
   const { projectId } = await seedProject();
   const today = appToday();
   await createIssue(page, projectId, 'Typo on pricing', today, addDays(today, 7));
@@ -84,11 +84,6 @@ test('BR-44: closing an issue from the log needs the fix', async ({ signedIn: pa
   await form.getByLabel('Grace').check();
   await form.getByRole('button', { name: 'Log work' }).click();
 
-  await expect(form.getByRole('alert')).toContainText('Say what the fix was before closing the issue.');
-  // The ticks are kept, so filling in the fix is all that is left.
-  await expect(form.getByLabel(/This fixes it — Typo on pricing/)).toBeChecked();
-  await form.getByLabel('Fix — Typo on pricing').fill('Corrected the copy');
-  await form.getByRole('button', { name: 'Log work' }).click();
   await expect(form.getByRole('status')).toHaveText('Work logged.');
   await page.reload();
   await expect(page.locator('[data-tone="success"]').filter({ hasText: 'Resolved on time' }).first()).toBeVisible();

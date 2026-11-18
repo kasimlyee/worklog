@@ -104,10 +104,6 @@ async function validateEntry(deps: PullRequestDeps, projectId: string, input: un
       }
       continue;
     }
-    // BR-44: an issue is only closed with an account of the fix.
-    if (detail.data.resolves && detail.data.fix === '') {
-      errors[issueField(issueId, 'fix')] = 'Say what the fix was before closing the issue.';
-    }
     issues.push({ issueId, ...detail.data });
   }
   const planItems: PlanItemLink[] = planItemIds.map((planItemId) => ({

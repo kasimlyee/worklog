@@ -121,7 +121,7 @@ describe('QuickLog', () => {
     const action = returning({
       status: 'error',
       message: 'Check the highlighted fields.',
-      fieldErrors: { 'issue.s1.fix': 'Say what the fix was before closing the issue.' },
+      fieldErrors: { 'issue.s1.fix': 'Fix must be at most 1000 characters.' },
       values: { description: 'x', issueIds: 's1', 'issue.s1.cause': 'Full-size decode', 'issue.s1.resolves': 'on' },
     });
     render(<QuickLog action={action} pickers={pickers} today={today} projectId="p-atlas" />);
@@ -130,7 +130,7 @@ describe('QuickLog', () => {
     await userEvent.keyboard('x');
     await userEvent.click(screen.getByRole('button', { name: 'Log work' }));
 
-    expect(await screen.findByText('Say what the fix was before closing the issue.', { selector: 'p' })).toBeDefined();
+    expect(await screen.findByText('Fix must be at most 1000 characters.', { selector: 'p' })).toBeDefined();
     expect(screen.getByLabelText<HTMLInputElement>('Crash on save').checked).toBe(true);
     expect(screen.getByLabelText<HTMLTextAreaElement>('Cause — Crash on save').value).toBe('Full-size decode');
     expect(screen.getByLabelText<HTMLInputElement>(/This fixes it — Crash on save/).checked).toBe(true);

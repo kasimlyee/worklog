@@ -111,7 +111,7 @@ describe('entries', () => {
     ]);
   });
 
-  it('BR-44: closing an issue needs the fix; each note is at most 1000 characters', async () => {
+  it('BR-44: each note is at most 1000 characters', async () => {
     const { project, grace } = await setup();
     const crash = await anIssue(testDb(), project.id);
 
@@ -130,11 +130,19 @@ describe('entries', () => {
         [`issue.${crash.id}.cause`]: 'Cause must be at most 1000 characters.',
       },
     });
+    expect(await testDb().selectFrom('entries').selectAll().execute()).toEqual([]);
+  });
+
+  it('BR-44: the Issue / Cause / Fix notes are optional — "This fixes it" alone closes the issue', async () => {
+    const { project, grace } = await setup();
+    const crash = await anIssue(testDb(), project.id);
+
     const noFix = await createEntry(prDeps(testDb()), project.id, {
       workDate: '2026-11-10', description: 'x', personIds: [grace.id], issueIds: [crash.id], [`issue.${crash.id}.resolves`]: 'on',
     });
-    expect(noFix.ok ? null : noFix.error).toEqual({ code: 'invalid', fieldErrors: { [`issue.${crash.id}.fix`]: 'Say what the fix was before closing the issue.' } });
-    expect(await testDb().selectFrom('entries').selectAll().execute()).toEqual([]);
+
+    expect(noFix.ok).toBe(true);
+    expect(await testDb().selectFrom('issues').select(['status', 'resolvedOn']).where('id', '=', crash.id).executeTakeFirstOrThrow()).toEqual({ status: 'resolved', resolvedOn: '2026-11-10' });
   });
 
   it('BR-45: a log finishes the plan items it says it finishes, as of the work date; BR-39 their issue resolves too', async () => {
